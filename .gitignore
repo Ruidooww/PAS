@@ -7,6 +7,15 @@ apikey.txt
 token.txt
 .env
 .env.*
+!.env.example
+
+# Node.js / pnpm
+node_modules/
+.pnpm-store/
+dist/
+.next/
+coverage/
+*.tsbuildinfo
 
 # Source material binaries (kept local for now)
 *.zip
