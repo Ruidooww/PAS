@@ -72,12 +72,19 @@
 | E5.2 生产部署 | [#21](https://github.com/Ruidooww/PAS/issues/21) | 🟢/⏸ #20 |
 | E5.3 反馈看板 | [#22](https://github.com/Ruidooww/PAS/issues/22) | 🟢/⏸ #10 |
 
-### 工程纪律 (任务书 §7)
+### 工程纪律 (任务书 §7) + 工装 (harness)
 
-| 子任务 | Issue | 状态 |
+工装 W1–W5 来自 `pas-harness-mindset` 心智：任何重复 3 次的操作都该工装化。
+
+| 项目 | Issue / PR | 状态 |
 |---|---|---|
 | §7-E3 Prompts 集中 + lint 禁内联 | [#23](https://github.com/Ruidooww/PAS/issues/23) | 🟢 |
 | §7-E4 关键参数集中配置 | [#24](https://github.com/Ruidooww/PAS/issues/24) | 🟢 |
+| **W1** RAGFlow 检索参数化回归套件（gate harness 升级） | [#27](https://github.com/Ruidooww/PAS/issues/27) | 🟢/⏸ #5 |
+| **W2** Client 契约测试套件 | (待开，#5 临近 PR 时) | — |
+| **W3** CI 加最小集成 smoke job | [#28](https://github.com/Ruidooww/PAS/issues/28) | 🟢/⏸ #5 |
+| **W4** GitHub Issue / PR templates | PR #29 | ✅ |
+| **W5** 引用真实性自动校验器 | (待开，#7 临近时) | — |
 
 ### v2 / 范围外
 
@@ -117,7 +124,7 @@ ADR-001 / ADR-002 (PR #2/#3) ─────────────────
 |---|---|---|
 | **0 (now)** | #4 | MCP/FastGPT 路径决策 |
 | **1** | #5, #6 | clients + auth 双线 |
-| **2** | #7, #8, #13, #23, #24 | E2 后端 / E1 ACL / E3 模板 / 工程纪律 |
+| **2** | #7, #8, #13, #23, #24, #27, #28 | E2 后端 / E1 ACL / E3 模板 / 工程纪律 / 工装 W1+W3 |
 | **3** | #9, #11, #12, #18 | E1 收尾 / QA 前端 / 需求结构化 / CRM 后端 |
 | **4** | #10, #14, #15, #25 | ACL 过滤 + 反馈 / 方案流水线 / CRUD / KB 同步 |
 | **5** | #16 | 导出 |
@@ -160,6 +167,7 @@ ADR-001 / ADR-002 (PR #2/#3) ─────────────────
 | `area:export` | 文档导出 |
 | `area:ops` | CI / 部署 / 运维 |
 | `area:devexp` | 工程规范 / 开发体验 |
+| `area:harness` | 工装 / 测试夹具 / 回归套件 |
 | `blocked` | 等前置 |
 
 ## 维护说明
