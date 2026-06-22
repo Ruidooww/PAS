@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "pnpm --filter @pas/shared build && pnpm --parallel --filter api --filter web dev",
     "build": "pnpm -r build",
-    "lint": "pnpm -r lint",
+    "lint": "pnpm --filter @pas/shared build && pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test"
   },
