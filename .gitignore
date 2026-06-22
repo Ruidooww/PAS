@@ -1,0 +1,21 @@
+# Local RAGFlow gate-test scaffolding (scripts, results, secrets, local paths) — not part of the spec repo
+ragflow-gate/
+
+# Secrets (never commit)
+*.key
+apikey.txt
+token.txt
+.env
+.env.*
+
+# Source material binaries (kept local for now)
+*.zip
+*.pdf
+
+# Python
+__pycache__/
+*.py[cod]
+
+# OS
+.DS_Store
+Thumbs.db
