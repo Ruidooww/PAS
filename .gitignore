@@ -8,6 +8,7 @@ token.txt
 .env
 .env.*
 !.env.example
+!infra/.env.fastgpt.example
 
 # Node.js / pnpm
 node_modules/
