@@ -66,6 +66,27 @@ RAGFlow 0.17+ 内置 MCP server（暴露 `list_datasets`、`retrieval` 等工具
 
 E3 是否走 MCP 还是 API KB（声明式、引用 UI 原生），等 MCP 最小验证跑通后再决定；**v2 Agent 一定走 MCP**。
 
+### FastGPT 在 MVP 用面 vs v2 用面（澄清）
+
+**接入 FastGPT ≠ 用上 FastGPT 全部能力**。MVP 只用其中一小部分；其余能力作为基础设施"埋桩"，v2 兑现红利。
+
+| FastGPT 能力 | MVP | v2 | 备注 |
+|---|---|---|---|
+| 工作流编排（Flow） | ✅ E3 章节循环 | — | 内部编排，业务用户不可见 |
+| MCP 双向接入 | ✅ 调 RAGFlow MCP | — | E3 章节检索 |
+| OpenAPI（completions） | ✅ `agentClient` 调用 | — | PAS BFF 入口 |
+| 应用日志 / 调用链路 trace | ✅ E5 评测复用 | — | 不自研 |
+| 应用评测体系 | ✅ E5 | — | 不自研 |
+| 智能客服 Agent（对外 7×24） | — | ✅ | 瓶颈：多渠道接入 + 外部路由 + 公开 KB |
+| 可视化 Flow 编辑器（开放给业务用户）| — | ✅ | 瓶颈：sandbox + 权限 + 资源配额 |
+| Iframe 分享窗 / 免登录分享 | — | ✅ | 售前给客户演示方案 |
+| MCP server 暴露（PAS 当 server） | — | ✅ | 让外部 agent 接入 PAS 能力 |
+| 多模型可视化配置 | ❌ | ❌ | 走 PAS 自有 config，不用 FastGPT 这层 |
+| 语音输入输出 | ❌ | ❌ | 多渠道 v2 才考虑 |
+| 模板市场 | ❌ | ❌ | 自写 prompt + workflow |
+
+**关键认知**：v2 的"智能客服 Agent / 多渠道 / Agent 编排开放 / 驾驶舱"等留座项目，不进 MVP **不是因为 FastGPT 没准备好**，而是因为它们各自有 FastGPT 之外的工程量（多渠道适配 / 外部路由 / sandbox 权限 / BI 数据栈 等）。FastGPT MVP 接入相当于"提前付了 ≈4 个月编排引擎自研工作量"——这笔投资在 v2 兑现。
+
 ## 后果
 
 ### 正向
