@@ -4,6 +4,10 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 const compat = new FlatCompat({ baseDirectory: import.meta.dirname });
+const nextConfigs = compat.extends("next/core-web-vitals").map((config) => ({
+  ...config,
+  files: ["apps/web/**/*.{js,jsx,mjs,cjs,ts,tsx}"],
+}));
 
 export default tseslint.config(
   {
@@ -11,7 +15,7 @@ export default tseslint.config(
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
-  ...compat.extends("next/core-web-vitals"),
+  ...nextConfigs,
   {
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
