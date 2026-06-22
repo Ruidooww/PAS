@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  admin
+  sales
+  presales
+  delivery
+}
+
+enum CustomerSource {
+  external
+  pas
+}
+
+enum ProposalStatus {
+  draft
+  final
+}
+
+enum FeedbackRating {
+  up
+  down
+}
+
+model User {
+  id           String                 @id @default(cuid())
+  name         String
+  email        String                 @unique
+  role         UserRole
+  isExternal   Boolean                @default(false) @map("is_external")
+  deptId       String?                @map("dept_id")
+  createdAt    DateTime               @default(now()) @map("created_at")
+  proposals    Proposal[]             @relation("ProposalCreator")
+  kbDocuments  KbDocument[]           @relation("DocumentUploader")
+  auditLogs    AuditLog[]
+  feedback     ConversationFeedback[]
+
+  @@index([deptId])
+  @@map("users")
+}
+
+model CustomerMirror {
+  ref       String         @id
+  source    CustomerSource @default(external)
+  name      String
+  industry  String?
+  scale     Int?
+  ownerId   String?        @map("owner_id")
+  syncedAt  DateTime       @map("synced_at")
+  proposals Proposal[]
+
+  @@index([ownerId])
+  @@map("customer_mirrors")
+}
+
+model Proposal {
+  id              String         @id @default(cuid())
+  customerRef     String         @map("customer_ref")
+  opportunityRef  String?        @map("opportunity_ref")
+  title           String
+  status          ProposalStatus @default(draft)
+  requirementJson Json           @map("requirement_json")
+  contentJson     Json           @map("content_json")
+  pptFileKey      String?        @map("ppt_file_key")
+  createdBy       String         @map("created_by")
+  version         Int            @default(1)
+  createdAt       DateTime       @default(now()) @map("created_at")
+  customer        CustomerMirror @relation(fields: [customerRef], references: [ref], onDelete: Restrict)
+  creator         User           @relation("ProposalCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+
+  @@index([customerRef])
+  @@index([opportunityRef])
+  @@index([createdBy])
+  @@map("proposals")
+}
+
+model KbDocument {
+  id            String   @id @default(cuid())
+  ragflowDocId  String   @unique @map("ragflow_doc_id")
+  ragflowKbId   String   @map("ragflow_kb_id")
+  title         String
+  product       String?
+  aclScope      String   @map("acl_scope")
+  uploadedBy    String   @map("uploaded_by")
+  createdAt     DateTime @default(now()) @map("created_at")
+  uploader      User     @relation("DocumentUploader", fields: [uploadedBy], references: [id], onDelete: Restrict)
+
+  @@index([ragflowKbId])
+  @@index([aclScope])
+  @@index([uploadedBy])
+  @@map("kb_documents")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?  @map("user_id")
+  action     String
+  resource   String
+  isExternal Boolean  @default(false) @map("is_external")
+  detailJson Json     @map("detail_json")
+  createdAt  DateTime @default(now()) @map("created_at")
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model ConversationFeedback {
+  id        String         @id @default(cuid())
+  userId    String         @map("user_id")
+  query     String
+  answer    String
+  rating    FeedbackRating
+  sessionId String         @map("session_id")
+  createdAt DateTime       @default(now()) @map("created_at")
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([createdAt])
+  @@map("conversation_feedback")
+}

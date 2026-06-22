@@ -40,6 +40,14 @@ export interface CustomerMirror {
   syncedAt: string;
 }
 
+export interface Customer {
+  ref: string;
+  name: string;
+  industry: string | null;
+  scale: number | null;
+  ownerId: string | null;
+}
+
 export interface Proposal {
   id: string;
   customerRef: string;
