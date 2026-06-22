@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 工程纪律 / 协作流程问题
+    url: https://github.com/Ruidooww/PAS/blob/main/PAS%E4%BB%BB%E5%8A%A1%E4%B9%A6-V1.0-20260622/decisions/ADR-002-collab-workflow.md
+    about: 派单 / PR / Issue 流程不清楚？看 ADR-002。
+  - name: 架构 / 能力供应商决策
+    url: https://github.com/Ruidooww/PAS/blob/main/PAS%E4%BB%BB%E5%8A%A1%E4%B9%A6-V1.0-20260622/decisions/ADR-001-pas-fastgpt-ragflow.md
+    about: PAS + FastGPT + RAGFlow 三层架构。
