@@ -1,5 +1,5 @@
 import { ConfigService } from "@nestjs/config";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { RagflowApiError, RagflowClientImpl, RETRIEVAL_DEFAULTS } from "../src/clients/ragflow";
 
@@ -81,11 +81,12 @@ describe("RagflowClientImpl.retrieve", () => {
       vector_similarity_weight: RETRIEVAL_DEFAULTS.vectorSimilarityWeight,
       rerank_id: RETRIEVAL_DEFAULTS.rerankId,
     });
-    // doc_ids 不传白名单时不该出现，避免误把 [] 当过滤条件
+    // 不传白名单时不该出现 document_ids，避免误把 [] 当过滤条件
+    expect(req.body).not.toHaveProperty("document_ids");
     expect(req.body).not.toHaveProperty("doc_ids");
   });
 
-  it("passes docIdWhitelist as doc_ids and topK overrides page_size", async () => {
+  it("passes docIdWhitelist as official `document_ids` and topK overrides page_size", async () => {
     const { captured } = captureFetch({
       ok: true,
       status: 200,
@@ -102,11 +103,13 @@ describe("RagflowClientImpl.retrieve", () => {
 
     expect(captured[0]!.body).toMatchObject({
       page_size: 5,
-      doc_ids: ["d1", "d2"],
+      document_ids: ["d1", "d2"],
     });
+    // 旧别名 doc_ids (MCP 包装层用的) 不该出现 — ACL 安全契约
+    expect(captured[0]!.body).not.toHaveProperty("doc_ids");
   });
 
-  it("maps response chunks to PAS Chunk shape", async () => {
+  it("maps response chunks using official field names (id + content)", async () => {
     captureFetch({
       ok: true,
       status: 200,
@@ -115,10 +118,10 @@ describe("RagflowClientImpl.retrieve", () => {
         data: {
           chunks: [
             {
-              chunk_id: "c1",
+              id: "c1",
               document_id: "d1",
               document_keyword: "IP-guard手册.pdf",
-              content_with_weight: "策略设置内容",
+              content: "策略设置内容",
               similarity: 0.45,
               term_similarity: 0.4,
               vector_similarity: 0.5,
@@ -150,6 +153,57 @@ describe("RagflowClientImpl.retrieve", () => {
         },
       },
     ]);
+  });
+
+  it("accepts legacy field names (chunk_id + content_with_weight) as fallback", async () => {
+    captureFetch({
+      ok: true,
+      status: 200,
+      json: {
+        code: 0,
+        data: {
+          chunks: [
+            {
+              chunk_id: "c2",
+              document_id: "d2",
+              content_with_weight: "兼容旧字段名",
+              similarity: 0.3,
+            },
+          ],
+        },
+      },
+    });
+    const client = new RagflowClientImpl(makeConfig());
+
+    const chunks = await client.retrieve({ query: "q", kbId: "kb" });
+    expect(chunks[0]).toMatchObject({ id: "c2", content: "兼容旧字段名", score: 0.3 });
+  });
+
+  it("rejects chunk missing both `id` and `chunk_id`", async () => {
+    captureFetch({
+      ok: true,
+      status: 200,
+      json: {
+        code: 0,
+        data: { chunks: [{ document_id: "d1", content: "x" }] },
+      },
+    });
+    const client = new RagflowClientImpl(makeConfig());
+    await expect(client.retrieve({ query: "q", kbId: "kb" })).rejects.toThrow(/id/);
+  });
+
+  it("preserves NaN score when similarity is missing (distinguishes from 0)", async () => {
+    captureFetch({
+      ok: true,
+      status: 200,
+      json: {
+        code: 0,
+        data: { chunks: [{ id: "c3", document_id: "d3", content: "no score" }] },
+      },
+    });
+    const client = new RagflowClientImpl(makeConfig());
+    const chunks = await client.retrieve({ query: "q", kbId: "kb" });
+    expect(Number.isNaN(chunks[0]!.score)).toBe(true);
   });
 
   it("throws RagflowApiError with HTTP status on 4xx/5xx", async () => {
@@ -256,18 +310,20 @@ describe("RagflowClientImpl other methods", () => {
   });
 });
 
-describe("RagflowClientImpl auth", () => {
-  beforeEach(() => {
-    captureFetch({ ok: true, status: 200, json: { code: 0, data: { chunks: [] } } });
-  });
+describe("RagflowClientImpl auth + URL", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
   });
 
-  it("strips trailing slash from RAGFLOW_BASE_URL", async () => {
+  it("strips trailing slash from RAGFLOW_BASE_URL to avoid double slashes", async () => {
+    const { captured } = captureFetch({
+      ok: true,
+      status: 200,
+      json: { code: 0, data: { chunks: [] } },
+    });
     const client = new RagflowClientImpl(makeConfig({ RAGFLOW_BASE_URL: "http://x:9380/" }));
     await client.retrieve({ query: "q", kbId: "kb" });
-    // no double-slash assertion: covered implicitly by URL construction; just smoke check
-    expect(true).toBe(true);
+    expect(captured[0]!.url).toBe("http://x:9380/api/v1/retrieval");
+    expect(captured[0]!.url).not.toContain("//api");
   });
 });

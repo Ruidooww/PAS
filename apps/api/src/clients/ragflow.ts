@@ -38,20 +38,28 @@ export const RETRIEVAL_DEFAULTS = Object.freeze({
   rerankId: "gte-rerank-v2@bailian@Tongyi-Qianwen",
 });
 
-const retrievalChunkSchema = z.object({
-  chunk_id: z.string(),
-  document_id: z.string(),
-  document_keyword: z.string().optional(),
-  content: z.string().optional(),
-  content_with_weight: z.string().optional(),
-  similarity: z.number().optional(),
-  term_similarity: z.number().optional(),
-  vector_similarity: z.number().optional(),
-  kb_id: z.string().optional(),
-  positions: z.array(z.unknown()).optional(),
-  image_id: z.string().optional(),
-  highlight: z.string().optional(),
-});
+// RAGFlow HTTP API v1 retrieval response — 官方契约用 `id` + `content`。
+// 旧/内部字段名 `chunk_id` + `content_with_weight` 也接受作 fallback（兼容不同
+// RAGFlow 版本 / MCP 包装回流的形状），实际真假最终由 W1 (#27) gate harness 校准。
+const retrievalChunkSchema = z
+  .object({
+    id: z.string().optional(),
+    chunk_id: z.string().optional(),
+    document_id: z.string(),
+    document_keyword: z.string().optional(),
+    content: z.string().optional(),
+    content_with_weight: z.string().optional(),
+    similarity: z.number().optional(),
+    term_similarity: z.number().optional(),
+    vector_similarity: z.number().optional(),
+    kb_id: z.string().optional(),
+    positions: z.array(z.unknown()).optional(),
+    image_id: z.string().optional(),
+    highlight: z.string().optional(),
+  })
+  .refine((c) => Boolean(c.id ?? c.chunk_id), {
+    message: "RAGFlow chunk must have either `id` or `chunk_id`",
+  });
 
 const retrievalResponseSchema = z.object({
   code: z.number(),
@@ -115,7 +123,9 @@ export class RagflowClientImpl implements RagflowClient {
       rerank_id: RETRIEVAL_DEFAULTS.rerankId,
     };
     if (params.docIdWhitelist && params.docIdWhitelist.length > 0) {
-      body.doc_ids = params.docIdWhitelist;
+      // 官方 HTTP API 字段是 `document_ids`；MCP server 包装的别名 `doc_ids` 不被 HTTP 端识别。
+      // 漏掉此字段 = ACL 白名单失效（安全问题）→ 必须用正确字段名。
+      body.document_ids = params.docIdWhitelist;
     }
 
     const json = await this.post("/api/v1/retrieval", body);
@@ -128,10 +138,13 @@ export class RagflowClientImpl implements RagflowClient {
     }
     const chunks = parsed.data?.chunks ?? [];
     return chunks.map<Chunk>((c) => ({
-      id: c.chunk_id,
+      // 官方字段名优先 (`id` / `content`)，旧/MCP 包装别名作 fallback。
+      id: (c.id ?? c.chunk_id) as string,
       documentId: c.document_id,
-      content: c.content_with_weight ?? c.content ?? "",
-      score: c.similarity ?? 0,
+      content: c.content ?? c.content_with_weight ?? "",
+      // similarity 缺失时保留 NaN 让调用方分辨 "没分" vs "0分"。
+      // (Chunk.score 是 number，不允许 null；NaN 是次优但兼容现有 schema。)
+      score: c.similarity ?? Number.NaN,
       metadata: {
         kbId: c.kb_id ?? params.kbId,
         documentKeyword: c.document_keyword,
