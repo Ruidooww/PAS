@@ -30,17 +30,19 @@ export class AuditInterceptor implements NestInterceptor {
     return next.handle().pipe(
       tap(() => {
         const user = requestUser(request);
-        void this.audit.write({
-          action: requestAction(request),
-          resource: requestResource(request),
-          userId: user?.uid ?? null,
-          isExternal: user ? user.isExternal || user.role === "external" : false,
-          detailJson: {
-            result: "success",
-            statusCode: response?.statusCode ?? 200,
-            durationMs: Date.now() - startedAt,
-          },
-        });
+        this.audit
+          .write({
+            action: requestAction(request),
+            resource: requestResource(request),
+            userId: user?.uid ?? null,
+            isExternal: user ? user.isExternal || user.role === "external" : false,
+            detailJson: {
+              result: "success",
+              statusCode: response?.statusCode ?? 200,
+              durationMs: Date.now() - startedAt,
+            },
+          })
+          .catch((err: unknown) => console.error("[audit] interceptor write rejected", { err }));
       }),
       catchError((error: unknown) => {
         if (!(error instanceof InternalOnlyForbiddenException)) {
@@ -52,17 +54,19 @@ export class AuditInterceptor implements NestInterceptor {
             typeof error.getStatus === "function"
               ? (error.getStatus() as number)
               : 500;
-          void this.audit.write({
-            action: requestAction(request),
-            resource: requestResource(request),
-            userId: user?.uid ?? null,
-            isExternal: user ? user.isExternal || user.role === "external" : false,
-            detailJson: {
-              result: "error",
-              statusCode,
-              durationMs: Date.now() - startedAt,
-            },
-          });
+          this.audit
+            .write({
+              action: requestAction(request),
+              resource: requestResource(request),
+              userId: user?.uid ?? null,
+              isExternal: user ? user.isExternal || user.role === "external" : false,
+              detailJson: {
+                result: "error",
+                statusCode,
+                durationMs: Date.now() - startedAt,
+              },
+            })
+            .catch((err: unknown) => console.error("[audit] interceptor write rejected", { err }));
         }
         return throwError(() => error);
       }),
