@@ -67,6 +67,14 @@ describe("internal route isolation", () => {
       .overrideProvider(PrismaService)
       .useValue({
         $queryRaw: vi.fn().mockResolvedValue([{ ragflow_doc_id: "mock-document" }]),
+        conversation: {
+          findFirst: vi.fn().mockResolvedValue({ id: "conversation-1", sessionId: "route-test" }),
+          create: vi.fn(),
+        },
+        message: {
+          findMany: vi.fn().mockResolvedValue([]),
+          create: vi.fn().mockResolvedValue({}),
+        },
         auditLog: {
           create: vi.fn().mockResolvedValue({}),
         },
@@ -115,10 +123,9 @@ describe("internal route isolation", () => {
       body: JSON.stringify({ query: "internal product question" }),
     });
 
-    expect(response.status).toBe(201);
-    await expect(response.json()).resolves.toMatchObject({
-      sources: [{ documentId: "mock-document", score: 1 }],
-    });
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/event-stream");
+    await expect(response.text()).resolves.toContain('"type":"done"');
   });
   it("rejects presales users from admin-only internal routes", async () => {
     const token = jwt.sign(session({ role: "presales", isExternal: false }));
