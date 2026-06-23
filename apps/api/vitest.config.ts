@@ -3,6 +3,12 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     environment: "node",
+    fileParallelism: false,
     include: ["test/**/*.spec.ts"],
+    poolOptions: {
+      forks: {
+        singleFork: true,
+      },
+    },
   },
 });

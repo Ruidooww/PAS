@@ -1,11 +1,16 @@
 import { randomUUID } from "node:crypto";
 
-import { Inject, Injectable } from "@nestjs/common";
+import { BadRequestException, Inject, Injectable } from "@nestjs/common";
 import type { IdpProvider } from "@pas/clients";
 
 import { IdpRegistry } from "./idp.registry";
 import { JwtSessionService } from "./jwt-session.service";
 import { AUTH_USER_STORE, type AuthUser, type AuthUserStore } from "./user-store";
+
+export interface LoginResult {
+  state: string;
+  url: string;
+}
 
 export interface CallbackResult {
   token: string;
@@ -20,15 +25,28 @@ export class AuthService {
     @Inject(AUTH_USER_STORE) private readonly users: AuthUserStore,
   ) {}
 
-  buildLoginUrl(provider: IdpProvider, origin: string): string {
+  buildLoginUrl(provider: IdpProvider): LoginResult {
+    const state = randomUUID();
     const client = this.idpRegistry.getClient(provider);
-    return client.getAuthUrl({
-      state: randomUUID(),
-      redirectUri: this.idpRegistry.getRedirectUri(provider, origin),
-    });
+    return {
+      state,
+      url: client.getAuthUrl({
+        state,
+        redirectUri: this.idpRegistry.getRedirectUri(provider),
+      }),
+    };
   }
 
-  async completeCallback(provider: IdpProvider, code: string): Promise<CallbackResult> {
+  async completeCallback(
+    provider: IdpProvider,
+    code: string,
+    expectedState: string | undefined,
+    receivedState: string | undefined,
+  ): Promise<CallbackResult> {
+    if (!expectedState || !receivedState || expectedState !== receivedState) {
+      throw new BadRequestException("Invalid OAuth state");
+    }
+
     const client = this.idpRegistry.getClient(provider);
     const token = await client.exchangeCode({ code });
     const profile = await client.getUserInfo({ accessToken: token.accessToken });

@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const envSchema = z
   .object({
+    APP_BASE_URL: z.string().url(),
     CRM_API_KEY: z.string().min(1),
     CRM_BASE_URL: z.string().url(),
     CRM_PROVIDER: z.enum(["external", "pas"]),

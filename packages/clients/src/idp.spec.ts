@@ -126,6 +126,7 @@ describe("WecomIdpClient", () => {
       .mockResolvedValueOnce(
         jsonResponse({ errcode: 0, UserId: "zhangsan", user_ticket: "ticket-1" }),
       )
+      .mockResolvedValueOnce(jsonResponse({ errcode: 0, access_token: "corp-token-2" }))
       .mockResolvedValueOnce(
         jsonResponse({
           errcode: 0,
@@ -162,6 +163,24 @@ describe("WecomIdpClient", () => {
       avatar: "https://avatar.example.com/w.png",
       deptIds: ["10", "20"],
     });
+  });
+  it("does not retain a corpAccessToken field on the WeCom client instance", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ errcode: 0, access_token: "corp-token" }))
+      .mockResolvedValueOnce(
+        jsonResponse({ errcode: 0, UserId: "zhangsan", user_ticket: "ticket-1" }),
+      );
+    const client = new WecomIdpClient({
+      corpId: "ww123",
+      agentId: "1000002",
+      appSecret: "secret",
+      fetchImpl,
+    });
+
+    await client.exchangeCode({ code: "code-1" });
+
+    expect(client).not.toHaveProperty("corpAccessToken");
   });
 });
 

@@ -9,9 +9,10 @@ datasource db {
 
 enum UserRole {
   admin
-  sales
   presales
-  delivery
+  aftersales
+  implementation
+  external
 }
 
 enum CustomerSource {
@@ -108,7 +109,7 @@ model KbDocument {
   id            String   @id @default(cuid())
   ragflowDocId  String   @unique @map("ragflow_doc_id")
   ragflowKbId   String   @map("ragflow_kb_id")
-  title         String
+  name          String
   product       String?
   aclScope      String   @map("acl_scope")
   uploadedBy    String   @map("uploaded_by")

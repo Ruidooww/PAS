@@ -1,0 +1,45 @@
+import { Inject, Injectable } from "@nestjs/common";
+
+import type { SessionClaims } from "../../auth/types";
+import { RAGFLOW_CLIENT, type RagflowClient } from "../../clients/ragflow";
+import { AclService } from "../acl.service";
+
+export interface InternalQaAnswer {
+  answer: string;
+  sources: Array<{ documentId: string; score: number }>;
+}
+
+@Injectable()
+export class InternalQaService {
+  constructor(
+    @Inject(RAGFLOW_CLIENT) private readonly ragflowClient: RagflowClient,
+    @Inject(AclService) private readonly acl: AclService,
+  ) {}
+
+  async ask(query: string, user: SessionClaims): Promise<InternalQaAnswer> {
+    const visibleDocIds = await this.acl.computeVisibleDocIds(user);
+    if (visibleDocIds.length === 0) return { answer: "", sources: [] };
+    const retrievedChunks = await this.ragflowClient.retrieve({
+      kbId: "e0-mock-kb",
+      query,
+      topK: 3,
+      docIdWhitelist: visibleDocIds,
+    });
+    const allowedDocIds = new Set(visibleDocIds);
+    const chunks = retrievedChunks.filter((chunk) => allowedDocIds.has(chunk.documentId));
+    const answerTokens: string[] = [];
+
+    for await (const token of this.ragflowClient.chat({
+      kbId: "e0-mock-kb",
+      messages: [{ role: "user", content: query }],
+    })) {
+      answerTokens.push(token);
+    }
+
+    return {
+      answer: answerTokens.join(""),
+      sources: chunks.map(({ documentId, score }) => ({ documentId, score })),
+    };
+  }
+}
+
