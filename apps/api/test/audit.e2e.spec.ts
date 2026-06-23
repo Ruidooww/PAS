@@ -112,6 +112,7 @@ describe("audit logging", () => {
     });
 
     expect(response.status).toBe(403);
+    expect(auditLogCreate).toHaveBeenCalledTimes(1);
     expect(auditLogCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
         userId: "external-1",

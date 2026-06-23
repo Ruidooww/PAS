@@ -67,6 +67,9 @@ describe("internal route isolation", () => {
       .overrideProvider(PrismaService)
       .useValue({
         $queryRaw: vi.fn().mockResolvedValue([{ ragflow_doc_id: "mock-document" }]),
+        auditLog: {
+          create: vi.fn().mockResolvedValue({}),
+        },
         onModuleInit: async () => undefined,
         onModuleDestroy: async () => undefined,
       })

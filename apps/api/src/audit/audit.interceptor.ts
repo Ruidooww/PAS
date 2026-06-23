@@ -1,6 +1,7 @@
 import {
   type CallHandler,
   type ExecutionContext,
+  ForbiddenException,
   Inject,
   Injectable,
   type NestInterceptor,
@@ -42,25 +43,30 @@ export class AuditInterceptor implements NestInterceptor {
         });
       }),
       catchError((error: unknown) => {
-        const user = requestUser(request);
-        const statusCode =
-          typeof error === "object" &&
-          error !== null &&
-          "getStatus" in error &&
-          typeof error.getStatus === "function"
-            ? (error.getStatus() as number)
-            : 500;
-        void this.audit.write({
-          action: requestAction(request),
-          resource: requestResource(request),
-          userId: user?.uid ?? null,
-          isExternal: user ? user.isExternal || user.role === "external" : false,
-          detailJson: {
-            result: "error",
-            statusCode,
-            durationMs: Date.now() - startedAt,
-          },
-        });
+        const isInternalOnlyDenial =
+          error instanceof ForbiddenException &&
+          error.message === "External users cannot access internal routes";
+        if (!isInternalOnlyDenial) {
+          const user = requestUser(request);
+          const statusCode =
+            typeof error === "object" &&
+            error !== null &&
+            "getStatus" in error &&
+            typeof error.getStatus === "function"
+              ? (error.getStatus() as number)
+              : 500;
+          void this.audit.write({
+            action: requestAction(request),
+            resource: requestResource(request),
+            userId: user?.uid ?? null,
+            isExternal: user ? user.isExternal || user.role === "external" : false,
+            detailJson: {
+              result: "error",
+              statusCode,
+              durationMs: Date.now() - startedAt,
+            },
+          });
+        }
         return throwError(() => error);
       }),
     );

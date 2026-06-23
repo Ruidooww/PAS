@@ -17,15 +17,22 @@ export class AuditService {
 
   async write(event: AuditEvent): Promise<void> {
     const auditLog = this.prisma.auditLog;
-    if (!auditLog?.create) return;
-    await auditLog.create({
-      data: {
-        userId: event.userId ?? null,
-        action: event.action,
-        resource: event.resource,
-        isExternal: event.isExternal,
-        detailJson: event.detailJson as Prisma.InputJsonValue,
-      },
-    });
+    if (!auditLog?.create) {
+      console.error("[audit] prisma.auditLog delegate missing", { event });
+      return;
+    }
+    try {
+      await auditLog.create({
+        data: {
+          userId: event.userId ?? null,
+          action: event.action,
+          resource: event.resource,
+          isExternal: event.isExternal,
+          detailJson: event.detailJson as Prisma.InputJsonValue,
+        },
+      });
+    } catch (err) {
+      console.error("[audit] write failed", { err, event });
+    }
   }
 }
