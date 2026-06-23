@@ -50,10 +50,12 @@ function session(overrides: Partial<SessionClaims> = {}): SessionClaims {
   };
 }
 
-describe("internal route isolation", () => {
+describe("audit logging", () => {
   let app: INestApplication;
   let baseUrl: string;
   let jwt: JwtSessionService;
+  let auditLogCreate: ReturnType<typeof vi.fn>;
+  let auditLogFindMany: ReturnType<typeof vi.fn>;
   let warnSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(async () => {
@@ -61,12 +63,30 @@ describe("internal route isolation", () => {
     for (const [key, value] of Object.entries(completeEnv)) {
       vi.stubEnv(key, value);
     }
+    auditLogCreate = vi.fn().mockResolvedValue({});
+    auditLogFindMany = vi.fn().mockResolvedValue([
+      {
+        id: "audit-1",
+        userId: "external-1",
+        action: "GET",
+        resource: "/api/internal/admin/ping",
+        isExternal: true,
+        detailJson: { result: "forbidden_external_internal" },
+        createdAt: new Date("2026-06-23T12:00:00.000Z"),
+      },
+    ]);
+    warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
     const { AppModule } = await import("../src/app.module");
     const { PrismaService } = await import("../src/prisma/prisma.service");
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(PrismaService)
       .useValue({
         $queryRaw: vi.fn().mockResolvedValue([{ ragflow_doc_id: "mock-document" }]),
+        auditLog: {
+          create: auditLogCreate,
+          findMany: auditLogFindMany,
+        },
         onModuleInit: async () => undefined,
         onModuleDestroy: async () => undefined,
       })
@@ -74,7 +94,6 @@ describe("internal route isolation", () => {
 
     app = moduleRef.createNestApplication();
     jwt = new JwtSessionService(completeEnv.JWT_SECRET, 604_800);
-    warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     await app.listen(0);
     baseUrl = await app.getUrl();
   });
@@ -85,58 +104,59 @@ describe("internal route isolation", () => {
     await app?.close();
   });
 
-  it("rejects external users from internal routes", async () => {
+  it("writes an AuditLog and console warning when external users hit internal routes", async () => {
     const token = jwt.sign(session({ uid: "external-1", role: "external", isExternal: true }));
 
-    const response = await fetch(`${baseUrl}/api/internal/qa`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        cookie: `${SESSION_COOKIE_NAME}=${token}`,
-      },
-      body: JSON.stringify({ query: "public product question" }),
-    });
-
-    expect(response.status).toBe(403);
-  });
-
-  it("allows presales users through internal QA", async () => {
-    const token = jwt.sign(session({ role: "presales", isExternal: false }));
-
-    const response = await fetch(`${baseUrl}/api/internal/qa`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        cookie: `${SESSION_COOKIE_NAME}=${token}`,
-      },
-      body: JSON.stringify({ query: "internal product question" }),
-    });
-
-    expect(response.status).toBe(201);
-    await expect(response.json()).resolves.toMatchObject({
-      sources: [{ documentId: "mock-document", score: 1 }],
-    });
-  });
-  it("rejects presales users from admin-only internal routes", async () => {
-    const token = jwt.sign(session({ role: "presales", isExternal: false }));
-
     const response = await fetch(`${baseUrl}/api/internal/admin/ping`, {
       headers: { cookie: `${SESSION_COOKIE_NAME}=${token}` },
     });
 
     expect(response.status).toBe(403);
+    expect(auditLogCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: "external-1",
+        action: "GET",
+        resource: "/api/internal/admin/ping",
+        isExternal: true,
+        detailJson: expect.objectContaining({ result: "forbidden_external_internal" }),
+      }),
+    });
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("External internal route access denied"),
+      expect.objectContaining({ userId: "external-1", resource: "/api/internal/admin/ping" }),
+    );
   });
 
-  it("allows admin users through admin-only internal routes", async () => {
-    const token = jwt.sign(session({ role: "admin", isExternal: false }));
+  it("allows admins to query AuditLog records with userId/from/to filters", async () => {
+    const token = jwt.sign(session({ uid: "admin-1", role: "admin", isExternal: false }));
 
-    const response = await fetch(`${baseUrl}/api/internal/admin/ping`, {
-      headers: { cookie: `${SESSION_COOKIE_NAME}=${token}` },
-    });
+    const response = await fetch(
+      `${baseUrl}/api/internal/admin/audit-logs?userId=external-1&from=2026-06-23T00:00:00.000Z&to=2026-06-24T00:00:00.000Z`,
+      { headers: { cookie: `${SESSION_COOKIE_NAME}=${token}` } },
+    );
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ ok: true });
+    await expect(response.json()).resolves.toEqual([
+      {
+        id: "audit-1",
+        userId: "external-1",
+        action: "GET",
+        resource: "/api/internal/admin/ping",
+        isExternal: true,
+        detailJson: { result: "forbidden_external_internal" },
+        createdAt: "2026-06-23T12:00:00.000Z",
+      },
+    ]);
+    expect(auditLogFindMany).toHaveBeenCalledWith({
+      where: {
+        userId: "external-1",
+        createdAt: {
+          gte: new Date("2026-06-23T00:00:00.000Z"),
+          lte: new Date("2026-06-24T00:00:00.000Z"),
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
   });
 });
-
-

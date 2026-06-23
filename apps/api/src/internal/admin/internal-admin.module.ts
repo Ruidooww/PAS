@@ -1,12 +1,14 @@
 import { Module } from "@nestjs/common";
 
+import { AuditModule } from "../../audit/audit.module";
 import { AuthModule } from "../../auth/auth.module";
+import { PrismaService } from "../../prisma/prisma.service";
 import { InternalOnlyGuard } from "../internal-only.guard";
 import { InternalAdminController } from "./internal-admin.controller";
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuditModule, AuthModule],
   controllers: [InternalAdminController],
-  providers: [InternalOnlyGuard],
+  providers: [InternalOnlyGuard, PrismaService],
 })
 export class InternalAdminModule {}
