@@ -4,7 +4,7 @@ import { ACL_SCOPES, PROPOSAL_STATUSES, USER_ROLES } from "./index";
 
 describe("shared domain constants", () => {
   it("exports the E0 user roles", () => {
-    expect(USER_ROLES).toEqual(["admin", "sales", "presales", "delivery"]);
+    expect(USER_ROLES).toEqual(["admin", "presales", "aftersales", "implementation", "external"]);
   });
 
   it("exports proposal lifecycle states", () => {

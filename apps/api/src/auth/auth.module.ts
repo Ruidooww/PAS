@@ -8,6 +8,7 @@ import { AuthService } from "./auth.service";
 import { IdpRegistry } from "./idp.registry";
 import { JwtAuthMiddleware } from "./jwt-auth.middleware";
 import { JwtSessionService } from "./jwt-session.service";
+import { RolesGuard } from "./roles.guard";
 import { DEFAULT_SESSION_TTL_SECONDS } from "./types";
 import { AUTH_USER_STORE, PrismaAuthUserStore } from "./user-store";
 
@@ -18,6 +19,7 @@ import { AUTH_USER_STORE, PrismaAuthUserStore } from "./user-store";
     AuthService,
     IdpRegistry,
     JwtAuthMiddleware,
+    RolesGuard,
     PrismaService,
     {
       provide: JwtSessionService,
@@ -34,7 +36,7 @@ import { AUTH_USER_STORE, PrismaAuthUserStore } from "./user-store";
       useFactory: (prisma: PrismaService) => new PrismaAuthUserStore(prisma),
     },
   ],
-  exports: [AUTH_USER_STORE, AuthGuard, AuthService, JwtSessionService],
+  exports: [AUTH_USER_STORE, AuthGuard, AuthService, JwtSessionService, RolesGuard],
 })
 export class AuthModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {

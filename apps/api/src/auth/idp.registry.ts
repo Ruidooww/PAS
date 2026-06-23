@@ -44,8 +44,11 @@ export class IdpRegistry {
     }
   }
 
-  getRedirectUri(provider: IdpProvider, origin: string): string {
-    if (provider === "mock") return `${origin}/auth/callback?provider=mock`;
+  getRedirectUri(provider: IdpProvider): string {
+    if (provider === "mock") {
+      const baseUrl = this.config.getOrThrow<string>("APP_BASE_URL").replace(/\/$/, "");
+      return `${baseUrl}/auth/callback?provider=mock`;
+    }
     if (provider === "feishu") return this.config.getOrThrow<string>("FEISHU_REDIRECT_URI");
     return this.config.getOrThrow<string>("WECOM_REDIRECT_URI");
   }

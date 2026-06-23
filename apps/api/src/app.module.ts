@@ -1,10 +1,11 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 
-import { AppController } from "./app.controller";
 import { AuthModule } from "./auth/auth.module";
 import { validateEnv } from "./config/env.schema";
-import { DemoModule } from "./demo/demo.module";
+import { InternalModule } from "./internal/internal.module";
+import { PublicModule } from "./public/public.module";
+import { SharedModule } from "./shared/shared.module";
 
 @Module({
   imports: [
@@ -14,8 +15,9 @@ import { DemoModule } from "./demo/demo.module";
       validate: validateEnv,
     }),
     AuthModule,
-    DemoModule,
+    InternalModule,
+    PublicModule,
+    SharedModule,
   ],
-  controllers: [AppController],
 })
 export class AppModule {}

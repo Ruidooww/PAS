@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { validateEnv } from "../src/config/env.schema";
 
 const completeEnv = {
+  APP_BASE_URL: "http://localhost:3001",
   DATABASE_URL: "postgresql://pas:pas@localhost:5544/pas",
   CRM_API_KEY: "test-crm-key",
   CRM_BASE_URL: "https://crm.example.com/api",
@@ -40,6 +41,13 @@ describe("validateEnv", () => {
     delete incompleteEnv.DATABASE_URL;
 
     expect(() => validateEnv(incompleteEnv)).toThrow(/DATABASE_URL/);
+  });
+
+  it("requires APP_BASE_URL as the canonical OAuth origin", () => {
+    const incompleteEnv: Partial<typeof completeEnv> = { ...completeEnv };
+    delete incompleteEnv.APP_BASE_URL;
+
+    expect(() => validateEnv(incompleteEnv)).toThrow(/APP_BASE_URL/);
   });
 
   it("rejects an unsupported CRM provider", () => {

@@ -1,4 +1,4 @@
-export const USER_ROLES = ["admin", "sales", "presales", "delivery"] as const;
+export const USER_ROLES = ["admin", "presales", "aftersales", "implementation", "external"] as const;
 export type UserRole = (typeof USER_ROLES)[number];
 
 export const PROPOSAL_STATUSES = ["draft", "final"] as const;
@@ -80,7 +80,7 @@ export interface KbDocument {
   id: string;
   ragflowDocId: string;
   ragflowKbId: string;
-  title: string;
+  name: string;
   product: string | null;
   aclScope: AclScope;
   uploadedBy: string;

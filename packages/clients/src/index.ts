@@ -247,8 +247,6 @@ export class WecomIdpClient implements IdpClient {
   private readonly fetchImpl: FetchImpl;
   private readonly authBaseUrl: string;
   private readonly apiBaseUrl: string;
-  private corpAccessToken: string | undefined;
-
   constructor(private readonly options: WecomIdpClientOptions) {
     this.fetchImpl = options.fetchImpl ?? fetch;
     this.authBaseUrl = options.authBaseUrl ?? "https://open.weixin.qq.com";
@@ -267,7 +265,7 @@ export class WecomIdpClient implements IdpClient {
   }
 
   async exchangeCode(params: ExchangeCodeParams): Promise<TokenExchangeResult> {
-    const token = await this.fetchCorpAccessToken();
+    const token = await this.fetchCorpToken();
     const infoUrl = new URL("/cgi-bin/auth/getuserinfo", this.apiBaseUrl);
     infoUrl.searchParams.set("access_token", token);
     infoUrl.searchParams.set("code", params.code);
@@ -284,9 +282,9 @@ export class WecomIdpClient implements IdpClient {
   }
 
   async getUserInfo(params: UserInfoParams): Promise<UserProfile> {
-    const corpAccessToken = this.corpAccessToken ?? (await this.fetchCorpAccessToken());
+    const corpToken = await this.fetchCorpToken();
     const detail = await this.fetchJson<WecomUserDetailResponse>(
-      `${this.apiBaseUrl}/cgi-bin/auth/getuserdetail?access_token=${encodeURIComponent(corpAccessToken)}`,
+      `${this.apiBaseUrl}/cgi-bin/auth/getuserdetail?access_token=${encodeURIComponent(corpToken)}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -305,7 +303,7 @@ export class WecomIdpClient implements IdpClient {
     };
   }
 
-  private async fetchCorpAccessToken(): Promise<string> {
+  private async fetchCorpToken(): Promise<string> {
     const tokenUrl = new URL("/cgi-bin/gettoken", this.apiBaseUrl);
     tokenUrl.searchParams.set("corpid", this.options.corpId);
     tokenUrl.searchParams.set("corpsecret", this.options.appSecret);
@@ -313,7 +311,6 @@ export class WecomIdpClient implements IdpClient {
     if (token.errcode !== 0 || !token.access_token) {
       throw new IdpClientError(`WeCom gettoken failed: ${token.errmsg ?? token.errcode}`, "wecom");
     }
-    this.corpAccessToken = token.access_token;
     return token.access_token;
   }
 
