@@ -3,6 +3,9 @@
 > 自动化任务派单全景。
 > 来源：任务清单 V1.0 全部 32 子任务 + 任务书 §7 工程纪律 + ADR-001 衍生验证任务。
 > 维护节奏：每开/合一个 Issue，更新本页（短期手维护；后续可加 GH Actions 自动同步）。
+>
+> **架构决策变更记录**：
+> - **2026-06-23 E3 路径反转**：Issue [#4](https://github.com/Ruidooww/PAS/issues/4) (exp-001) 实证 FastGPT workflow preview dispatch 阻塞，**E3 改为 PAS BullMQ + ragflowClient 自编排**（与 E2 同模式），不走 FastGPT。FastGPT 容器留座 v2 智能客服/Iframe 用。详见 [ADR-001 § 决策修订记录](../PAS%E4%BB%BB%E5%8A%A1%E4%B9%A6-V1.0-20260622/decisions/ADR-001-pas-fastgpt-ragflow.md) + `docs/experiments/exp-001-ragflow-mcp-fastgpt.md`
 
 ## 状态约定
 
@@ -25,9 +28,9 @@
 | E0.3 dev compose | — | ✅ PR #1 |
 | E0.4 config + zod | — | ✅ PR #1 |
 | E0.5 clients mock 占位 | — | ✅ PR #1 |
-| E0.5 clients 真实实现 | [#5](https://github.com/Ruidooww/PAS/issues/5) | 🟢/⏸ #4 |
+| E0.5 clients 真实实现（ragflow 全量 + agent stub） | [#5](https://github.com/Ruidooww/PAS/issues/5) | 🟢 (范围缩, agent 仅 stub) |
 | E0.6 CI lint/typecheck/test | — | ✅ PR #1 |
-| (ADR-001 衍生) RAGFlow MCP + FastGPT 验证 | [#4](https://github.com/Ruidooww/PAS/issues/4) | 🟡 |
+| (ADR-001 衍生) RAGFlow MCP + FastGPT 验证 | [#4](https://github.com/Ruidooww/PAS/issues/4) | ✅ PR #32 (决策反转, exp-001) |
 
 ### E1 权限基座
 
@@ -52,7 +55,7 @@
 |---|---|---|
 | E3.1 需求结构化 | [#12](https://github.com/Ruidooww/PAS/issues/12) | 🟢/⏸ #6 |
 | E3.2 方案模板体系 | [#13](https://github.com/Ruidooww/PAS/issues/13) | 🟢 |
-| E3.3 生成流水线 (FastGPT+MCP) | [#14](https://github.com/Ruidooww/PAS/issues/14) | 🟢/⏸ #4,#5,#12,#13 |
+| E3.3 生成流水线 (PAS BullMQ 自编排, 修订) | [#14](https://github.com/Ruidooww/PAS/issues/14) | 🟢/⏸ #5,#8,#12,#13,#24 |
 | E3.4 CRUD + 版本 | [#15](https://github.com/Ruidooww/PAS/issues/15) | 🟢/⏸ #12 |
 | E3.5 导出 Word/MD | [#16](https://github.com/Ruidooww/PAS/issues/16) | 🟢/⏸ #15 |
 | E3.6 方案前端 | [#17](https://github.com/Ruidooww/PAS/issues/17) | 🟢/⏸ #12,#14,#15,#16 |
@@ -95,15 +98,15 @@
 ```
 PR #1 (E0 scaffold) ────────────────────────────────────────────────┐
                                                                      │
-ADR-001 / ADR-002 (PR #2/#3) ───────────────────────────────────────┤
+ADR-001 (amended) / ADR-002 (PR #2/#3/#31/#33) ────────────────────┤
                                                                      │
-#4 MCP验证 ──→ #5 clients ──→ #7 QA backend ──┬──→ #10 ACL+反馈     │
-                  │                              │                   │
-                  │                              └──→ #11 QA 前端    │
-                  │                                                  │
-                  └─→ #14 方案流水线 ←─ #4 ──────────────────────────┤
+#4 ✅ exp-001 → #5 ragflow+agent_stub ──→ #7 QA backend ─┬─→ #10  │
+                          │                                │         │
+                          │                                └─→ #11   │
+                          │                                          │
+                          └─→ #14 方案流水线 (PAS自编排, 不走 FastGPT)│
                                                                      │
-#6 IdP ──→ #8 ACL ──→ #9 脱敏审计                                   │
+#6 IdP ──→ #8 ACL+RBAC ──→ #9 脱敏审计                              │
             ├─→ #25 KbDocument 同步 ←── #5                          │
             ├─→ #18 CRM backend                                      │
             └─→ #12 需求结构化 ──┬─→ #14 ─┬─→ #15 ─→ #16 ─→ #17 ─┐ │
@@ -122,8 +125,8 @@ ADR-001 / ADR-002 (PR #2/#3) ─────────────────
 
 | Wave | 派单 | 解锁 |
 |---|---|---|
-| **0 (now)** | #4 | MCP/FastGPT 路径决策 |
-| **1** | #5, #6 | clients + auth 双线 |
+| ~~0~~ ✅ | ~~#4~~ | ✅ exp-001 done, 决策反转记录在 ADR-001 |
+| **1 (now)** | #5, #6 | clients + auth 双线 |
 | **2** | #7, #8, #13, #23, #24, #27, #28 | E2 后端 / E1 ACL / E3 模板 / 工程纪律 / 工装 W1+W3 |
 | **3** | #9, #11, #12, #18 | E1 收尾 / QA 前端 / 需求结构化 / CRM 后端 |
 | **4** | #10, #14, #15, #25 | ACL 过滤 + 反馈 / 方案流水线 / CRUD / KB 同步 |
