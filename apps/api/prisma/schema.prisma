@@ -29,20 +29,43 @@ enum FeedbackRating {
   down
 }
 
+enum IdpProvider {
+  feishu
+  wecom
+  mock
+}
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  users     User[]
+
+  @@map("tenants")
+}
+
 model User {
   id           String                 @id @default(cuid())
   name         String
-  email        String                 @unique
-  role         UserRole
+  email        String?                @unique
+  role         UserRole               @default(presales)
   isExternal   Boolean                @default(false) @map("is_external")
   deptId       String?                @map("dept_id")
+  tenantId     String                 @map("tenant_id")
+  idpProvider  IdpProvider            @map("idp_provider")
+  idpUserId    String                 @map("idp_user_id")
+  avatar       String?
+  lastLoginAt  DateTime?              @map("last_login_at")
   createdAt    DateTime               @default(now()) @map("created_at")
+  tenant       Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Restrict)
   proposals    Proposal[]             @relation("ProposalCreator")
   kbDocuments  KbDocument[]           @relation("DocumentUploader")
   auditLogs    AuditLog[]
   feedback     ConversationFeedback[]
 
   @@index([deptId])
+  @@index([tenantId])
+  @@unique([idpProvider, idpUserId])
   @@map("users")
 }
 

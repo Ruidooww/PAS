@@ -4,11 +4,11 @@
   "private": true,
   "packageManager": "pnpm@11.5.3",
   "scripts": {
-    "dev": "pnpm --filter @pas/shared build && pnpm --parallel --filter api --filter web dev",
+    "dev": "pnpm --filter @pas/shared build && pnpm --filter @pas/clients build && pnpm --parallel --filter api --filter web dev",
     "build": "pnpm -r build",
-    "lint": "pnpm --filter @pas/shared build && pnpm -r lint",
-    "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test"
+    "lint": "pnpm --filter @pas/shared build && pnpm --filter @pas/clients build && pnpm -r lint",
+    "typecheck": "pnpm --filter @pas/shared build && pnpm --filter @pas/clients build && pnpm -r typecheck",
+    "test": "pnpm --filter @pas/shared build && pnpm --filter @pas/clients build && pnpm -r test"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",

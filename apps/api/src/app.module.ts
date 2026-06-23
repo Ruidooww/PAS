@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 
 import { AppController } from "./app.controller";
+import { AuthModule } from "./auth/auth.module";
 import { validateEnv } from "./config/env.schema";
 import { DemoModule } from "./demo/demo.module";
 
@@ -12,6 +13,7 @@ import { DemoModule } from "./demo/demo.module";
       isGlobal: true,
       validate: validateEnv,
     }),
+    AuthModule,
     DemoModule,
   ],
   controllers: [AppController],

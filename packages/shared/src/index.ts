@@ -16,6 +16,9 @@ export type CustomerSource = (typeof CUSTOMER_SOURCES)[number];
 export const FEEDBACK_RATINGS = ["up", "down"] as const;
 export type FeedbackRating = (typeof FEEDBACK_RATINGS)[number];
 
+export const IDP_PROVIDERS = ["feishu", "mock", "wecom"] as const;
+export type IdpProvider = (typeof IDP_PROVIDERS)[number];
+
 export type JsonPrimitive = boolean | number | string | null;
 export type JsonValue = JsonPrimitive | JsonObject | JsonValue[];
 export type JsonObject = { [key: string]: JsonValue };
@@ -23,10 +26,21 @@ export type JsonObject = { [key: string]: JsonValue };
 export interface User {
   id: string;
   name: string;
-  email: string;
+  email: string | null;
   role: UserRole;
   isExternal: boolean;
   deptId: string | null;
+  tenantId: string;
+  idpProvider: IdpProvider;
+  idpUserId: string;
+  avatar: string | null;
+  lastLoginAt: string | null;
+  createdAt: string;
+}
+
+export interface Tenant {
+  id: string;
+  name: string;
   createdAt: string;
 }
 
