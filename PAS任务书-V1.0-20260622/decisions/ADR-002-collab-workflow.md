@@ -4,7 +4,8 @@
 > 关联：[PAS-会话交接-2026-06-22.md](../PAS-会话交接-2026-06-22.md) §6（原始约定）、[ADR-001](./ADR-001-pas-fastgpt-ragflow.md)
 >
 > **修订记录**（详见末尾 § 修订记录）：
-> - 2026-06-23 (PM)：**Cursor 加入 executor 池**。从此 Codex / Cursor 都是合格 executor，但**一次只一个在岗**（同台机 + 同 working tree 不允许并发）。哪个在岗是人工调度，Orchestrator 不主动选。流程 / Issue 模板 / label / PR SOP 全部不变。
+> - 2026-06-23 (PM late)：**Executor 可在任意机器，不必同台**。Cursor 实际跑在另一台机器 → 之前"同台机 + 同 working tree"的并发约束失效。新约束：不同机器各自 feat 分支可物理并发，实践上仍保持"一次一个 Issue"以匹配 Orchestrator review 带宽。Onboarding 流程见 [`docs/onboarding-executor.md`](../../../docs/onboarding-executor.md)。
+> - 2026-06-23 (PM)：**Cursor 加入 executor 池**。从此 Codex / Cursor 都是合格 executor。哪个在岗是人工调度，Orchestrator 不主动选。流程 / Issue 模板 / label / PR SOP 全部不变。
 > - 2026-06-23 (AM, 临时)：Codex 在干其他项目时，Claude 短期代写 executor (#5 = PR #35)；只为不阻塞 Wave 1，**不是新常态**。Cursor / Codex 复班后回归"Claude orchestrator-only"。
 
 ## 背景
@@ -19,11 +20,16 @@
 |---|---|---|
 | 决策人 / merge 按钮 | 仓库所有者（ruidooww） | 架构拍板、PR 终审、点 merge |
 | **Orchestrator** | Claude | 架构 / 拆任务 / **写 Issue** / 审 PR / 本地集成测试 |
-| **Executor**（池：一次只一个在岗） | **Codex** 或 **Cursor** | 按 Issue 实施 → PR |
+| **Executor**（池：实践上一次一个在岗） | **Codex** 或 **Cursor** | 按 Issue 实施 → PR |
 
-**Executor 并发约束**：同台机 + 同 working tree → 一次只允许一个 executor 在 PAS 分支动文件。哪个在岗是**用户调度**（一句话告诉 Orchestrator "现在 X 在干"），ADR 不固化"当值人"避免每次切换都改 doc。Orchestrator 不主动选 executor，按用户指定派单。
+**Executor 并发约束**（修订 2026-06-23 PM late）：
+- Executor 可在**任意机器**，不必同台。Codex 和 Cursor 当前各在一台机器。
+- 不同机器各自 feat 分支可**物理并发**，但实践上保持 **"一次一个 Issue 在跑"** —— Orchestrator (Claude) review 带宽有限，且避免两个 Issue 改同一文件触发 merge conflict。
+- 哪个在岗是**用户调度**（一句话告诉 Orchestrator "现在 X 在干 Issue #N"），ADR 不固化"当值人"。
+- Orchestrator 不主动选 executor，按用户指定派单。
+- **新 executor 入职走 [`docs/onboarding-executor.md`](../../../docs/onboarding-executor.md)** —— 包含 clone / docker / migration / 凭据传递规范。
 
-Codex 和 Cursor 都在同一台本机；`gh` CLI 已 auth，可直接 `gh issue create` / `gh pr diff`。Cursor 在 IDE 内运行（不进 CI runner）。
+Orchestrator (Claude) 在用户本机；`gh` CLI 已 auth，可直接 `gh issue create` / `gh pr diff`。Cursor 在 IDE 内运行（不进 CI runner）。
 
 ### 2. 两层 doc 模型
 
