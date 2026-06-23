@@ -1,7 +1,6 @@
 import {
   type CanActivate,
   type ExecutionContext,
-  ForbiddenException,
   Inject,
   Injectable,
 } from "@nestjs/common";
@@ -14,6 +13,7 @@ import {
   requestUser,
 } from "../audit/audit-http";
 import type { AuthenticatedRequest } from "../auth/types";
+import { InternalOnlyForbiddenException } from "./internal-only.exception";
 
 @Injectable()
 export class InternalOnlyGuard implements CanActivate {
@@ -38,7 +38,7 @@ export class InternalOnlyGuard implements CanActivate {
         userId: user?.uid ?? null,
         resource,
       });
-      throw new ForbiddenException("External users cannot access internal routes");
+      throw new InternalOnlyForbiddenException();
     }
     return true;
   }

@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ForbiddenException,
   type CallHandler,
   type ExecutionContext,
 } from "@nestjs/common";
@@ -10,6 +9,7 @@ import { describe, expect, it, vi } from "vitest";
 import { AuditInterceptor } from "../src/audit/audit.interceptor";
 import type { AuditService } from "../src/audit/audit.service";
 import type { SessionPayload } from "../src/auth/types";
+import { InternalOnlyForbiddenException } from "../src/internal/internal-only.exception";
 
 const user: SessionPayload = {
   uid: "user-1",
@@ -72,7 +72,7 @@ describe("AuditInterceptor", () => {
       write: vi.fn().mockResolvedValue(undefined),
     } as unknown as AuditService;
     const interceptor = new AuditInterceptor(audit);
-    const error = new ForbiddenException("External users cannot access internal routes");
+    const error = new InternalOnlyForbiddenException();
 
     await expect(
       lastValueFrom(

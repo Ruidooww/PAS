@@ -1,7 +1,6 @@
 import {
   type CallHandler,
   type ExecutionContext,
-  ForbiddenException,
   Inject,
   Injectable,
   type NestInterceptor,
@@ -16,6 +15,7 @@ import {
   requestResource,
   requestUser,
 } from "./audit-http";
+import { InternalOnlyForbiddenException } from "../internal/internal-only.exception";
 
 @Injectable()
 export class AuditInterceptor implements NestInterceptor {
@@ -43,10 +43,7 @@ export class AuditInterceptor implements NestInterceptor {
         });
       }),
       catchError((error: unknown) => {
-        const isInternalOnlyDenial =
-          error instanceof ForbiddenException &&
-          error.message === "External users cannot access internal routes";
-        if (!isInternalOnlyDenial) {
+        if (!(error instanceof InternalOnlyForbiddenException)) {
           const user = requestUser(request);
           const statusCode =
             typeof error === "object" &&
