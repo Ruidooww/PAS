@@ -1,0 +1,127 @@
+{
+    "generated_at":  "2026-06-22T22:20:57+08:00",
+    "transport":  "streamable-http",
+    "endpoint":  "http://127.0.0.1:19382/mcp",
+    "tool":  "ragflow_retrieval",
+    "dataset_id":  "4bac62666ded11f1883e5d291d1e8e70",
+    "parameters":  {
+                       "page_size":  30,
+                       "top_k":  1024,
+                       "similarity_threshold":  0.1,
+                       "vector_similarity_weight":  0.3,
+                       "rerank_id":  "gte-rerank-v2@bailian@Tongyi-Qianwen"
+                   },
+    "results":  [
+                    {
+                        "query":  "控制台加密策略怎么设置",
+                        "total_chunks":  90,
+                        "returned_chunks":  30,
+                        "top3":  [
+                                     {
+                                         "rank":  1,
+                                         "document":  "IP-guardV4用户手册（4.86.1941）.pdf",
+                                         "page":  529,
+                                         "similarity":  0.450601,
+                                         "term_similarity":  0.408944,
+                                         "vector_similarity":  0.547801,
+                                         "chunk_id":  "e1d60bebdebfaa6e",
+                                         "excerpt":  "策略设置内容与控制台上一致。 30.11 加密策略 选择导航栏“加密策略”，可查看计算机（组）、用户（组）的策略信息，并支 持设置修改、删除策略，包含策略继承（叠加）功能。策略包括：加密授权设 置、加密参数设置、文档备份设置、长期离线授权、安全通讯设置。 在对象选择区域中选择对象，点击按钮，选择“加密授权管理-\u003e启用透明加 密授权”可对客户端启用加密授权；选择“加密授权管理-\u003e启用只读加密授权” 可对客户端启用只读加密授权；选择“加密授权管理-\u003e回收加密授权”可对客 户端回收加密授权。在导航栏处选择具体的加密策略，在对象选择区域中选择 计算机（组），最右侧视图会出现策略设置页面，可选择视图最右侧的按钮对 策略进行设置修改。 策略设置内容与控制台上一致。"
+                                     },
+                                     {
+                                         "rank":  2,
+                                         "document":  "IP-guardV4用户手册(4.87.2226.0).pdf",
+                                         "page":  null,
+                                         "similarity":  0.398209,
+                                         "term_similarity":  0.408944,
+                                         "vector_similarity":  0.37316,
+                                         "chunk_id":  "b626da4c2cede70f",
+                                         "excerpt":  "可对客户端启用只读加密授权；选择“加密授权管理-\u003e回收加密授权”可对客 户端回收加密授权。在导航栏处选择具体的加密策略，在对象选择区域中选择 计算机 （组）， 最右侧视图会出现策略设置页面，可选择视图最右侧的 按钮对 策略进行设置修改。 策略设置内容与控制台上一致。"
+                                     },
+                                     {
+                                         "rank":  3,
+                                         "document":  "Web控制台使用说明20251031.pdf",
+                                         "page":  38,
+                                         "similarity":  0.392232,
+                                         "term_similarity":  0.408944,
+                                         "vector_similarity":  0.35324,
+                                         "chunk_id":  "1b5aaaabfacd2545",
+                                         "excerpt":  "3.10.2 设置加密策略 在计算机架构、角色-\u003e策略集下，选中导航栏“加密策略”下的各项加密策略（加密授 权设置、加密参数设置、文档备份设置、长期离线授权、安全通讯设置）的界面，都增加“修 改”、“删除”按钮，可以对策略的修改和删除，如下图。 以【加密授权设置】为例，点击修改按钮，弹出策略设置的窗口，如下图。 其他加密策略的设置界面类似，具体交互和设置效果同普通控制台。 3.11 分类库 选中导航栏“分类库”下的各项分类库（如下），可以查看，并支持自定义查询。应用 程序分类库、网站分类库、移动存储分类库支持增删改。 选中一条分类库，点击末尾的“明细”，可查看该条分类库具体的内容。 应用程序⚫ 网站⚫ 移动存储 ⚫ 软件安装包 ⚫ ⚫软件卸载 ⚫时间类型 网络地址⚫ 盗信： 网络端口 ⚫ 邮箱 ⚫ ⚫水印模板 敏感信息 ⚫ 3.11.1 应用程序分类 选中导航栏“分类库-\u003e应用程序”打开应用程序类别窗口，系统默认定义了两个应用程…"
+                                     }
+                                 ]
+                    },
+                    {
+                        "query":  "WPS 是不是 IP-Guard 默认授权软件库的一部分",
+                        "total_chunks":  70,
+                        "returned_chunks":  30,
+                        "top3":  [
+                                     {
+                                         "rank":  1,
+                                         "document":  "V4授权库管理工具(SafeSoftLibMgrV4)使用说明.pdf",
+                                         "page":  9,
+                                         "similarity":  0.188925,
+                                         "term_similarity":  0.215869,
+                                         "vector_similarity":  0.126057,
+                                         "chunk_id":  "349592258aec78c7",
+                                         "excerpt":  "只解密不加密文件：原V3授权库管理工具中的过滤文件。 配置文件：设置文件修改保存生成ipgsd 文件。授权软件分类下设置该配置，V3 客户 端不生效。 只加密文件：修改明文会加密，且只加密设置的文件。 授权软件配置信息 c)过滤日志文件 过滤日志文件(即V3工具不记日志配置)：不记录配置文件的加密日志 要设置过滤日志文件配置，先勾选“不记日志文件”，分别设好包含和排斥范围即 可。 授权软件配置信息 d)进程关联文件类型 进程关联文件类型：授权软件相关进程打开，保存，另存为相关的文件类型。支持 V4客户端，V3客户端不支持。 主要用于对文件的安全权限进行跟踪操作，防止安全属性丢失。 默认不设置，不设置默认对所有类型进行跟踪。 一般情况下，设置于对应的授权软件策略下。 2.2.3 创建新的授权软件 1)设置软件基本信息 授权软件ID与名称为必填项，名称必须填写其中一个。授权软件ID前四位为软件分类 ID。可自定义设置授权软件图标预览…"
+                                     },
+                                     {
+                                         "rank":  2,
+                                         "document":  "IP-guardV4用户手册(4.87.2226.0).pdf",
+                                         "page":  null,
+                                         "similarity":  0.185587,
+                                         "term_similarity":  0.213384,
+                                         "vector_similarity":  0.120726,
+                                         "chunk_id":  "334cd9a268afdf51",
+                                         "excerpt":  "漏洞管理 主要是对系统漏洞进行管理的权限。 包括：查询漏洞检查情况，设置漏洞检查参数等。 软件分发 有两部分，对分发包操作的权限。 包括：查询分发包，设置分发包等；对分发任务操作的 权限。包括：查询分发任务及安装情况，设置分发任务， 执行分发任务等。 软件卸载管理 主要是对软件卸载功能进行管理的权限。 包括：查询软件卸载任务，设置软件卸载任务 网络接入检测 主要是接入检测功能的权限。 包括：查看接入检测、设置接入检测和设置策略。 功能权限 说明 所有分类管理 主要是能管理的类别的权限。 包括：应用程序类别，网站类别，时间类别，网络地 址类别，网络端口类别，移动存储，软件安装包分类 库，软件卸载分类库，邮箱类别，水印模板库，敏感 信息分类库。 其中移动存储库又细分出：查看/设置移动存储库， 注册管控，管理加密盘，格式化成加密盘，初始化安 全 U盘，安全U盘交互区日志，启用/禁用注册管控。 水印模板库又细分出：查看水印模板库、设置水…"
+                                     },
+                                     {
+                                         "rank":  3,
+                                         "document":  "IP-guard 产品白皮书_2023.11.30.pdf",
+                                         "page":  23,
+                                         "similarity":  0.178011,
+                                         "term_similarity":  0.160573,
+                                         "vector_similarity":  0.2187,
+                                         "chunk_id":  "9fbd3d5f61d9142c",
+                                         "excerpt":  "IP-guard可以控制软件安装、软件卸载的权限，允许/禁止卸载指定软件，允许/禁止安 装软件，通过对软件的安装卸载进行限制，实现桌面应用程序的标准化管理。 10. 软件中心 ⚫建立分类清晰的软件库 IP-guard 软件中心为员工提供了一个获取软件的权威平台，首先管理员在软件中心建 立清晰的软件分类，并将软件安装包上传到对应的分类中，如office、wps、pdf 放到办公 软件分类，QQ、微信、企业微信、钉钉放到即时通信分类，虚拟机相关的安装包放到虚拟机 分类，经管理员审核，软件安装包正式上架到软件中心，供员工下载。管理员也可以在软件 中心添加新软件、或下架已有的旧软件。 ⚫软件安装权限 考虑企业采购正版软件（如office、AutoCAD、Visual Studio 等）的授权数有限，需 限制非必要员工不允许从软件中心下载此软件，以免造成软件安装数量超过授权数量，导致 版权纠纷。支持通过软件中心限制用户、计算机查看、下载指…"
+                                     }
+                                 ]
+                    },
+                    {
+                        "query":  "在 Web 控制台中，如何给某个部门新建并下发一条文档加密策略？",
+                        "total_chunks":  31,
+                        "returned_chunks":  30,
+                        "top3":  [
+                                     {
+                                         "rank":  1,
+                                         "document":  "IP-guardV4用户手册(4.87.2226.0).pdf",
+                                         "page":  null,
+                                         "similarity":  0.181017,
+                                         "term_similarity":  0.185199,
+                                         "vector_similarity":  0.171261,
+                                         "chunk_id":  "ba4e63ec9fb1bde5",
+                                         "excerpt":  "日志，Windows 系统日志，策略日志、系统事件日志，即时通讯日志，邮件记 录日志、敏感信息日志。 选中一条日志，点击末尾的“明细”，可查看该条日志具体的内容。 31.8 加密日志 选择导航栏“加密日志”，可查看加密系统相关的各操作日志，包括：文档操 作日志，文档备份日志，加密系统登录日志。 选中一条日志，点击末尾的“明细”，可查看该条日志具体的内容。 31.9 监视 实时屏幕快照 选择导航栏“监视-\u003e屏幕快照” ，管理员可以实时查看并跟踪某一台计算机或 某一个用户的屏幕快照。 相关图标说明 按钮图标 说明 会话按钮，如果某台计算机登录了两个以上用户或某个 用户同时登录两台以上计算机，管理员可以通过选择查 看其中某一个的屏幕快照。 跟踪按钮，屏幕快照会自动刷新，刷新间隔时间在控制 台“工具-\u003e选项-\u003e实时信息”中查看和修改，web 控制 台不支持修改。 适合窗口大小。 原始大小。 31.10 策略 选择导航栏“策略” ，可查看…"
+                                     },
+                                     {
+                                         "rank":  2,
+                                         "document":  "Web控制台使用说明20251031.pdf",
+                                         "page":  21,
+                                         "similarity":  0.17491,
+                                         "term_similarity":  0.12721,
+                                         "vector_similarity":  0.28621,
+                                         "chunk_id":  "caa7c0785c738b11",
+                                         "excerpt":  "\u003ctable\u003e\u003ccaption\u003e登录WEB控制台后，界面如下图所示：\u003c/caption\u003e \u003ctr\u003e\u003ctd \u003eIP-guard\u003c/td\u003e\u003ctd \u003eC\u003c/td\u003e\u003ctd\u003e\u003c/td\u003e\u003ctd\u003e\u003c/td\u003e\u003ctd\u003e\u003c/td\u003e\u003ctd \u003e数据看板审批管理报表系统|Admi\u003c/td\u003e\u003ctd\u003e\u003c/td\u003e\u003c/tr\u003e \u003ctr\u003e\u003ctd \u003e颜\u003c/td\u003e\u003ctd \u003e首页\u003c/td\u003e\u003ctd\u003e\u003c/td\u003e\u003ctd\u003e\u003c/td\u003e\u003ctd\u003e\u003c/td\u003e\u003ctd\u003e\u003c/td\u003e\u003ctd\u003e\u003c/td\u003e\u003c/tr\u003e \u003ctr\u003e\u003ctd \u003e统计\u003c/td\u003e\u003ctd\u003e\u003c/td\u003e\u003ctd\u003e\u003c/td\u003e\u003ctd\u003e\u003c/td\u003e\u003ctd\u003e\u003c/td\u003e\u003ctd\u003e\u003c/td\u003e\u003ctd \u003e统计时间：2025-06-1811:40:17\u003c/td\u003e\u003c/tr\u003e \u003ctr\u003e\u003ctd \u003e自日志 自加密日志\u003c/td\u003e\u003ctd\u003e\u003c/td\u003e\u003ctd \u003e口\u003c/td\u003e\u003ctd\u003e\u003c/td\u003e\u003ctd \u003e回\u003c/td\u003e\u003ctd\u003e\u003c/td\u003e\u003ctd\u003e\u003c/td\u003e\u003c/tr\u003e \u003ctr\u003e\u003ctd\u003e…"
+                                     },
+                                     {
+                                         "rank":  3,
+                                         "document":  "IP-guardV4用户手册（4.86.1941）.pdf",
+                                         "page":  62,
+                                         "similarity":  0.168399,
+                                         "term_similarity":  0.174186,
+                                         "vector_similarity":  0.154896,
+                                         "chunk_id":  "e33e20748203c6a5",
+                                         "excerpt":  "The image shows a Windows application window titled “控制台” (Control Panel) with a classic blue title bar and standard minimize, maximize, and close buttons on the top-right. The menu bar contains the following items from left to right: 文件(E), 控制(C), 统计(S), 日志(L), 策略(P), 高级(A), 监视(M), 维护(R), 资产管理(Ω), 工具(T), 视图(V), 帮助(H). Below the menu bar is a toolbar with icons labeled: 新建 (+), 删除 (×), 刷新 (green circular arrow), 导出 (…"
+                                     }
+                                 ]
+                    }
+                ]
+}

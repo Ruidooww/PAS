@@ -1,0 +1,30 @@
+{
+  "generated_at": "2026-06-23T02:00:00+08:00",
+  "app_id": "6a39ddd82ad2e35a29a9dc3b",
+  "tool_app_id": "6a39dcbf2ad2e35a29a9db66",
+  "workflow_target": [
+    "workflowStart",
+    "ragflow_retrieval",
+    "textEditor",
+    "AI chat"
+  ],
+  "status": "blocked",
+  "observations": [
+    {
+      "stage": "FastGPT MCP tool parse",
+      "result": "pass",
+      "evidence": "03-fastgpt-mcp-tools.png shows ragflow_retrieval parsed with the PAS dataset id in the tool description."
+    },
+    {
+      "stage": "FastGPT MCP tool debug",
+      "result": "pass_after_runtime_patch",
+      "evidence": "RAGFlow MCP runtime _DATASET_PAGE_SIZE had to be changed from 1000 to 100 because RAGFlow /datasets rejects page_size > 100."
+    },
+    {
+      "stage": "FastGPT workflow preview",
+      "result": "blocked",
+      "evidence": "chatTest creates Human/AI chat items, but chat_item_responses and llm_request_records stay empty; RAGFlow MCP receives no new /mcp call."
+    }
+  ],
+  "decision": "Use PAS direct RAGFlow API/KB for E3; keep FastGPT MCP as optional future POC."
+}
