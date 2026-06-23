@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 
+import { AuditModule } from "../../audit/audit.module";
 import { ClientsModule } from "../../clients";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AclService } from "../acl.service";
@@ -8,7 +9,7 @@ import { InternalQaController } from "./internal-qa.controller";
 import { InternalQaService } from "./internal-qa.service";
 
 @Module({
-  imports: [ClientsModule],
+  imports: [AuditModule, ClientsModule],
   controllers: [InternalQaController],
   providers: [AclService, InternalOnlyGuard, InternalQaService, PrismaService],
 })
