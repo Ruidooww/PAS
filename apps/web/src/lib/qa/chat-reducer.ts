@@ -21,6 +21,7 @@ export type ChatAction =
   | { type: "message"; messageId: string }
   | { type: "done" }
   | { type: "error"; message: string }
+  | { type: "clearError" }
   | { type: "feedback"; messageId: string; rating: FeedbackRating }
   | { type: "reset" };
 
@@ -89,6 +90,12 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         })),
         status: "error",
         error: action.message,
+      };
+    case "clearError":
+      return {
+        ...state,
+        status: "idle",
+        error: null,
       };
     case "feedback":
       return {

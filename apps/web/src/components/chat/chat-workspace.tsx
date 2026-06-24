@@ -10,6 +10,7 @@ import {
   serializeChat,
 } from "../../lib/qa/chat-session";
 import { submitQaFeedback } from "../../lib/qa/feedback-client";
+import { qaErrorMessage } from "../../lib/qa/error-message";
 import { QaHttpError, streamQa } from "../../lib/qa/sse-client";
 import type { FeedbackRating, QaStreamEvent } from "../../lib/qa/types";
 import { ChatComposer } from "./chat-composer";
@@ -29,6 +30,7 @@ export function ChatWorkspace() {
   const [storageReady, setStorageReady] = useState(false);
   const [feedbackPendingMessageId, setFeedbackPendingMessageId] = useState<string | null>(null);
   const abortController = useRef<AbortController | null>(null);
+  const transcript = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const stored = parseStoredChat(sessionStorage.getItem(CHAT_SESSION_STORAGE_KEY));
@@ -79,6 +81,18 @@ export function ChatWorkspace() {
     };
   }, [router]);
 
+  useEffect(() => {
+    const container = transcript.current;
+    if (!container || state.messages.length === 0) return;
+    const frame = requestAnimationFrame(() => {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: state.status === "streaming" ? "auto" : "smooth",
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [state.messages, state.status]);
+
   async function ask(query: string) {
     if (state.status === "streaming") return;
     const controller = new AbortController();
@@ -107,7 +121,7 @@ export function ChatWorkspace() {
       }
       dispatch({
         type: "error",
-        message: error instanceof Error ? error.message : "问答请求失败，请稍后重试。",
+        message: qaErrorMessage(error),
       });
     } finally {
       if (abortController.current === controller) abortController.current = null;
@@ -160,7 +174,15 @@ export function ChatWorkspace() {
   if (authPending) {
     return (
       <main className={styles.authPending}>
-        <span>正在载入售前工作台</span>
+        <div className={styles.loadingShell} aria-label="正在载入售前工作台">
+          <div className={styles.loadingHeader} />
+          <div className={styles.loadingBody}>
+            <span />
+            <span />
+            <span />
+          </div>
+          <div className={styles.loadingComposer} />
+        </div>
       </main>
     );
   }
@@ -187,7 +209,7 @@ export function ChatWorkspace() {
       </header>
 
       <section className={styles.chat}>
-        <div className={styles.transcript}>
+        <div className={styles.transcript} ref={transcript}>
           <ChatMessageList
             feedbackPendingMessageId={feedbackPendingMessageId}
             messages={state.messages}
@@ -196,6 +218,14 @@ export function ChatWorkspace() {
           />
         </div>
         <div className={styles.composerBar}>
+          {state.error && (
+            <div className={styles.errorBanner} role="alert">
+              <span>{state.error}</span>
+              <button type="button" onClick={() => dispatch({ type: "clearError" })}>
+                关闭
+              </button>
+            </div>
+          )}
           <ChatComposer disabled={state.status === "streaming"} onSubmit={ask} />
         </div>
       </section>

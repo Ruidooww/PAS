@@ -83,4 +83,13 @@ describe("chatReducer", () => {
     expect(state.currentSessionId).toBe("session-1");
     expect(state.messages[0]).toMatchObject({ feedback: "down" });
   });
+
+  it("clears a visible error without discarding conversation state", () => {
+    let state = chatReducer(streamingState(), { type: "error", message: "连接已中断" });
+    state = chatReducer(state, { type: "clearError" });
+
+    expect(state.status).toBe("idle");
+    expect(state.error).toBeNull();
+    expect(state.messages).toHaveLength(2);
+  });
 });

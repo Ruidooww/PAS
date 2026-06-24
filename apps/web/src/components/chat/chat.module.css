@@ -1,7 +1,9 @@
 .workspace {
+  height: 100dvh;
   min-height: 100dvh;
   display: grid;
   grid-template-rows: 64px minmax(0, 1fr);
+  overflow: hidden;
   color: #17262b;
   background: #eef3f5;
 }
@@ -456,6 +458,7 @@
   border: 0;
   outline: 0;
   line-height: 1.5;
+  field-sizing: content;
 }
 
 .composer textarea::placeholder {
@@ -485,10 +488,80 @@
 
 .authPending {
   min-height: 100dvh;
-  display: grid;
-  place-items: center;
-  color: #52666d;
   background: #eef3f5;
+}
+
+.loadingShell {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: 64px minmax(0, 1fr) auto;
+}
+
+.loadingHeader {
+  background: #d6e1e4;
+  animation: pulse 1.3s ease-in-out infinite;
+}
+
+.loadingBody {
+  width: min(920px, calc(100% - 40px));
+  display: grid;
+  align-content: center;
+  gap: 14px;
+  margin: 0 auto;
+}
+
+.loadingBody span {
+  height: 18px;
+  background: #d7e1e4;
+  border-radius: 4px;
+  animation: pulse 1.3s ease-in-out infinite;
+}
+
+.loadingBody span:nth-child(1) {
+  width: 46%;
+}
+
+.loadingBody span:nth-child(2) {
+  width: 72%;
+}
+
+.loadingBody span:nth-child(3) {
+  width: 58%;
+}
+
+.loadingComposer {
+  width: min(920px, calc(100% - 40px));
+  height: 58px;
+  margin: 0 auto 20px;
+  background: #d7e1e4;
+  border-radius: 8px;
+  animation: pulse 1.3s ease-in-out infinite;
+}
+
+.errorBanner {
+  width: min(920px, 100%);
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 0 auto 8px;
+  padding: 8px 10px 8px 13px;
+  color: #7a2d25;
+  background: #fff0ed;
+  border: 1px solid #e5b6ae;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.errorBanner button {
+  min-height: 28px;
+  padding: 0 9px;
+  color: #7a2d25;
+  background: transparent;
+  border: 1px solid #d89e95;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
 .srOnly {
@@ -505,5 +578,121 @@
 @keyframes blink {
   50% {
     opacity: 0;
+  }
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.48;
+  }
+}
+
+@media (max-width: 720px) {
+  .workspace {
+    grid-template-rows: 58px minmax(0, 1fr);
+  }
+
+  .topbar {
+    padding: 0 14px;
+  }
+
+  .brand span:last-child,
+  .user span {
+    display: none;
+  }
+
+  .user {
+    gap: 8px;
+  }
+
+  .user > div {
+    display: none;
+  }
+
+  .user button {
+    padding: 0 10px;
+  }
+
+  .emptyState {
+    padding: 36px 18px 80px;
+  }
+
+  .emptyState h1 {
+    font-size: 24px;
+  }
+
+  .suggestions {
+    grid-template-columns: 1fr;
+  }
+
+  .suggestions button {
+    min-height: 48px;
+  }
+
+  .messageList {
+    width: calc(100% - 24px);
+    padding: 24px 0 28px;
+  }
+
+  .messageRow,
+  .messageRow[data-role="user"] {
+    width: 100%;
+    grid-template-columns: 30px minmax(0, 1fr);
+    gap: 9px;
+    margin-bottom: 22px;
+  }
+
+  .avatar {
+    width: 30px;
+    height: 30px;
+  }
+
+  .messageContent {
+    padding: 13px 14px;
+  }
+
+  .referencePanel button {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .referencePanel button small {
+    grid-column: 2;
+  }
+
+  .feedback {
+    flex-wrap: wrap;
+  }
+
+  .composerBar {
+    padding: 10px 10px 12px;
+  }
+
+  .composer {
+    min-height: 54px;
+    gap: 8px;
+    padding-left: 13px;
+  }
+
+  .composer button {
+    min-width: 60px;
+    padding: 0 12px;
+  }
+
+  .loadingShell {
+    grid-template-rows: 58px minmax(0, 1fr) auto;
+  }
+
+  .loadingBody,
+  .loadingComposer {
+    width: calc(100% - 24px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cursor,
+  .loadingHeader,
+  .loadingBody span,
+  .loadingComposer {
+    animation: none;
   }
 }
