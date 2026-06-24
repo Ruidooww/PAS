@@ -7,6 +7,7 @@ import type { ChatMessage, Chunk } from "@pas/shared";
 import type { SessionClaims } from "../auth/types";
 import { LLM_CLIENT, type LlmClient } from "../clients/llm";
 import { RAGFLOW_CLIENT, type RagflowClient } from "../clients/ragflow";
+import { AclService } from "../internal/acl.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { QA_PROMPT } from "./qa.prompt";
 import type { QaRef, QaRequest, QaStreamEvent } from "./qa.types";
@@ -20,6 +21,7 @@ const HISTORY_MESSAGE_LIMIT = HISTORY_TURNS * 2;
 export class QaService {
   constructor(
     @Inject(RAGFLOW_CLIENT) private readonly ragflowClient: RagflowClient,
+    @Inject(AclService) private readonly acl: AclService,
     @Inject(LLM_CLIENT) private readonly llmClient: LlmClient,
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(QA_PROMPT) private readonly promptTemplate: string,
@@ -33,11 +35,18 @@ export class QaService {
       ? trimHistory(request.history)
       : await this.loadHistory(conversation.id);
     const retrievalQuery = buildRetrievalQuery(history, request.query);
-    const chunks = await this.ragflowClient.retrieve({
-      kbId: QA_KB_ID,
-      query: retrievalQuery,
-      topK: RETRIEVE_TOP_K,
-    });
+    const visibleDocIds = await this.acl.computeVisibleDocIds(user);
+    const retrievedChunks =
+      visibleDocIds.length === 0
+        ? []
+        : await this.ragflowClient.retrieve({
+            kbId: QA_KB_ID,
+            query: retrievalQuery,
+            topK: RETRIEVE_TOP_K,
+            docIdWhitelist: visibleDocIds,
+          });
+    const allowedDocIds = new Set(visibleDocIds);
+    const chunks = retrievedChunks.filter((chunk) => allowedDocIds.has(chunk.documentId));
 
     const messages = buildLlmMessages(this.promptTemplate, chunks, history, request.query);
     let answer = "";

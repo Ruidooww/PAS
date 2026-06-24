@@ -48,6 +48,14 @@ const chunks: Chunk[] = [
   },
 ];
 
+const hiddenChunk: Chunk = {
+  id: "chunk-hidden",
+  documentId: "doc-hidden",
+  content: "restricted content",
+  score: 0.9,
+  metadata: { docName: "Restricted.pdf", page: 7 },
+};
+
 function session(overrides: Partial<SessionClaims> = {}): SessionClaims {
   return {
     uid: "mock-user-1",
@@ -83,6 +91,7 @@ describe("internal QA SSE", () => {
   let baseUrl: string;
   let jwt: JwtSessionService;
   let retrieve: ReturnType<typeof vi.fn>;
+  let queryRaw: ReturnType<typeof vi.fn>;
   let stream: ReturnType<typeof vi.fn>;
   let warnSpy: ReturnType<typeof vi.spyOn>;
 
@@ -90,6 +99,7 @@ describe("internal QA SSE", () => {
     vi.resetModules();
     for (const [key, value] of Object.entries(completeEnv)) vi.stubEnv(key, value);
     retrieve = vi.fn().mockResolvedValue(chunks);
+    queryRaw = vi.fn().mockResolvedValue([{ ragflow_doc_id: "doc-1" }]);
     stream = vi.fn(async function* () {
       yield "先进入策略中心";
       yield "，再新建加密策略 [1]";
@@ -127,6 +137,7 @@ describe("internal QA SSE", () => {
       .useValue({ complete: vi.fn(), stream } as unknown as LlmClient)
       .overrideProvider(PrismaService)
       .useValue({
+        $queryRaw: queryRaw,
         conversation: {
           upsert: vi.fn(
             ({
@@ -197,10 +208,44 @@ describe("internal QA SSE", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("text/event-stream");
     expect(Date.now() - startedAt).toBeLessThan(30_000);
+    expect(queryRaw).toHaveBeenCalledOnce();
+    expect(retrieve).toHaveBeenCalledWith(
+      expect.objectContaining({ docIdWhitelist: ["doc-1"] }),
+    );
     expect(parseSse(await response.text())).toEqual([
       { type: "session", sessionId: expect.any(String) },
       { type: "delta", content: "先进入策略中心" },
       { type: "delta", content: "，再新建加密策略 [1]" },
+      { type: "refs", refs: [{ n: 1, docName: "Web控制台说明.pdf", page: 24 }] },
+      { type: "done" },
+    ]);
+  });
+
+  it("filters unauthorized chunks when RAGFlow ignores the document whitelist", async () => {
+    retrieve.mockResolvedValueOnce([...chunks, hiddenChunk]);
+    stream.mockImplementationOnce(async function* (params: Parameters<LlmClient["stream"]>[0]) {
+      expect(params.messages[0]?.content).toContain("控制台路径");
+      expect(params.messages[0]?.content).not.toContain("restricted content");
+      yield "只引用可见文档 [1][2]";
+    });
+    const token = jwt.sign(session());
+
+    const response = await fetch(`${baseUrl}/api/internal/qa`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie: `${SESSION_COOKIE_NAME}=${token}`,
+      },
+      body: JSON.stringify({ query: "acl fallback" }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(retrieve).toHaveBeenCalledWith(
+      expect.objectContaining({ docIdWhitelist: ["doc-1"] }),
+    );
+    expect(parseSse(await response.text())).toEqual([
+      { type: "session", sessionId: expect.any(String) },
+      { type: "delta", content: "只引用可见文档 [1][2]" },
       { type: "refs", refs: [{ n: 1, docName: "Web控制台说明.pdf", page: 24 }] },
       { type: "done" },
     ]);

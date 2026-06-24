@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { SessionClaims } from "../src/auth/types";
 import type { LlmClient } from "../src/clients/llm";
 import type { RagflowClient } from "../src/clients/ragflow";
+import type { AclService } from "../src/internal/acl.service";
 import { QaService } from "../src/qa/qa.service";
 
 const user: SessionClaims = {
@@ -80,6 +81,12 @@ function llmMock(stream = vi.fn()): LlmClient {
   } as unknown as LlmClient;
 }
 
+function aclMock(visibleDocIds = ["doc-1", "doc-2"]): AclService {
+  return {
+    computeVisibleDocIds: vi.fn().mockResolvedValue(visibleDocIds),
+  } as unknown as AclService;
+}
+
 async function collect<T>(iterable: AsyncIterable<T>): Promise<T[]> {
   const events: T[] = [];
   for await (const event of iterable) events.push(event);
@@ -97,8 +104,10 @@ describe("QaService", () => {
       yield "并新建策略 [1][2]";
     });
     const prisma = prismaMock();
+    const acl = aclMock();
     const service = new QaService(
       ragflowMock(retrieve),
+      acl,
       llmMock(stream),
       prisma as never,
       "答案必须基于检索内容\n每个结论标 [n] 引用",
@@ -112,7 +121,9 @@ describe("QaService", () => {
       kbId: "e0-mock-kb",
       query: "控制台加密策略怎么设置",
       topK: 3,
+      docIdWhitelist: ["doc-1", "doc-2"],
     });
+    expect(acl.computeVisibleDocIds).toHaveBeenCalledWith(user);
     expect(prisma.conversation.upsert).toHaveBeenCalledWith({
       where: { sessionId_userId: { sessionId: "session-1", userId: "user-1" } },
       create: { sessionId: "session-1", userId: "user-1" },
@@ -164,6 +175,7 @@ describe("QaService", () => {
     });
     const service = new QaService(
       ragflowMock(retrieve),
+      aclMock(),
       llmMock(stream),
       prismaMock([
         { role: "user", content: "控制台加密策略怎么设置" },
@@ -194,6 +206,7 @@ describe("QaService", () => {
     const prisma = prismaMock();
     const service = new QaService(
       ragflowMock(),
+      aclMock(),
       llmMock(stream),
       prisma as never,
       "答案必须基于检索内容",
@@ -205,5 +218,23 @@ describe("QaService", () => {
 
     expect(prisma.$transaction).not.toHaveBeenCalled();
     expect(prisma.message.create).not.toHaveBeenCalled();
+  });
+
+  it("does not call RAGFlow retrieval when the user has no visible documents", async () => {
+    const retrieve = vi.fn();
+    const stream = vi.fn(async function* () {
+      yield "未找到可见资料";
+    });
+    const service = new QaService(
+      ragflowMock(retrieve),
+      aclMock([]),
+      llmMock(stream),
+      prismaMock() as never,
+      "答案必须基于检索内容",
+    );
+
+    await collect(service.answer({ query: "acl question", sessionId: "session-1" }, user));
+
+    expect(retrieve).not.toHaveBeenCalled();
   });
 });
