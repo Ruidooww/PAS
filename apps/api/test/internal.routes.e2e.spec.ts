@@ -68,8 +68,7 @@ describe("internal route isolation", () => {
       .useValue({
         $queryRaw: vi.fn().mockResolvedValue([{ ragflow_doc_id: "mock-document" }]),
         conversation: {
-          findFirst: vi.fn().mockResolvedValue({ id: "conversation-1", sessionId: "route-test" }),
-          create: vi.fn(),
+          upsert: vi.fn().mockResolvedValue({ id: "conversation-1", sessionId: "route-test" }),
         },
         message: {
           findMany: vi.fn().mockResolvedValue([]),

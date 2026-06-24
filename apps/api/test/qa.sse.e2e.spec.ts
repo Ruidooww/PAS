@@ -114,15 +114,23 @@ describe("internal QA SSE", () => {
       .overrideProvider(PrismaService)
       .useValue({
         conversation: {
-          findFirst: vi.fn(({ where }: { where: { sessionId: string; userId: string } }) =>
-            Promise.resolve(conversations.get(`${where.userId}:${where.sessionId}`) ?? null),
+          upsert: vi.fn(
+            ({
+              where,
+              create,
+            }: {
+              where: { sessionId_userId: { sessionId: string; userId: string } };
+              create: { sessionId: string; userId: string };
+            }) => {
+              const key = `${where.sessionId_userId.userId}:${where.sessionId_userId.sessionId}`;
+              const existing = conversations.get(key);
+              if (existing) return Promise.resolve(existing);
+              const conversation = { id: `conversation-${conversations.size + 1}`, ...create };
+              conversations.set(key, conversation);
+              messages.set(conversation.id, []);
+              return Promise.resolve(conversation);
+            },
           ),
-          create: vi.fn(({ data }: { data: { sessionId: string; userId: string } }) => {
-            const conversation = { id: `conversation-${conversations.size + 1}`, ...data };
-            conversations.set(`${data.userId}:${data.sessionId}`, conversation);
-            messages.set(conversation.id, []);
-            return Promise.resolve(conversation);
-          }),
         },
         message: {
           findMany: vi.fn(({ where }: { where: { conversationId: string } }) =>

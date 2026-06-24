@@ -72,11 +72,12 @@ export class QaService {
     sessionId: string,
     userId: string,
   ): Promise<{ id: string; sessionId: string }> {
-    const existing = await this.prisma.conversation.findFirst({
-      where: { sessionId, userId },
+    return this.prisma.conversation.upsert({
+      where: { sessionId_userId: { sessionId, userId } },
+      create: { sessionId, userId },
+      update: {},
+      select: { id: true, sessionId: true },
     });
-    if (existing) return existing;
-    return this.prisma.conversation.create({ data: { sessionId, userId } });
   }
 
   private async loadHistory(conversationId: string): Promise<ChatMessage[]> {

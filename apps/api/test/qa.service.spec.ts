@@ -38,8 +38,7 @@ const chunks: Chunk[] = [
 function prismaMock(messages: Array<{ role: string; content: string }> = []) {
   return {
     conversation: {
-      findFirst: vi.fn().mockResolvedValue({ id: "conversation-1", sessionId: "session-1" }),
-      create: vi.fn(),
+      upsert: vi.fn().mockResolvedValue({ id: "conversation-1", sessionId: "session-1" }),
     },
     message: {
       findMany: vi.fn().mockResolvedValue(
@@ -108,6 +107,12 @@ describe("QaService", () => {
       kbId: "e0-mock-kb",
       query: "控制台加密策略怎么设置",
       topK: 3,
+    });
+    expect(prisma.conversation.upsert).toHaveBeenCalledWith({
+      where: { sessionId_userId: { sessionId: "session-1", userId: "user-1" } },
+      create: { sessionId: "session-1", userId: "user-1" },
+      update: {},
+      select: { id: true, sessionId: true },
     });
     expect(events).toEqual([
       { type: "session", sessionId: "session-1" },
