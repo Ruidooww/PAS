@@ -1,5 +1,6 @@
+import { Logger } from "@nestjs/common";
 import type { Chunk } from "@pas/shared";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { SessionClaims } from "../src/auth/types";
 import type { LlmClient } from "../src/clients/llm";
@@ -104,8 +105,54 @@ async function collect<T>(iterable: AsyncIterable<T>): Promise<T[]> {
 }
 
 describe("QaService", () => {
+  beforeEach(() => {
+    vi.spyOn(Logger.prototype, "log").mockImplementation(() => undefined);
+  });
+
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.unstubAllEnvs();
+  });
+
+  it("emits the eight QA timing spans in their fixed order", async () => {
+    const log = vi.mocked(Logger.prototype.log);
+    const stream = vi.fn(async function* () {
+      yield "answer";
+    });
+    const service = new QaService(
+      ragflowMock(),
+      aclMock(),
+      llmMock(stream),
+      prismaMock() as never,
+      "Answers must use retrieved context.",
+    );
+
+    await collect(service.answer({ query: "timing", sessionId: "session-1" }, user));
+
+    const records = log.mock.calls
+      .map(([message]) => JSON.parse(String(message)) as Record<string, unknown>)
+      .filter((record) => record.event === "qa_timing");
+    expect(records.map((record) => record.span)).toEqual([
+      "request_accepted_session_emitted",
+      "conversation_history_completed",
+      "acl_document_ids_loaded",
+      "ragflow_retrieval_started",
+      "ragflow_retrieval_completed",
+      "llm_request_started",
+      "first_llm_delta_received",
+      "stream_completed",
+    ]);
+    expect(records.map((record) => record.spanIndex)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(
+      records.every(
+        (record) =>
+          record.sessionId === "session-1" &&
+          typeof record.timestamp === "string" &&
+          !Number.isNaN(Date.parse(record.timestamp)) &&
+          typeof record.elapsedMs === "number" &&
+          record.elapsedMs >= 0,
+      ),
+    ).toBe(true);
   });
 
   it("uses QA_KB_ID from the environment for retrieval", async () => {
