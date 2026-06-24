@@ -190,9 +190,173 @@
   box-shadow: 0 5px 18px rgba(19, 56, 66, 0.04);
 }
 
+.markdown > :first-child {
+  margin-top: 0;
+}
+
+.markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown p,
+.markdown ul,
+.markdown ol,
+.markdown blockquote,
+.markdown pre,
+.markdown table {
+  margin: 0 0 14px;
+}
+
+.markdown ul,
+.markdown ol {
+  padding-left: 24px;
+}
+
+.markdown li + li {
+  margin-top: 5px;
+}
+
+.markdown a {
+  color: #0d645e;
+  text-underline-offset: 3px;
+}
+
+.markdown .citation {
+  display: inline-flex;
+  align-items: center;
+  min-width: 24px;
+  height: 22px;
+  justify-content: center;
+  padding: 0 5px;
+  color: #0b5a55;
+  background: #dcefeb;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+  vertical-align: 1px;
+}
+
+.markdown code {
+  padding: 2px 5px;
+  background: #edf2f3;
+  border-radius: 4px;
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.markdown pre {
+  max-width: 100%;
+  padding: 14px 16px;
+  overflow-x: auto;
+  color: #e8f1f2;
+  background: #18353d;
+  border: 1px solid #2f5058;
+  border-radius: 6px;
+}
+
+.markdown pre code {
+  padding: 0;
+  color: inherit;
+  background: transparent;
+}
+
+.markdown blockquote {
+  padding-left: 14px;
+  color: #536970;
+  border-left: 3px solid #7aa6a1;
+}
+
+.markdown table {
+  width: 100%;
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+.markdown th,
+.markdown td {
+  min-width: 120px;
+  padding: 8px 10px;
+  border: 1px solid #cedadd;
+  text-align: left;
+}
+
+.markdown th {
+  background: #edf3f4;
+}
+
+.markdown img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+}
+
 .messageRow[data-role="user"] .messageContent {
   background: #e2eeec;
   border-color: #c4d9d5;
+}
+
+.referencePanel {
+  margin-top: 10px;
+}
+
+.referencePanel h2 {
+  margin: 0 0 7px;
+  color: #61747a;
+  font-size: 12px;
+}
+
+.referencePanel ol {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.referencePanel li {
+  scroll-margin-top: 82px;
+}
+
+.referencePanel button {
+  width: 100%;
+  min-height: 38px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px;
+  color: #40555c;
+  background: transparent;
+  border: 1px solid #cfdbde;
+  border-radius: 5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.referencePanel button:hover,
+.activeReference button {
+  background: #e1efed;
+  border-color: #68a39d;
+}
+
+.referencePanel button span {
+  color: #176b64;
+  font-weight: 800;
+}
+
+.referencePanel button strong {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.referencePanel button small {
+  color: #687a80;
+  white-space: nowrap;
 }
 
 .cursor {
