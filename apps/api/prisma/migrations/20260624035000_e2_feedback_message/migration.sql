@@ -1,7 +1,7 @@
 ALTER TABLE "conversation_feedback"
-  ALTER COLUMN "query" DROP NOT NULL,
-  ALTER COLUMN "answer" DROP NOT NULL,
-  ALTER COLUMN "session_id" DROP NOT NULL,
+  DROP COLUMN "query",
+  DROP COLUMN "answer",
+  DROP COLUMN "session_id",
   ADD COLUMN "message_id" TEXT,
   ADD COLUMN "comment" TEXT;
 

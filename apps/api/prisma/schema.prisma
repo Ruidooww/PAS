@@ -142,10 +142,7 @@ model AuditLog {
 model ConversationFeedback {
   id        String          @id @default(cuid())
   userId    String          @map("user_id")
-  query     String?
-  answer    String?         @db.Text
   rating    FeedbackRating
-  sessionId String?         @map("session_id")
   messageId String?         @unique @map("message_id")
   comment   String?         @db.Text
   createdAt DateTime        @default(now()) @map("created_at")
@@ -153,7 +150,6 @@ model ConversationFeedback {
   message   Message?        @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([sessionId])
   @@index([createdAt])
   @@map("conversation_feedback")
 }
