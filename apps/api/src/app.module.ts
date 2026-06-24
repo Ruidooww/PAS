@@ -7,6 +7,7 @@ import { AuditModule } from "./audit/audit.module";
 import { AuthModule } from "./auth/auth.module";
 import { validateEnv } from "./config/env.schema";
 import { InternalModule } from "./internal/internal.module";
+import { PrismaModule } from "./prisma/prisma.module";
 import { PublicModule } from "./public/public.module";
 import { SanitizeInterceptor } from "./sanitize/sanitize.interceptor";
 import { SharedModule } from "./shared/shared.module";
@@ -18,6 +19,7 @@ import { SharedModule } from "./shared/shared.module";
       isGlobal: true,
       validate: validateEnv,
     }),
+    PrismaModule,
     AuditModule,
     AuthModule,
     InternalModule,

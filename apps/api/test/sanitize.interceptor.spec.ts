@@ -10,6 +10,7 @@ import { AuthModule } from "../src/auth/auth.module";
 import { JwtSessionService } from "../src/auth/jwt-session.service";
 import { SESSION_COOKIE_NAME, type SessionClaims } from "../src/auth/types";
 import { validateEnv } from "../src/config/env.schema";
+import { PrismaModule } from "../src/prisma/prisma.module";
 import { PrismaService } from "../src/prisma/prisma.service";
 import { SanitizeInterceptor } from "../src/sanitize/sanitize.interceptor";
 import { Sensitive } from "../src/sanitize/sensitive.decorator";
@@ -150,6 +151,7 @@ describe("SanitizeInterceptor e2e", () => {
           isGlobal: true,
           validate: validateEnv,
         }),
+        PrismaModule,
         AuthModule,
       ],
       controllers: [SensitiveTestController],

@@ -63,6 +63,7 @@ model User {
   kbDocuments  KbDocument[]           @relation("DocumentUploader")
   auditLogs    AuditLog[]
   feedback     ConversationFeedback[]
+  conversations Conversation[]
 
   @@index([deptId])
   @@index([tenantId])
@@ -152,4 +153,32 @@ model ConversationFeedback {
   @@index([sessionId])
   @@index([createdAt])
   @@map("conversation_feedback")
+}
+
+model Conversation {
+  id        String    @id @default(cuid())
+  sessionId String    @map("session_id")
+  userId    String    @map("user_id")
+  createdAt DateTime  @default(now()) @map("created_at")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  Message[]
+
+  @@unique([sessionId, userId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("conversations")
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String       @map("conversation_id")
+  role           String
+  content        String       @db.Text
+  refs           Json?
+  createdAt      DateTime     @default(now()) @map("created_at")
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([createdAt])
+  @@map("messages")
 }

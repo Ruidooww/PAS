@@ -20,7 +20,6 @@ import { AUTH_USER_STORE, PrismaAuthUserStore } from "./user-store";
     IdpRegistry,
     JwtAuthMiddleware,
     RolesGuard,
-    PrismaService,
     {
       provide: JwtSessionService,
       inject: [ConfigService],
