@@ -362,6 +362,27 @@ describe("internal QA SSE", () => {
     );
   });
 
+  it("keeps PII unchanged in internal QA answers", async () => {
+    stream.mockImplementationOnce(async function* () {
+      yield "联系 13800001111 或 alice@example.com";
+    });
+    const token = jwt.sign(session());
+
+    const response = await fetch(`${baseUrl}/api/internal/qa`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie: `${SESSION_COOKIE_NAME}=${token}`,
+      },
+      body: JSON.stringify({ query: "internal PII" }),
+    });
+
+    expect(parseSse(await response.text())).toContainEqual({
+      type: "delta",
+      content: "联系 13800001111 或 alice@example.com",
+    });
+  });
+
   it("returns 401 without authentication", async () => {
     const response = await fetch(`${baseUrl}/api/internal/qa`, {
       method: "POST",
