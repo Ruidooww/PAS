@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { SessionClaims } from "../src/auth/types";
 import type { RagflowClient } from "../src/clients/ragflow";
@@ -17,12 +17,12 @@ const user: SessionClaims = {
   deptId: "dept-presales",
 };
 
-function ragflowClient(retrieve = vi.fn()): RagflowClient {
+function ragflowClient(retrieve = vi.fn(), chat = vi.fn(async function* () {
+  yield "acl answer";
+})): RagflowClient {
   return {
     retrieve,
-    async *chat() {
-      yield "acl answer";
-    },
+    chat,
     graphQuery: vi.fn(),
     listDocs: vi.fn(),
     uploadDoc: vi.fn(),
@@ -30,6 +30,31 @@ function ragflowClient(retrieve = vi.fn()): RagflowClient {
 }
 
 describe("InternalQaService ACL", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("uses QA_KB_ID from the environment for retrieve and chat", async () => {
+    vi.stubEnv("QA_KB_ID", "real-ragflow-dataset");
+    const retrieve = vi.fn().mockResolvedValue([]);
+    const chat = vi.fn(async function* () {
+      yield "answer";
+    });
+    const acl = {
+      computeVisibleDocIds: vi.fn().mockResolvedValue(["doc-visible"]),
+    } as unknown as AclService;
+    const service = new InternalQaService(ragflowClient(retrieve, chat), acl);
+
+    await service.ask("configured KB", user);
+
+    expect(retrieve).toHaveBeenCalledWith(
+      expect.objectContaining({ kbId: "real-ragflow-dataset" }),
+    );
+    expect(chat).toHaveBeenCalledWith(
+      expect.objectContaining({ kbId: "real-ragflow-dataset" }),
+    );
+  });
+
   it("passes visible document ids into retrieval and filters returned chunks as a fallback", async () => {
     const retrieve = vi.fn().mockResolvedValue([
       { id: "chunk-1", documentId: "doc-visible", content: "allowed", score: 0.9, metadata: {} },

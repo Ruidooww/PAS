@@ -1,5 +1,5 @@
 import type { Chunk } from "@pas/shared";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { SessionClaims } from "../src/auth/types";
 import type { LlmClient } from "../src/clients/llm";
@@ -104,6 +104,31 @@ async function collect<T>(iterable: AsyncIterable<T>): Promise<T[]> {
 }
 
 describe("QaService", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("uses QA_KB_ID from the environment for retrieval", async () => {
+    vi.stubEnv("QA_KB_ID", "real-ragflow-dataset");
+    const retrieve = vi.fn().mockResolvedValue(chunks);
+    const stream = vi.fn(async function* () {
+      yield "answer";
+    });
+    const service = new QaService(
+      ragflowMock(retrieve),
+      aclMock(),
+      llmMock(stream),
+      prismaMock() as never,
+      "答案必须基于检索内容",
+    );
+
+    await collect(service.answer({ query: "configured KB", sessionId: "session-1" }, user));
+
+    expect(retrieve).toHaveBeenCalledWith(
+      expect.objectContaining({ kbId: "real-ragflow-dataset" }),
+    );
+  });
+
   it("builds a retrieval-grounded prompt, streams deltas, and emits parsed refs", async () => {
     const retrieve = vi.fn().mockResolvedValue(chunks);
     const stream = vi.fn(async function* (params: Parameters<LlmClient["stream"]>[0]) {

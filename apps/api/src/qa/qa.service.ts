@@ -9,6 +9,7 @@ import { LLM_CLIENT, type LlmClient } from "../clients/llm";
 import { RAGFLOW_CLIENT, type RagflowClient } from "../clients/ragflow";
 import { AclService } from "../internal/acl.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { qaKbId } from "./qa-kb-id";
 import { QA_PROMPT } from "./qa.prompt";
 import type {
   QaFeedbackRequest,
@@ -18,7 +19,6 @@ import type {
   QaStreamEvent,
 } from "./qa.types";
 
-const QA_KB_ID = "e0-mock-kb";
 const RETRIEVE_TOP_K = 3;
 const HISTORY_TURNS = 5;
 const HISTORY_MESSAGE_LIMIT = HISTORY_TURNS * 2;
@@ -46,7 +46,7 @@ export class QaService {
       visibleDocIds.length === 0
         ? []
         : await this.ragflowClient.retrieve({
-            kbId: QA_KB_ID,
+            kbId: qaKbId(),
             query: retrievalQuery,
             topK: RETRIEVE_TOP_K,
             docIdWhitelist: visibleDocIds,
