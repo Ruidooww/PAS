@@ -39,6 +39,30 @@ The follow-up performance issue should add server-side timestamps for:
 These spans are required to separate retrieval latency from Bailian queueing
 and generation latency.
 
+### Issue #47 clean-environment gate
+
+The Issue #47 branch was also measured after A and B were implemented:
+
+- git worktree clean before server startup
+- `NODE_OPTIONS` unset
+- `pnpm --filter api dev` on Node.js `v24.15.0`
+- `RAGFLOW_CLIENT_MODE=real`
+- `LLM_CLIENT_MODE=real`
+- `QA_KB_ID` set directly to the real 32-character RAGFlow dataset ID
+- `RAGFLOW_BASE_URL=http://localhost:19380` with no local proxy
+
+| Query | First `delta` | Stream complete |
+| --- | ---: | ---: |
+| Q1: encryption policy and modes | 16.143 s | 39.671 s |
+| Q2: WPS/default software library | 16.254 s | 27.924 s |
+| Q3: Web console department policy | 17.843 s | 45.493 s |
+
+The three-query median TTFT was 16.254 seconds. These browser-side timings
+confirm the regression is still on the server/upstream critical path after
+removing the configuration and CommonJS startup blockers. They do not replace
+the recommended server-side spans because they cannot attribute time between
+RAGFlow retrieval and Bailian first-token latency.
+
 ## Current critical path
 
 `QaService.answer()` performs the following work before the first answer
