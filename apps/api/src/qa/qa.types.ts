@@ -1,4 +1,4 @@
-import type { ChatMessage } from "@pas/shared";
+import type { ChatMessage, FeedbackRating } from "@pas/shared";
 
 export interface QaRequest {
   query: string;
@@ -12,8 +12,21 @@ export interface QaRef {
   page?: number;
 }
 
+export interface QaFeedbackRequest {
+  messageId: string;
+  rating: FeedbackRating;
+  comment?: string;
+}
+
+export interface QaFeedbackResult {
+  messageId: string;
+  rating: FeedbackRating;
+  comment: string | null;
+}
+
 export type QaStreamEvent =
   | { type: "session"; sessionId: string }
   | { type: "delta"; content: string }
   | { type: "refs"; refs: QaRef[] }
+  | { type: "message"; messageId: string }
   | { type: "done" };

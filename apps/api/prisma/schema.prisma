@@ -140,17 +140,16 @@ model AuditLog {
 }
 
 model ConversationFeedback {
-  id        String         @id @default(cuid())
-  userId    String         @map("user_id")
-  query     String
-  answer    String
+  id        String          @id @default(cuid())
+  userId    String          @map("user_id")
   rating    FeedbackRating
-  sessionId String         @map("session_id")
-  createdAt DateTime       @default(now()) @map("created_at")
-  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messageId String?         @unique @map("message_id")
+  comment   String?         @db.Text
+  createdAt DateTime        @default(now()) @map("created_at")
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message   Message?        @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([sessionId])
   @@index([createdAt])
   @@map("conversation_feedback")
 }
@@ -177,6 +176,7 @@ model Message {
   refs           Json?
   createdAt      DateTime     @default(now()) @map("created_at")
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  feedback       ConversationFeedback?
 
   @@index([conversationId])
   @@index([createdAt])

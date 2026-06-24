@@ -48,6 +48,14 @@ const chunks: Chunk[] = [
   },
 ];
 
+const hiddenChunk: Chunk = {
+  id: "chunk-hidden",
+  documentId: "doc-hidden",
+  content: "restricted content",
+  score: 0.9,
+  metadata: { docName: "Restricted.pdf", page: 7 },
+};
+
 function session(overrides: Partial<SessionClaims> = {}): SessionClaims {
   return {
     uid: "mock-user-1",
@@ -83,6 +91,9 @@ describe("internal QA SSE", () => {
   let baseUrl: string;
   let jwt: JwtSessionService;
   let retrieve: ReturnType<typeof vi.fn>;
+  let feedbackUpsert: ReturnType<typeof vi.fn>;
+  let messageFindFirst: ReturnType<typeof vi.fn>;
+  let queryRaw: ReturnType<typeof vi.fn>;
   let stream: ReturnType<typeof vi.fn>;
   let warnSpy: ReturnType<typeof vi.spyOn>;
 
@@ -90,24 +101,45 @@ describe("internal QA SSE", () => {
     vi.resetModules();
     for (const [key, value] of Object.entries(completeEnv)) vi.stubEnv(key, value);
     retrieve = vi.fn().mockResolvedValue(chunks);
+    queryRaw = vi.fn().mockResolvedValue([{ ragflow_doc_id: "doc-1" }]);
+    messageFindFirst = vi.fn(
+      ({ where }: { where: { id: string } }) =>
+        Promise.resolve(where.id.startsWith("message-") ? { id: where.id } : null),
+    );
+    feedbackUpsert = vi.fn(
+      ({
+        create,
+        update,
+      }: {
+        create: { messageId: string };
+        update: { rating: "up" | "down"; comment: string | null };
+      }) =>
+        Promise.resolve({
+          messageId: create.messageId,
+          rating: update.rating,
+          comment: update.comment,
+        }),
+    );
     stream = vi.fn(async function* () {
       yield "先进入策略中心";
       yield "，再新建加密策略 [1]";
     });
     const conversations = new Map<string, { id: string; sessionId: string }>();
     const messages = new Map<string, Array<{ role: string; content: string; createdAt: Date }>>();
+    let messageSequence = 0;
     const createMessage = vi.fn(
       ({
         data,
       }: {
         data: { conversationId: string; role: string; content: string; refs?: unknown };
       }) => {
+        const id = `message-${++messageSequence}`;
         messages.get(data.conversationId)?.push({
           role: data.role,
           content: data.content,
           createdAt: new Date(messages.get(data.conversationId)?.length ?? 0),
         });
-        return Promise.resolve({ id: `message-${Date.now()}`, ...data });
+        return Promise.resolve({ id, ...data });
       },
     );
 
@@ -127,6 +159,7 @@ describe("internal QA SSE", () => {
       .useValue({ complete: vi.fn(), stream } as unknown as LlmClient)
       .overrideProvider(PrismaService)
       .useValue({
+        $queryRaw: queryRaw,
         conversation: {
           upsert: vi.fn(
             ({
@@ -150,8 +183,10 @@ describe("internal QA SSE", () => {
           findMany: vi.fn(({ where }: { where: { conversationId: string } }) =>
             Promise.resolve([...(messages.get(where.conversationId) ?? [])].reverse()),
           ),
+          findFirst: messageFindFirst,
           create: createMessage,
         },
+        conversationFeedback: { upsert: feedbackUpsert },
         $transaction: vi.fn(
           async (
             callback: (transaction: {
@@ -197,13 +232,104 @@ describe("internal QA SSE", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("text/event-stream");
     expect(Date.now() - startedAt).toBeLessThan(30_000);
+    expect(queryRaw).toHaveBeenCalledOnce();
+    expect(retrieve).toHaveBeenCalledWith(
+      expect.objectContaining({ docIdWhitelist: ["doc-1"] }),
+    );
     expect(parseSse(await response.text())).toEqual([
       { type: "session", sessionId: expect.any(String) },
       { type: "delta", content: "先进入策略中心" },
       { type: "delta", content: "，再新建加密策略 [1]" },
       { type: "refs", refs: [{ n: 1, docName: "Web控制台说明.pdf", page: 24 }] },
+      { type: "message", messageId: expect.any(String) },
       { type: "done" },
     ]);
+  });
+
+  it("filters unauthorized chunks when RAGFlow ignores the document whitelist", async () => {
+    retrieve.mockResolvedValueOnce([...chunks, hiddenChunk]);
+    stream.mockImplementationOnce(async function* (params: Parameters<LlmClient["stream"]>[0]) {
+      expect(params.messages[0]?.content).toContain("控制台路径");
+      expect(params.messages[0]?.content).not.toContain("restricted content");
+      yield "只引用可见文档 [1][2]";
+    });
+    const token = jwt.sign(session());
+
+    const response = await fetch(`${baseUrl}/api/internal/qa`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie: `${SESSION_COOKIE_NAME}=${token}`,
+      },
+      body: JSON.stringify({ query: "acl fallback" }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(retrieve).toHaveBeenCalledWith(
+      expect.objectContaining({ docIdWhitelist: ["doc-1"] }),
+    );
+    expect(parseSse(await response.text())).toEqual([
+      { type: "session", sessionId: expect.any(String) },
+      { type: "delta", content: "只引用可见文档 [1][2]" },
+      { type: "refs", refs: [{ n: 1, docName: "Web控制台说明.pdf", page: 24 }] },
+      { type: "message", messageId: expect.any(String) },
+      { type: "done" },
+    ]);
+  });
+
+  it("upserts repeated feedback for the assistant message id", async () => {
+    const token = jwt.sign(session());
+    const headers = {
+      "content-type": "application/json",
+      cookie: `${SESSION_COOKIE_NAME}=${token}`,
+    };
+    const answerResponse = await fetch(`${baseUrl}/api/internal/qa`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ query: "feedback target" }),
+    });
+    const messageEvent = parseSse(await answerResponse.text()).find(
+      (event): event is { type: "message"; messageId: string } =>
+        Boolean(
+          event &&
+            typeof event === "object" &&
+            "type" in event &&
+            event.type === "message" &&
+            "messageId" in event &&
+            typeof event.messageId === "string",
+        ),
+    );
+    expect(messageEvent).toBeDefined();
+
+    const first = await fetch(`${baseUrl}/api/internal/qa/feedback`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ messageId: messageEvent!.messageId, rating: "up" }),
+    });
+    const second = await fetch(`${baseUrl}/api/internal/qa/feedback`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        messageId: messageEvent!.messageId,
+        rating: "down",
+        comment: "needs correction",
+      }),
+    });
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    await expect(second.json()).resolves.toEqual({
+      messageId: messageEvent!.messageId,
+      rating: "down",
+      comment: "needs correction",
+    });
+    expect(feedbackUpsert).toHaveBeenCalledTimes(2);
+    expect(feedbackUpsert).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: { messageId: messageEvent!.messageId },
+        update: { rating: "down", comment: "needs correction" },
+      }),
+    );
   });
 
   it("reads prior DB messages for follow-up questions in the same session", async () => {
@@ -234,6 +360,27 @@ describe("internal QA SSE", () => {
         query: expect.stringContaining("延申一下"),
       }),
     );
+  });
+
+  it("keeps PII unchanged in internal QA answers", async () => {
+    stream.mockImplementationOnce(async function* () {
+      yield "联系 13800001111 或 alice@example.com";
+    });
+    const token = jwt.sign(session());
+
+    const response = await fetch(`${baseUrl}/api/internal/qa`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie: `${SESSION_COOKIE_NAME}=${token}`,
+      },
+      body: JSON.stringify({ query: "internal PII" }),
+    });
+
+    expect(parseSse(await response.text())).toContainEqual({
+      type: "delta",
+      content: "联系 13800001111 或 alice@example.com",
+    });
   });
 
   it("returns 401 without authentication", async () => {

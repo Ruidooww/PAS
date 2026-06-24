@@ -99,10 +99,9 @@ export interface AuditLog {
 export interface ConversationFeedback {
   id: string;
   userId: string;
-  query: string;
-  answer: string;
   rating: FeedbackRating;
-  sessionId: string;
+  messageId: string | null;
+  comment: string | null;
   createdAt: string;
 }
 
