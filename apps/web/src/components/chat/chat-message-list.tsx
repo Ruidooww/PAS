@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 
-import type { ChatMessage } from "../../lib/qa/types";
+import type { ChatMessage, FeedbackRating } from "../../lib/qa/types";
 import { MarkdownAnswer } from "./markdown-answer";
 import { ReferencePanel } from "./reference-panel";
 import styles from "./chat.module.css";
 
 interface ChatMessageListProps {
+  feedbackPendingMessageId: string | null;
   messages: ChatMessage[];
+  onFeedback: (messageId: string, rating: FeedbackRating) => void;
   onSuggestion: (query: string) => void;
 }
 
@@ -18,7 +20,12 @@ const suggestions = [
   "这套方案支持哪些审计能力？",
 ];
 
-export function ChatMessageList({ messages, onSuggestion }: ChatMessageListProps) {
+export function ChatMessageList({
+  feedbackPendingMessageId,
+  messages,
+  onFeedback,
+  onSuggestion,
+}: ChatMessageListProps) {
   if (messages.length === 0) {
     return (
       <section className={styles.emptyState}>
@@ -39,13 +46,26 @@ export function ChatMessageList({ messages, onSuggestion }: ChatMessageListProps
   return (
     <ol className={styles.messageList} aria-live="polite">
       {messages.map((message) => (
-        <ChatMessageItem key={message.id} message={message} />
+        <ChatMessageItem
+          feedbackPending={feedbackPendingMessageId === message.messageId}
+          key={message.id}
+          message={message}
+          onFeedback={onFeedback}
+        />
       ))}
     </ol>
   );
 }
 
-function ChatMessageItem({ message }: { message: ChatMessage }) {
+function ChatMessageItem({
+  feedbackPending,
+  message,
+  onFeedback,
+}: {
+  feedbackPending: boolean;
+  message: ChatMessage;
+  onFeedback: (messageId: string, rating: FeedbackRating) => void;
+}) {
   const [activeReference, setActiveReference] = useState<number | null>(null);
   const refs = message.refs ?? [];
   const sourcePrefix = `qa-source-${message.id}`;
@@ -71,12 +91,39 @@ function ChatMessageItem({ message }: { message: ChatMessage }) {
           {message.streaming && <span className={styles.cursor} aria-label="正在生成" />}
         </div>
         {message.role === "assistant" && (
-          <ReferencePanel
-            activeReference={activeReference}
-            refs={refs}
-            sourcePrefix={sourcePrefix}
-            onSelect={setActiveReference}
-          />
+          <>
+            <ReferencePanel
+              activeReference={activeReference}
+              refs={refs}
+              sourcePrefix={sourcePrefix}
+              onSelect={setActiveReference}
+            />
+            {message.messageId && !message.streaming && (
+              <div className={styles.feedback} aria-label="回答反馈">
+                <span>这个回答有帮助吗？</span>
+                <button
+                  aria-label="有帮助"
+                  className={message.feedback === "up" ? styles.selectedFeedback : undefined}
+                  disabled={feedbackPending}
+                  title="有帮助"
+                  type="button"
+                  onClick={() => onFeedback(message.messageId!, "up")}
+                >
+                  👍
+                </button>
+                <button
+                  aria-label="没有帮助"
+                  className={message.feedback === "down" ? styles.selectedFeedback : undefined}
+                  disabled={feedbackPending}
+                  title="没有帮助"
+                  type="button"
+                  onClick={() => onFeedback(message.messageId!, "down")}
+                >
+                  👎
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </li>

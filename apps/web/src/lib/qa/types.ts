@@ -23,4 +23,7 @@ export interface ChatMessage {
   refs?: QaReference[];
   messageId?: string;
   streaming?: boolean;
+  feedback?: FeedbackRating;
 }
+
+export type FeedbackRating = "down" | "up";

@@ -60,4 +60,27 @@ describe("chatReducer", () => {
       streaming: false,
     });
   });
+
+  it("restores a stored conversation and updates feedback", () => {
+    let state = chatReducer(initialChatState, {
+      type: "restore",
+      sessionId: "session-1",
+      messages: [
+        {
+          id: "assistant-1",
+          role: "assistant",
+          content: "answer",
+          messageId: "message-1",
+        },
+      ],
+    });
+    state = chatReducer(state, {
+      type: "feedback",
+      messageId: "message-1",
+      rating: "down",
+    });
+
+    expect(state.currentSessionId).toBe("session-1");
+    expect(state.messages[0]).toMatchObject({ feedback: "down" });
+  });
 });

@@ -1,4 +1,4 @@
-import type { ChatMessage, QaReference } from "./types";
+import type { ChatMessage, FeedbackRating, QaReference } from "./types";
 
 export interface ChatState {
   messages: ChatMessage[];
@@ -8,6 +8,7 @@ export interface ChatState {
 }
 
 export type ChatAction =
+  | { type: "restore"; sessionId: string | null; messages: ChatMessage[] }
   | {
       type: "start";
       query: string;
@@ -20,6 +21,7 @@ export type ChatAction =
   | { type: "message"; messageId: string }
   | { type: "done" }
   | { type: "error"; message: string }
+  | { type: "feedback"; messageId: string; rating: FeedbackRating }
   | { type: "reset" };
 
 export const initialChatState: ChatState = {
@@ -31,6 +33,13 @@ export const initialChatState: ChatState = {
 
 export function chatReducer(state: ChatState, action: ChatAction): ChatState {
   switch (action.type) {
+    case "restore":
+      return {
+        messages: action.messages,
+        currentSessionId: action.sessionId,
+        status: "idle",
+        error: null,
+      };
     case "start":
       return {
         ...state,
@@ -80,6 +89,15 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         })),
         status: "error",
         error: action.message,
+      };
+    case "feedback":
+      return {
+        ...state,
+        messages: state.messages.map((message) =>
+          message.messageId === action.messageId
+            ? { ...message, feedback: action.rating }
+            : message,
+        ),
       };
     case "reset":
       return initialChatState;
