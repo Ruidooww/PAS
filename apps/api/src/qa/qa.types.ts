@@ -13,6 +13,7 @@ export interface QaRef {
 }
 
 export type QaStreamEvent =
+  | { type: "session"; sessionId: string }
   | { type: "delta"; content: string }
   | { type: "refs"; refs: QaRef[] }
   | { type: "done" };

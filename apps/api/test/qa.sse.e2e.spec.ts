@@ -172,13 +172,14 @@ describe("internal QA SSE", () => {
         "content-type": "application/json",
         cookie: `${SESSION_COOKIE_NAME}=${token}`,
       },
-      body: JSON.stringify({ query: "控制台加密策略怎么设置", sessionId: "gate-3" }),
+      body: JSON.stringify({ query: "控制台加密策略怎么设置" }),
     });
 
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("text/event-stream");
     expect(Date.now() - startedAt).toBeLessThan(30_000);
     expect(parseSse(await response.text())).toEqual([
+      { type: "session", sessionId: expect.any(String) },
       { type: "delta", content: "先进入策略中心" },
       { type: "delta", content: "，再新建加密策略 [1]" },
       { type: "refs", refs: [{ n: 1, docName: "Web控制台说明.pdf", page: 24 }] },

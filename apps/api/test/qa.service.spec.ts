@@ -110,6 +110,7 @@ describe("QaService", () => {
       topK: 3,
     });
     expect(events).toEqual([
+      { type: "session", sessionId: "session-1" },
       { type: "delta", content: "进入策略中心" },
       { type: "delta", content: "并新建策略 [1][2]" },
       {

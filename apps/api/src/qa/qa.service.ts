@@ -27,6 +27,7 @@ export class QaService {
 
   async *answer(request: QaRequest, user: SessionClaims): AsyncIterable<QaStreamEvent> {
     const sessionId = request.sessionId ?? randomUUID();
+    yield { type: "session", sessionId };
     const conversation = await this.findOrCreateConversation(sessionId, user.uid);
     const history = request.history?.length
       ? trimHistory(request.history)
