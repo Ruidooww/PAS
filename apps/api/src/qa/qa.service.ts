@@ -12,7 +12,11 @@ import { AclService } from "../internal/acl.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { qaKbId } from "./qa-kb-id";
 import { QA_PROMPT } from "./qa.prompt";
-import { qaTimingSpanIndex, type QaTimingSpan } from "./qa.spans";
+import {
+  qaTimingSpanIndex,
+  type QaTimingRecord,
+  type QaTimingSpan,
+} from "./qa.spans";
 import type {
   QaFeedbackRequest,
   QaFeedbackResult,
@@ -42,14 +46,40 @@ export class QaService {
     const sessionId = request.sessionId ?? randomUUID();
     this.logTimingSpan(sessionId, "request_accepted_session_emitted", requestStartedAt);
     yield { type: "session", sessionId };
-    const conversation = await this.findOrCreateConversation(sessionId, user.uid);
-    const history = request.history?.length
-      ? trimHistory(request.history)
-      : await this.loadHistory(conversation.id);
-    this.logTimingSpan(sessionId, "conversation_history_completed", requestStartedAt);
+
+    const conversationHistoryPromise = (async () => {
+      const conversation = await this.findOrCreateConversation(sessionId, user.uid);
+      const history = request.history?.length
+        ? trimHistory(request.history)
+        : await this.loadHistory(conversation.id);
+      return {
+        conversation,
+        history,
+        timing: this.createTimingRecord(
+          sessionId,
+          "conversation_history_completed",
+          requestStartedAt,
+        ),
+      };
+    })();
+    const visibleDocIdsPromise = this.acl.computeVisibleDocIds(user).then((visibleDocIds) => ({
+      visibleDocIds,
+      timing: this.createTimingRecord(
+        sessionId,
+        "acl_document_ids_loaded",
+        requestStartedAt,
+      ),
+    }));
+    const [conversationHistory, aclResult] = await Promise.all([
+      conversationHistoryPromise,
+      visibleDocIdsPromise,
+    ]);
+    const { conversation, history } = conversationHistory;
+    const { visibleDocIds } = aclResult;
+    this.emitTimingRecord(conversationHistory.timing);
+    this.emitTimingRecord(aclResult.timing);
+
     const retrievalQuery = buildRetrievalQuery(history, request.query);
-    const visibleDocIds = await this.acl.computeVisibleDocIds(user);
-    this.logTimingSpan(sessionId, "acl_document_ids_loaded", requestStartedAt);
     this.logTimingSpan(sessionId, "ragflow_retrieval_started", requestStartedAt);
     const retrievedChunks =
       visibleDocIds.length === 0
@@ -169,16 +199,26 @@ export class QaService {
     span: QaTimingSpan,
     requestStartedAt: number,
   ): void {
-    this.logger.log(
-      JSON.stringify({
-        event: "qa_timing",
-        sessionId,
-        span,
-        spanIndex: qaTimingSpanIndex(span),
-        timestamp: new Date().toISOString(),
-        elapsedMs: Number((performance.now() - requestStartedAt).toFixed(3)),
-      }),
-    );
+    this.emitTimingRecord(this.createTimingRecord(sessionId, span, requestStartedAt));
+  }
+
+  private createTimingRecord(
+    sessionId: string,
+    span: QaTimingSpan,
+    requestStartedAt: number,
+  ): QaTimingRecord {
+    return {
+      event: "qa_timing",
+      sessionId,
+      span,
+      spanIndex: qaTimingSpanIndex(span),
+      timestamp: new Date().toISOString(),
+      elapsedMs: Number((performance.now() - requestStartedAt).toFixed(3)),
+    };
+  }
+
+  private emitTimingRecord(record: QaTimingRecord): void {
+    this.logger.log(JSON.stringify(record));
   }
 }
 

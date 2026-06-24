@@ -104,6 +104,14 @@ async function collect<T>(iterable: AsyncIterable<T>): Promise<T[]> {
   return events;
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+}
+
 describe("QaService", () => {
   beforeEach(() => {
     vi.spyOn(Logger.prototype, "log").mockImplementation(() => undefined);
@@ -279,6 +287,54 @@ describe("QaService", () => {
       expect.objectContaining({
         query: expect.stringContaining("延申一下"),
       }),
+    );
+  });
+
+  it("starts ACL lookup before conversation preparation completes and preserves ACL and history", async () => {
+    const conversation = deferred<{ id: string; sessionId: string }>();
+    const visibleDocIds = deferred<string[]>();
+    const prisma = prismaMock([
+      { role: "user", content: "previous question" },
+      { role: "assistant", content: "previous answer [1]" },
+    ]);
+    prisma.conversation.upsert.mockReturnValue(conversation.promise);
+    const acl = {
+      computeVisibleDocIds: vi.fn().mockReturnValue(visibleDocIds.promise),
+    } as unknown as AclService;
+    const retrieve = vi.fn().mockResolvedValue(chunks);
+    const stream = vi.fn(async function* (params: Parameters<LlmClient["stream"]>[0]) {
+      expect(params.messages).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ role: "user", content: "previous question" }),
+          expect.objectContaining({ role: "assistant", content: "previous answer [1]" }),
+        ]),
+      );
+      expect(params.messages[0]?.content).toContain(chunks[0]!.content);
+      expect(params.messages[0]?.content).not.toContain(chunks[1]!.content);
+      yield "answer [1]";
+    });
+    const service = new QaService(
+      ragflowMock(retrieve),
+      acl,
+      llmMock(stream),
+      prisma as never,
+      "Answers must use retrieved context.",
+    );
+
+    const answer = collect(
+      service.answer({ query: "follow-up", sessionId: "session-1" }, user),
+    );
+
+    await vi.waitFor(() => {
+      expect(prisma.conversation.upsert).toHaveBeenCalledTimes(1);
+      expect(acl.computeVisibleDocIds).toHaveBeenCalledWith(user);
+    });
+    conversation.resolve({ id: "conversation-1", sessionId: "session-1" });
+    visibleDocIds.resolve(["doc-1"]);
+    await answer;
+
+    expect(retrieve).toHaveBeenCalledWith(
+      expect.objectContaining({ docIdWhitelist: ["doc-1"] }),
     );
   });
 

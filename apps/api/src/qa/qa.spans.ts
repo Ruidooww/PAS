@@ -11,6 +11,15 @@ export const QA_TIMING_SPANS = [
 
 export type QaTimingSpan = (typeof QA_TIMING_SPANS)[number];
 
+export interface QaTimingRecord {
+  event: "qa_timing";
+  sessionId: string;
+  span: QaTimingSpan;
+  spanIndex: number;
+  timestamp: string;
+  elapsedMs: number;
+}
+
 export function qaTimingSpanIndex(span: QaTimingSpan): number {
   return QA_TIMING_SPANS.indexOf(span) + 1;
 }
