@@ -39,14 +39,6 @@ export class QaService {
       topK: RETRIEVE_TOP_K,
     });
 
-    await this.prisma.message.create({
-      data: {
-        conversationId: conversation.id,
-        role: "user",
-        content: request.query,
-      },
-    });
-
     const messages = buildLlmMessages(this.promptTemplate, chunks, history, request.query);
     let answer = "";
     for await (const delta of this.llmClient.stream({ messages, temperature: 0.2 })) {
@@ -56,15 +48,24 @@ export class QaService {
     }
 
     const refs = parseRefs(answer, chunks);
-    yield { type: "refs", refs };
-    await this.prisma.message.create({
-      data: {
-        conversationId: conversation.id,
-        role: "assistant",
-        content: answer,
-        refs: refs as unknown as Prisma.InputJsonValue,
-      },
+    await this.prisma.$transaction(async (transaction) => {
+      await transaction.message.create({
+        data: {
+          conversationId: conversation.id,
+          role: "user",
+          content: request.query,
+        },
+      });
+      await transaction.message.create({
+        data: {
+          conversationId: conversation.id,
+          role: "assistant",
+          content: answer,
+          refs: refs as unknown as Prisma.InputJsonValue,
+        },
+      });
     });
+    yield { type: "refs", refs };
     yield { type: "done" };
   }
 

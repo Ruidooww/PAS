@@ -36,6 +36,7 @@ const chunks: Chunk[] = [
 ];
 
 function prismaMock(messages: Array<{ role: string; content: string }> = []) {
+  const messageCreate = vi.fn().mockResolvedValue({});
   return {
     conversation: {
       upsert: vi.fn().mockResolvedValue({ id: "conversation-1", sessionId: "session-1" }),
@@ -53,8 +54,12 @@ function prismaMock(messages: Array<{ role: string; content: string }> = []) {
           }))
           .reverse(),
       ),
-      create: vi.fn().mockResolvedValue({}),
+      create: messageCreate,
     },
+    $transaction: vi.fn(
+      async (callback: (tx: { message: { create: typeof messageCreate } }) => Promise<unknown>) =>
+        callback({ message: { create: messageCreate } }),
+    ),
   };
 }
 
@@ -127,9 +132,22 @@ describe("QaService", () => {
       },
       { type: "done" },
     ]);
-    expect(prisma.message.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ role: "assistant", content: "进入策略中心并新建策略 [1][2]" }),
+    expect(prisma.message.create).toHaveBeenCalledTimes(2);
+    expect(prisma.message.create).toHaveBeenNthCalledWith(1, {
+      data: {
+        conversationId: "conversation-1",
+        role: "user",
+        content: "控制台加密策略怎么设置",
+      },
     });
+    expect(prisma.message.create).toHaveBeenNthCalledWith(2, {
+      data: expect.objectContaining({
+        conversationId: "conversation-1",
+        role: "assistant",
+        content: "进入策略中心并新建策略 [1][2]",
+      }),
+    });
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 
   it("injects recent DB history into retrieval and LLM messages for follow-up questions", async () => {
@@ -166,5 +184,26 @@ describe("QaService", () => {
         query: expect.stringContaining("延申一下"),
       }),
     );
+  });
+
+  it("does not persist either message when the LLM stream fails", async () => {
+    const stream = vi.fn(async function* () {
+      yield "partial";
+      throw new Error("llm stream failed");
+    });
+    const prisma = prismaMock();
+    const service = new QaService(
+      ragflowMock(),
+      llmMock(stream),
+      prisma as never,
+      "答案必须基于检索内容",
+    );
+
+    await expect(
+      collect(service.answer({ query: "控制台加密策略怎么设置", sessionId: "session-1" }, user)),
+    ).rejects.toThrow("llm stream failed");
+
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.message.create).not.toHaveBeenCalled();
   });
 });

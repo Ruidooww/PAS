@@ -96,6 +96,20 @@ describe("internal QA SSE", () => {
     });
     const conversations = new Map<string, { id: string; sessionId: string }>();
     const messages = new Map<string, Array<{ role: string; content: string; createdAt: Date }>>();
+    const createMessage = vi.fn(
+      ({
+        data,
+      }: {
+        data: { conversationId: string; role: string; content: string; refs?: unknown };
+      }) => {
+        messages.get(data.conversationId)?.push({
+          role: data.role,
+          content: data.content,
+          createdAt: new Date(messages.get(data.conversationId)?.length ?? 0),
+        });
+        return Promise.resolve({ id: `message-${Date.now()}`, ...data });
+      },
+    );
 
     const { AppModule } = await import("../src/app.module");
     const { LLM_CLIENT, RAGFLOW_CLIENT } = await import("../src/clients");
@@ -136,21 +150,18 @@ describe("internal QA SSE", () => {
           findMany: vi.fn(({ where }: { where: { conversationId: string } }) =>
             Promise.resolve([...(messages.get(where.conversationId) ?? [])].reverse()),
           ),
-          create: vi.fn(
-            ({
-              data,
-            }: {
-              data: { conversationId: string; role: string; content: string; refs?: unknown };
-            }) => {
-              messages.get(data.conversationId)?.push({
-                role: data.role,
-                content: data.content,
-                createdAt: new Date(messages.get(data.conversationId)?.length ?? 0),
-              });
-              return Promise.resolve({ id: `message-${Date.now()}`, ...data });
-            },
-          ),
+          create: createMessage,
         },
+        $transaction: vi.fn(
+          async (
+            callback: (transaction: {
+              message: { create: typeof createMessage };
+            }) => Promise<unknown>,
+          ) =>
+            callback({
+              message: { create: createMessage },
+            }),
+        ),
         auditLog: { create: vi.fn().mockResolvedValue({}) },
         onModuleInit: async () => undefined,
         onModuleDestroy: async () => undefined,

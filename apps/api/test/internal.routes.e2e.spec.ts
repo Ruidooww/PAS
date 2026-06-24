@@ -63,6 +63,7 @@ describe("internal route isolation", () => {
     }
     const { AppModule } = await import("../src/app.module");
     const { PrismaService } = await import("../src/prisma/prisma.service");
+    const createMessage = vi.fn().mockResolvedValue({});
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
       .overrideProvider(PrismaService)
       .useValue({
@@ -72,8 +73,15 @@ describe("internal route isolation", () => {
         },
         message: {
           findMany: vi.fn().mockResolvedValue([]),
-          create: vi.fn().mockResolvedValue({}),
+          create: createMessage,
         },
+        $transaction: vi.fn(
+          async (
+            callback: (transaction: {
+              message: { create: typeof createMessage };
+            }) => Promise<unknown>,
+          ) => callback({ message: { create: createMessage } }),
+        ),
         auditLog: {
           create: vi.fn().mockResolvedValue({}),
         },
