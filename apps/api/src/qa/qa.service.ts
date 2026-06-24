@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
+import { performance } from "node:perf_hooks";
 
-import { Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { Inject, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
 import type { ChatMessage, Chunk } from "@pas/shared";
 
@@ -11,6 +12,11 @@ import { AclService } from "../internal/acl.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { qaKbId } from "./qa-kb-id";
 import { QA_PROMPT } from "./qa.prompt";
+import {
+  qaTimingSpanIndex,
+  type QaTimingRecord,
+  type QaTimingSpan,
+} from "./qa.spans";
 import type {
   QaFeedbackRequest,
   QaFeedbackResult,
@@ -25,6 +31,8 @@ const HISTORY_MESSAGE_LIMIT = HISTORY_TURNS * 2;
 
 @Injectable()
 export class QaService {
+  private readonly logger = new Logger(QaService.name);
+
   constructor(
     @Inject(RAGFLOW_CLIENT) private readonly ragflowClient: RagflowClient,
     @Inject(AclService) private readonly acl: AclService,
@@ -34,14 +42,45 @@ export class QaService {
   ) {}
 
   async *answer(request: QaRequest, user: SessionClaims): AsyncIterable<QaStreamEvent> {
+    const requestStartedAt = performance.now();
     const sessionId = request.sessionId ?? randomUUID();
+    this.logTimingSpan(sessionId, "request_accepted_session_emitted", requestStartedAt);
     yield { type: "session", sessionId };
-    const conversation = await this.findOrCreateConversation(sessionId, user.uid);
-    const history = request.history?.length
-      ? trimHistory(request.history)
-      : await this.loadHistory(conversation.id);
+
+    const conversationHistoryPromise = (async () => {
+      const conversation = await this.findOrCreateConversation(sessionId, user.uid);
+      const history = request.history?.length
+        ? trimHistory(request.history)
+        : await this.loadHistory(conversation.id);
+      return {
+        conversation,
+        history,
+        timing: this.createTimingRecord(
+          sessionId,
+          "conversation_history_completed",
+          requestStartedAt,
+        ),
+      };
+    })();
+    const visibleDocIdsPromise = this.acl.computeVisibleDocIds(user).then((visibleDocIds) => ({
+      visibleDocIds,
+      timing: this.createTimingRecord(
+        sessionId,
+        "acl_document_ids_loaded",
+        requestStartedAt,
+      ),
+    }));
+    const [conversationHistory, aclResult] = await Promise.all([
+      conversationHistoryPromise,
+      visibleDocIdsPromise,
+    ]);
+    const { conversation, history } = conversationHistory;
+    const { visibleDocIds } = aclResult;
+    this.emitTimingRecord(conversationHistory.timing);
+    this.emitTimingRecord(aclResult.timing);
+
     const retrievalQuery = buildRetrievalQuery(history, request.query);
-    const visibleDocIds = await this.acl.computeVisibleDocIds(user);
+    this.logTimingSpan(sessionId, "ragflow_retrieval_started", requestStartedAt);
     const retrievedChunks =
       visibleDocIds.length === 0
         ? []
@@ -51,13 +90,20 @@ export class QaService {
             topK: RETRIEVE_TOP_K,
             docIdWhitelist: visibleDocIds,
           });
+    this.logTimingSpan(sessionId, "ragflow_retrieval_completed", requestStartedAt);
     const allowedDocIds = new Set(visibleDocIds);
     const chunks = retrievedChunks.filter((chunk) => allowedDocIds.has(chunk.documentId));
 
     const messages = buildLlmMessages(this.promptTemplate, chunks, history, request.query);
     let answer = "";
+    let firstDeltaReceived = false;
+    this.logTimingSpan(sessionId, "llm_request_started", requestStartedAt);
     for await (const delta of this.llmClient.stream({ messages, temperature: 0.2 })) {
       if (!delta) continue;
+      if (!firstDeltaReceived) {
+        firstDeltaReceived = true;
+        this.logTimingSpan(sessionId, "first_llm_delta_received", requestStartedAt);
+      }
       answer += delta;
       yield { type: "delta", content: delta };
     }
@@ -83,6 +129,7 @@ export class QaService {
     });
     yield { type: "refs", refs };
     yield { type: "message", messageId: assistantMessage.id };
+    this.logTimingSpan(sessionId, "stream_completed", requestStartedAt);
     yield { type: "done" };
   }
 
@@ -145,6 +192,33 @@ export class QaService {
         content: message.content,
       })),
     );
+  }
+
+  private logTimingSpan(
+    sessionId: string,
+    span: QaTimingSpan,
+    requestStartedAt: number,
+  ): void {
+    this.emitTimingRecord(this.createTimingRecord(sessionId, span, requestStartedAt));
+  }
+
+  private createTimingRecord(
+    sessionId: string,
+    span: QaTimingSpan,
+    requestStartedAt: number,
+  ): QaTimingRecord {
+    return {
+      event: "qa_timing",
+      sessionId,
+      span,
+      spanIndex: qaTimingSpanIndex(span),
+      timestamp: new Date().toISOString(),
+      elapsedMs: Number((performance.now() - requestStartedAt).toFixed(3)),
+    };
+  }
+
+  private emitTimingRecord(record: QaTimingRecord): void {
+    this.logger.log(JSON.stringify(record));
   }
 }
 

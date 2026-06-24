@@ -3,7 +3,8 @@
 ## Scope
 
 This document evaluates the internal QA path implemented by `QaService`.
-Issue #47 does not change the orchestration or latency behavior.
+Issue #49 adds timing instrumentation and overlaps ACL lookup with
+conversation/history preparation without changing retrieval or generation.
 
 The user-visible first-token time is measured from submitting
 `POST /api/internal/qa` until the first SSE `delta` event. The preceding
@@ -26,42 +27,24 @@ about 39 seconds. The next two queries completed in about 40 and 43 seconds.
 This establishes that the current path misses the first-token target by at
 least 4x; completion time is not a substitute for an instrumented TTFT value.
 
-The follow-up performance issue should add server-side timestamps for:
+Issue #49 records server-side timestamps for:
 
 1. request accepted / `session` emitted
-2. conversation and history loaded
+2. conversation upsert and history load completed
 3. ACL document IDs loaded
-4. RAGFlow retrieval started and completed
-5. LLM request started
-6. first LLM delta received
-7. stream completed
+4. RAGFlow retrieval started
+5. RAGFlow retrieval and rerank completed
+6. LLM request started
+7. first LLM delta received
+8. stream completed
 
 These spans are required to separate retrieval latency from Bailian queueing
 and generation latency.
 
 ### Issue #47 clean-environment gate
 
-The Issue #47 branch was also measured after A and B were implemented:
-
-- git worktree clean before server startup
-- `NODE_OPTIONS` unset
-- `pnpm --filter api dev` on Node.js `v24.15.0`
-- `RAGFLOW_CLIENT_MODE=real`
-- `LLM_CLIENT_MODE=real`
-- `QA_KB_ID` set directly to the real 32-character RAGFlow dataset ID
-- `RAGFLOW_BASE_URL=http://localhost:19380` with no local proxy
-
-| Query | First `delta` | Stream complete |
-| --- | ---: | ---: |
-| Q1: encryption policy and modes | 16.143 s | 39.671 s |
-| Q2: WPS/default software library | 16.254 s | 27.924 s |
-| Q3: Web console department policy | 17.843 s | 45.493 s |
-
-The three-query median TTFT was 16.254 seconds. These browser-side timings
-confirm the regression is still on the server/upstream critical path after
-removing the configuration and CommonJS startup blockers. They do not replace
-the recommended server-side spans because they cannot attribute time between
-RAGFlow retrieval and Bailian first-token latency.
+The three single-run values recorded by Issue #47 are superseded by the
+repeated Issue #49 measurement at the end of this document.
 
 ## Current critical path
 
@@ -140,15 +123,91 @@ Expected impact:
 
 ## Recommendation
 
-Open a dedicated performance issue with this order:
+Issue #49 completes the first two steps of the original recommendation:
 
-1. add the seven server-side timing spans and record p50/p95 over the three
-   gate queries plus repeated warm queries
-2. parallelize ACL lookup with conversation/history preparation
-3. add ACL-safe retrieval caching and measure cold versus warm TTFT
-4. evaluate streaming retrieval only if cold p95 remains above target and
+1. eight server-side timing spans and repeated p50/p95 measurements
+2. ACL lookup overlapped with conversation/history preparation
+
+The remaining order is:
+
+1. add ACL-safe retrieval caching and measure cold versus warm TTFT
+2. evaluate streaming retrieval only if cold p95 remains above target and
    RAGFlow provides a stable streaming contract
 
 Acceptance should report user-visible first `delta` p50/p95 separately from
 total completion time. Citation correctness and ACL isolation remain hard
 constraints; latency work must not weaken either.
+
+## Issue #49 measurement
+
+### Method
+
+Measurements ran on June 24, 2026 with:
+
+- Windows development host and Node.js `v24.15.0`
+- local RAGFlow Docker stack with real retrieval and reranking
+- Bailian `qwen-max` through the OpenAI-compatible streaming endpoint
+- `RAGFLOW_CLIENT_MODE=real` and `LLM_CLIENT_MODE=real`
+- direct `RAGFLOW_BASE_URL=http://localhost:19380`
+- the real 32-character dataset ID supplied through `QA_KB_ID`
+- a clean git worktree and `NODE_OPTIONS` unset before each API start
+- five repetitions per query, interleaved Q1/Q2/Q3, with a new session for
+  every request
+- nearest-rank p50/p95
+
+The serial measurement used commit `2f0c67d`, after instrumentation but before
+parallelization. The parallel measurement used commit `e578814`, after the ACL
+and conversation/history overlap was implemented. Each phase contains 15
+requests and 120 timing records.
+
+### First delta
+
+All values are seconds. Client TTFT is measured from starting the HTTP request
+to receiving the first non-empty SSE `delta`. Server TTFT is span 7 elapsed
+from span 1.
+
+| Query | Samples/phase | Serial client p50 / p95 | Parallel client p50 / p95 | Serial server p50 / p95 | Parallel server p50 / p95 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Q1: encryption policy and modes | 5 | 14.965 / 15.906 | 13.772 / 14.734 | 14.961 / 15.899 | 13.732 / 14.722 |
+| Q2: WPS/default software library | 5 | 15.396 / 24.886 | 15.113 / 17.862 | 15.389 / 24.880 | 15.108 / 17.853 |
+| Q3: Web console department policy | 5 | 13.429 / 16.342 | 13.616 / 18.980 | 13.424 / 16.331 | 13.604 / 18.959 |
+| All queries | 15 | 14.438 / 24.886 | 14.686 / 18.980 | 14.431 / 24.880 | 14.679 / 18.959 |
+
+Client and server TTFT remain closely aligned, so the browser/SSE client is not
+buffering the first answer token. The all-query p95 reduction is not attributed
+to the local parallelization because retrieval and LLM latency varied materially
+between the two 15-sample runs.
+
+### Stream completion
+
+| Query | Samples/phase | Serial client p50 / p95 | Parallel client p50 / p95 |
+| --- | ---: | ---: | ---: |
+| Q1: encryption policy and modes | 5 | 33.679 / 50.329 | 34.018 / 40.820 |
+| Q2: WPS/default software library | 5 | 28.006 / 56.686 | 22.779 / 48.456 |
+| Q3: Web console department policy | 5 | 29.464 / 32.957 | 15.181 / 25.812 |
+
+Completion time depends strongly on generated answer length and remains
+separate from the first-token acceptance target.
+
+### Server spans
+
+Values are elapsed milliseconds from request acceptance. Each row aggregates
+15 samples per phase.
+
+| Span | Serial p50 / p95 | Parallel p50 / p95 |
+| --- | ---: | ---: |
+| `request_accepted_session_emitted` | 0.035 / 0.049 | 0.047 / 0.176 |
+| `conversation_history_completed` | 35.676 / 184.153 | 50.588 / 127.275 |
+| `acl_document_ids_loaded` | 44.760 / 192.866 | 17.651 / 161.415 |
+| `ragflow_retrieval_started` | 44.956 / 193.133 | 51.008 / 163.114 |
+| `ragflow_retrieval_completed` | 9747.324 / 19758.834 | 9985.804 / 15214.376 |
+| `llm_request_started` | 9747.616 / 19759.157 | 9986.031 / 15214.716 |
+| `first_llm_delta_received` | 14430.721 / 24879.792 | 14678.824 / 18959.367 |
+| `stream_completed` | 30793.371 / 56680.801 | 25803.593 / 48449.643 |
+
+The local preparation boundary is `ragflow_retrieval_started`. Its p95 improved
+from 193.133 ms to 163.114 ms, a 30.019 ms reduction, while p50 increased by
+6.052 ms. The repeated measurement therefore validates that the independent
+work overlaps correctly but does not show a stable median TTFT improvement.
+RAGFlow retrieval plus Bailian first-token latency remains the dominant path
+and the overall p50 remains more than seven times the 2-second target.

@@ -1,5 +1,6 @@
+import { Logger } from "@nestjs/common";
 import type { Chunk } from "@pas/shared";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { SessionClaims } from "../src/auth/types";
 import type { LlmClient } from "../src/clients/llm";
@@ -103,9 +104,63 @@ async function collect<T>(iterable: AsyncIterable<T>): Promise<T[]> {
   return events;
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+}
+
 describe("QaService", () => {
+  beforeEach(() => {
+    vi.spyOn(Logger.prototype, "log").mockImplementation(() => undefined);
+  });
+
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.unstubAllEnvs();
+  });
+
+  it("emits the eight QA timing spans in their fixed order", async () => {
+    const log = vi.mocked(Logger.prototype.log);
+    const stream = vi.fn(async function* () {
+      yield "answer";
+    });
+    const service = new QaService(
+      ragflowMock(),
+      aclMock(),
+      llmMock(stream),
+      prismaMock() as never,
+      "Answers must use retrieved context.",
+    );
+
+    await collect(service.answer({ query: "timing", sessionId: "session-1" }, user));
+
+    const records = log.mock.calls
+      .map(([message]) => JSON.parse(String(message)) as Record<string, unknown>)
+      .filter((record) => record.event === "qa_timing");
+    expect(records.map((record) => record.span)).toEqual([
+      "request_accepted_session_emitted",
+      "conversation_history_completed",
+      "acl_document_ids_loaded",
+      "ragflow_retrieval_started",
+      "ragflow_retrieval_completed",
+      "llm_request_started",
+      "first_llm_delta_received",
+      "stream_completed",
+    ]);
+    expect(records.map((record) => record.spanIndex)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(
+      records.every(
+        (record) =>
+          record.sessionId === "session-1" &&
+          typeof record.timestamp === "string" &&
+          !Number.isNaN(Date.parse(record.timestamp)) &&
+          typeof record.elapsedMs === "number" &&
+          record.elapsedMs >= 0,
+      ),
+    ).toBe(true);
   });
 
   it("uses QA_KB_ID from the environment for retrieval", async () => {
@@ -232,6 +287,54 @@ describe("QaService", () => {
       expect.objectContaining({
         query: expect.stringContaining("延申一下"),
       }),
+    );
+  });
+
+  it("starts ACL lookup before conversation preparation completes and preserves ACL and history", async () => {
+    const conversation = deferred<{ id: string; sessionId: string }>();
+    const visibleDocIds = deferred<string[]>();
+    const prisma = prismaMock([
+      { role: "user", content: "previous question" },
+      { role: "assistant", content: "previous answer [1]" },
+    ]);
+    prisma.conversation.upsert.mockReturnValue(conversation.promise);
+    const acl = {
+      computeVisibleDocIds: vi.fn().mockReturnValue(visibleDocIds.promise),
+    } as unknown as AclService;
+    const retrieve = vi.fn().mockResolvedValue(chunks);
+    const stream = vi.fn(async function* (params: Parameters<LlmClient["stream"]>[0]) {
+      expect(params.messages).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ role: "user", content: "previous question" }),
+          expect.objectContaining({ role: "assistant", content: "previous answer [1]" }),
+        ]),
+      );
+      expect(params.messages[0]?.content).toContain(chunks[0]!.content);
+      expect(params.messages[0]?.content).not.toContain(chunks[1]!.content);
+      yield "answer [1]";
+    });
+    const service = new QaService(
+      ragflowMock(retrieve),
+      acl,
+      llmMock(stream),
+      prisma as never,
+      "Answers must use retrieved context.",
+    );
+
+    const answer = collect(
+      service.answer({ query: "follow-up", sessionId: "session-1" }, user),
+    );
+
+    await vi.waitFor(() => {
+      expect(prisma.conversation.upsert).toHaveBeenCalledTimes(1);
+      expect(acl.computeVisibleDocIds).toHaveBeenCalledWith(user);
+    });
+    conversation.resolve({ id: "conversation-1", sessionId: "session-1" });
+    visibleDocIds.resolve(["doc-1"]);
+    await answer;
+
+    expect(retrieve).toHaveBeenCalledWith(
+      expect.objectContaining({ docIdWhitelist: ["doc-1"] }),
     );
   });
 
