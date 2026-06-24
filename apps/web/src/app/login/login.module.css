@@ -1,0 +1,77 @@
+.page {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #eef3f5;
+}
+
+.panel {
+  width: min(420px, 100%);
+  padding: 32px;
+  background: #ffffff;
+  border: 1px solid #d5dfe3;
+  border-radius: 8px;
+  box-shadow: 0 16px 48px rgba(22, 54, 64, 0.08);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 34px;
+}
+
+.mark {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  background: #165765;
+  border-radius: 7px;
+  font-weight: 800;
+}
+
+.brandText {
+  display: grid;
+  gap: 2px;
+}
+
+.brandText strong {
+  font-size: 18px;
+}
+
+.brandText span {
+  color: #68777d;
+  font-size: 12px;
+}
+
+.panel h1 {
+  margin: 0 0 10px;
+  font-size: 26px;
+  line-height: 1.25;
+}
+
+.panel p {
+  margin: 0 0 26px;
+  color: #63737a;
+  line-height: 1.65;
+}
+
+.loginButton {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  background: #165765;
+  border: 1px solid #165765;
+  border-radius: 6px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.loginButton:hover {
+  background: #0e4651;
+}
