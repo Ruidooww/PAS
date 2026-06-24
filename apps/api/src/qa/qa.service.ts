@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { Inject, Injectable } from "@nestjs/common";
+import { Inject, Injectable, NotFoundException } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
 import type { ChatMessage, Chunk } from "@pas/shared";
 
@@ -10,7 +10,13 @@ import { RAGFLOW_CLIENT, type RagflowClient } from "../clients/ragflow";
 import { AclService } from "../internal/acl.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { QA_PROMPT } from "./qa.prompt";
-import type { QaRef, QaRequest, QaStreamEvent } from "./qa.types";
+import type {
+  QaFeedbackRequest,
+  QaFeedbackResult,
+  QaRef,
+  QaRequest,
+  QaStreamEvent,
+} from "./qa.types";
 
 const QA_KB_ID = "e0-mock-kb";
 const RETRIEVE_TOP_K = 3;
@@ -57,7 +63,7 @@ export class QaService {
     }
 
     const refs = parseRefs(answer, chunks);
-    await this.prisma.$transaction(async (transaction) => {
+    const assistantMessage = await this.prisma.$transaction(async (transaction) => {
       await transaction.message.create({
         data: {
           conversationId: conversation.id,
@@ -65,17 +71,54 @@ export class QaService {
           content: request.query,
         },
       });
-      await transaction.message.create({
+      return transaction.message.create({
         data: {
           conversationId: conversation.id,
           role: "assistant",
           content: answer,
           refs: refs as unknown as Prisma.InputJsonValue,
         },
+        select: { id: true },
       });
     });
     yield { type: "refs", refs };
+    yield { type: "message", messageId: assistantMessage.id };
     yield { type: "done" };
+  }
+
+  async submitFeedback(
+    request: QaFeedbackRequest,
+    user: SessionClaims,
+  ): Promise<QaFeedbackResult> {
+    const message = await this.prisma.message.findFirst({
+      where: {
+        id: request.messageId,
+        role: "assistant",
+        conversation: { userId: user.uid },
+      },
+      select: { id: true },
+    });
+    if (!message) throw new NotFoundException("Assistant message not found");
+
+    const comment = request.comment ?? null;
+    return this.prisma.conversationFeedback.upsert({
+      where: { messageId: request.messageId },
+      create: {
+        messageId: request.messageId,
+        userId: user.uid,
+        rating: request.rating,
+        comment,
+      },
+      update: {
+        rating: request.rating,
+        comment,
+      },
+      select: {
+        messageId: true,
+        rating: true,
+        comment: true,
+      },
+    }) as Promise<QaFeedbackResult>;
   }
 
   private async findOrCreateConversation(

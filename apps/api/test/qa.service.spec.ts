@@ -37,7 +37,9 @@ const chunks: Chunk[] = [
 ];
 
 function prismaMock(messages: Array<{ role: string; content: string }> = []) {
-  const messageCreate = vi.fn().mockResolvedValue({});
+  const messageCreate = vi.fn(({ data }: { data: { role: string } }) =>
+    Promise.resolve({ id: data.role === "assistant" ? "message-assistant" : "message-user" }),
+  );
   return {
     conversation: {
       upsert: vi.fn().mockResolvedValue({ id: "conversation-1", sessionId: "session-1" }),
@@ -55,7 +57,15 @@ function prismaMock(messages: Array<{ role: string; content: string }> = []) {
           }))
           .reverse(),
       ),
+      findFirst: vi.fn().mockResolvedValue({ id: "message-assistant" }),
       create: messageCreate,
+    },
+    conversationFeedback: {
+      upsert: vi.fn().mockResolvedValue({
+        messageId: "message-assistant",
+        rating: "down",
+        comment: "needs correction",
+      }),
     },
     $transaction: vi.fn(
       async (callback: (tx: { message: { create: typeof messageCreate } }) => Promise<unknown>) =>
@@ -141,6 +151,7 @@ describe("QaService", () => {
           { n: 2, docName: "授权软件库.pdf", page: 8 },
         ],
       },
+      { type: "message", messageId: "message-assistant" },
       { type: "done" },
     ]);
     expect(prisma.message.create).toHaveBeenCalledTimes(2);
@@ -157,6 +168,7 @@ describe("QaService", () => {
         role: "assistant",
         content: "进入策略中心并新建策略 [1][2]",
       }),
+      select: { id: true },
     });
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
@@ -236,5 +248,54 @@ describe("QaService", () => {
     await collect(service.answer({ query: "acl question", sessionId: "session-1" }, user));
 
     expect(retrieve).not.toHaveBeenCalled();
+  });
+
+  it("upserts feedback for an assistant message owned by the current user", async () => {
+    const prisma = prismaMock();
+    const service = new QaService(
+      ragflowMock(),
+      aclMock(),
+      llmMock(),
+      prisma as never,
+      "答案必须基于检索内容",
+    );
+
+    await expect(
+      service.submitFeedback(
+        { messageId: "message-assistant", rating: "down", comment: "needs correction" },
+        user,
+      ),
+    ).resolves.toEqual({
+      messageId: "message-assistant",
+      rating: "down",
+      comment: "needs correction",
+    });
+
+    expect(prisma.message.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: "message-assistant",
+        role: "assistant",
+        conversation: { userId: "user-1" },
+      },
+      select: { id: true },
+    });
+    expect(prisma.conversationFeedback.upsert).toHaveBeenCalledWith({
+      where: { messageId: "message-assistant" },
+      create: {
+        messageId: "message-assistant",
+        userId: "user-1",
+        rating: "down",
+        comment: "needs correction",
+      },
+      update: {
+        rating: "down",
+        comment: "needs correction",
+      },
+      select: {
+        messageId: true,
+        rating: true,
+        comment: true,
+      },
+    });
   });
 });

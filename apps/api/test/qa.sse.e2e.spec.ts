@@ -91,6 +91,8 @@ describe("internal QA SSE", () => {
   let baseUrl: string;
   let jwt: JwtSessionService;
   let retrieve: ReturnType<typeof vi.fn>;
+  let feedbackUpsert: ReturnType<typeof vi.fn>;
+  let messageFindFirst: ReturnType<typeof vi.fn>;
   let queryRaw: ReturnType<typeof vi.fn>;
   let stream: ReturnType<typeof vi.fn>;
   let warnSpy: ReturnType<typeof vi.spyOn>;
@@ -100,24 +102,44 @@ describe("internal QA SSE", () => {
     for (const [key, value] of Object.entries(completeEnv)) vi.stubEnv(key, value);
     retrieve = vi.fn().mockResolvedValue(chunks);
     queryRaw = vi.fn().mockResolvedValue([{ ragflow_doc_id: "doc-1" }]);
+    messageFindFirst = vi.fn(
+      ({ where }: { where: { id: string } }) =>
+        Promise.resolve(where.id.startsWith("message-") ? { id: where.id } : null),
+    );
+    feedbackUpsert = vi.fn(
+      ({
+        create,
+        update,
+      }: {
+        create: { messageId: string };
+        update: { rating: "up" | "down"; comment: string | null };
+      }) =>
+        Promise.resolve({
+          messageId: create.messageId,
+          rating: update.rating,
+          comment: update.comment,
+        }),
+    );
     stream = vi.fn(async function* () {
       yield "先进入策略中心";
       yield "，再新建加密策略 [1]";
     });
     const conversations = new Map<string, { id: string; sessionId: string }>();
     const messages = new Map<string, Array<{ role: string; content: string; createdAt: Date }>>();
+    let messageSequence = 0;
     const createMessage = vi.fn(
       ({
         data,
       }: {
         data: { conversationId: string; role: string; content: string; refs?: unknown };
       }) => {
+        const id = `message-${++messageSequence}`;
         messages.get(data.conversationId)?.push({
           role: data.role,
           content: data.content,
           createdAt: new Date(messages.get(data.conversationId)?.length ?? 0),
         });
-        return Promise.resolve({ id: `message-${Date.now()}`, ...data });
+        return Promise.resolve({ id, ...data });
       },
     );
 
@@ -161,8 +183,10 @@ describe("internal QA SSE", () => {
           findMany: vi.fn(({ where }: { where: { conversationId: string } }) =>
             Promise.resolve([...(messages.get(where.conversationId) ?? [])].reverse()),
           ),
+          findFirst: messageFindFirst,
           create: createMessage,
         },
+        conversationFeedback: { upsert: feedbackUpsert },
         $transaction: vi.fn(
           async (
             callback: (transaction: {
@@ -217,6 +241,7 @@ describe("internal QA SSE", () => {
       { type: "delta", content: "先进入策略中心" },
       { type: "delta", content: "，再新建加密策略 [1]" },
       { type: "refs", refs: [{ n: 1, docName: "Web控制台说明.pdf", page: 24 }] },
+      { type: "message", messageId: expect.any(String) },
       { type: "done" },
     ]);
   });
@@ -247,8 +272,64 @@ describe("internal QA SSE", () => {
       { type: "session", sessionId: expect.any(String) },
       { type: "delta", content: "只引用可见文档 [1][2]" },
       { type: "refs", refs: [{ n: 1, docName: "Web控制台说明.pdf", page: 24 }] },
+      { type: "message", messageId: expect.any(String) },
       { type: "done" },
     ]);
+  });
+
+  it("upserts repeated feedback for the assistant message id", async () => {
+    const token = jwt.sign(session());
+    const headers = {
+      "content-type": "application/json",
+      cookie: `${SESSION_COOKIE_NAME}=${token}`,
+    };
+    const answerResponse = await fetch(`${baseUrl}/api/internal/qa`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ query: "feedback target" }),
+    });
+    const messageEvent = parseSse(await answerResponse.text()).find(
+      (event): event is { type: "message"; messageId: string } =>
+        Boolean(
+          event &&
+            typeof event === "object" &&
+            "type" in event &&
+            event.type === "message" &&
+            "messageId" in event &&
+            typeof event.messageId === "string",
+        ),
+    );
+    expect(messageEvent).toBeDefined();
+
+    const first = await fetch(`${baseUrl}/api/internal/qa/feedback`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ messageId: messageEvent!.messageId, rating: "up" }),
+    });
+    const second = await fetch(`${baseUrl}/api/internal/qa/feedback`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        messageId: messageEvent!.messageId,
+        rating: "down",
+        comment: "needs correction",
+      }),
+    });
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    await expect(second.json()).resolves.toEqual({
+      messageId: messageEvent!.messageId,
+      rating: "down",
+      comment: "needs correction",
+    });
+    expect(feedbackUpsert).toHaveBeenCalledTimes(2);
+    expect(feedbackUpsert).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: { messageId: messageEvent!.messageId },
+        update: { rating: "down", comment: "needs correction" },
+      }),
+    );
   });
 
   it("reads prior DB messages for follow-up questions in the same session", async () => {
