@@ -1,6 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 
 import { RAGFLOW_CLIENT, type RagflowClient } from "../clients/ragflow";
+import { qaKbId } from "../qa/qa-kb-id";
 
 export interface DemoQaAnswer {
   answer: string;
@@ -12,11 +13,12 @@ export class DemoQaService {
   constructor(@Inject(RAGFLOW_CLIENT) private readonly ragflowClient: RagflowClient) {}
 
   async ask(query: string): Promise<DemoQaAnswer> {
-    const chunks = await this.ragflowClient.retrieve({ kbId: "e0-mock-kb", query, topK: 3 });
+    const kbId = qaKbId();
+    const chunks = await this.ragflowClient.retrieve({ kbId, query, topK: 3 });
     const answerTokens: string[] = [];
 
     for await (const token of this.ragflowClient.chat({
-      kbId: "e0-mock-kb",
+      kbId,
       messages: [{ role: "user", content: query }],
     })) {
       answerTokens.push(token);

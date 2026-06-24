@@ -2,6 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 
 import type { SessionClaims } from "../../auth/types";
 import { RAGFLOW_CLIENT, type RagflowClient } from "../../clients/ragflow";
+import { qaKbId } from "../../qa/qa-kb-id";
 import { AclService } from "../acl.service";
 
 export interface InternalQaAnswer {
@@ -19,8 +20,9 @@ export class InternalQaService {
   async ask(query: string, user: SessionClaims): Promise<InternalQaAnswer> {
     const visibleDocIds = await this.acl.computeVisibleDocIds(user);
     if (visibleDocIds.length === 0) return { answer: "", sources: [] };
+    const kbId = qaKbId();
     const retrievedChunks = await this.ragflowClient.retrieve({
-      kbId: "e0-mock-kb",
+      kbId,
       query,
       topK: 3,
       docIdWhitelist: visibleDocIds,
@@ -30,7 +32,7 @@ export class InternalQaService {
     const answerTokens: string[] = [];
 
     for await (const token of this.ragflowClient.chat({
-      kbId: "e0-mock-kb",
+      kbId,
       messages: [{ role: "user", content: query }],
     })) {
       answerTokens.push(token);

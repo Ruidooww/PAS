@@ -8,26 +8,32 @@
   "exports": {
     ".": {
       "types": "./dist/src/index.d.ts",
-      "import": "./dist/src/index.js"
+      "import": "./dist/src/index.js",
+      "require": "./dist/cjs/src/index.js"
     },
     "./idp/feishu": {
       "types": "./dist/idp/feishu/index.d.ts",
-      "import": "./dist/idp/feishu/index.js"
+      "import": "./dist/idp/feishu/index.js",
+      "require": "./dist/cjs/idp/feishu/index.js"
     },
     "./idp/wecom": {
       "types": "./dist/idp/wecom/index.d.ts",
-      "import": "./dist/idp/wecom/index.js"
+      "import": "./dist/idp/wecom/index.js",
+      "require": "./dist/cjs/idp/wecom/index.js"
     },
     "./idp/mock": {
       "types": "./dist/idp/mock/index.d.ts",
-      "import": "./dist/idp/mock/index.js"
+      "import": "./dist/idp/mock/index.js",
+      "require": "./dist/cjs/idp/mock/index.js"
     }
   },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "pnpm run build:esm && pnpm run build:cjs",
+    "build:cjs": "tsc -p tsconfig.cjs.json && node scripts/write-cjs-package.mjs",
+    "build:esm": "tsc -p tsconfig.json",
     "lint": "eslint src idp --max-warnings=0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
