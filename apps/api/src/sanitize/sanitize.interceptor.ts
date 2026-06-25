@@ -4,6 +4,7 @@ import {
   Inject,
   Injectable,
   type NestInterceptor,
+  StreamableFile,
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { map, type Observable } from "rxjs";
@@ -29,6 +30,7 @@ export class SanitizeInterceptor implements NestInterceptor {
   private sanitizeValue(value: unknown, user: SessionPayload | undefined): unknown {
     if (Array.isArray(value)) return value.map((item) => this.sanitizeValue(item, user));
     if (!value || typeof value !== "object" || value instanceof Date) return value;
+    if (value instanceof StreamableFile || Buffer.isBuffer(value)) return value;
 
     const metadata = this.reflector.get<SensitiveMetadata>(
       SENSITIVE_METADATA_KEY,
