@@ -56,4 +56,72 @@ describe("AclService", () => {
       "dept:dept-presales",
     ]);
   });
+
+  it("returns undeleted proposals owned by the user or created in the same tenant department", async () => {
+    const findMany = vi.fn().mockResolvedValue([
+      { id: "proposal-own" },
+      { id: "proposal-dept" },
+    ]);
+    const service = new AclService({
+      proposal: { findMany },
+    } as unknown as PrismaService);
+
+    await expect(service.computeVisibleProposalIds(user())).resolves.toEqual([
+      "proposal-own",
+      "proposal-dept",
+    ]);
+    expect(findMany).toHaveBeenCalledWith({
+      where: {
+        deletedAt: null,
+        OR: [
+          { createdBy: "user-1" },
+          { creator: { tenantId: "tenant-default", deptId: "dept-presales" } },
+        ],
+      },
+      select: { id: true },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    });
+  });
+
+  it("does not include proposals from another tenant that happens to share the dept id", async () => {
+    const findMany = vi.fn().mockResolvedValue([]);
+    const service = new AclService({
+      proposal: { findMany },
+    } as unknown as PrismaService);
+
+    await service.computeVisibleProposalIds(
+      user({ tenantId: "tenant-acme", deptId: "dept-shared" }),
+    );
+
+    expect(findMany).toHaveBeenCalledWith({
+      where: {
+        deletedAt: null,
+        OR: [
+          { createdBy: "user-1" },
+          { creator: { tenantId: "tenant-acme", deptId: "dept-shared" } },
+        ],
+      },
+      select: { id: true },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    });
+  });
+
+  it("only returns owned proposals when the user has no department", async () => {
+    const findMany = vi.fn().mockResolvedValue([{ id: "proposal-own" }]);
+    const service = new AclService({
+      proposal: { findMany },
+    } as unknown as PrismaService);
+
+    await expect(
+      service.computeVisibleProposalIds(user({ deptId: null })),
+    ).resolves.toEqual(["proposal-own"]);
+    expect(findMany).toHaveBeenCalledWith({
+      where: {
+        deletedAt: null,
+        OR: [{ createdBy: "user-1" }],
+      },
+      select: { id: true },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    });
+  });
 });

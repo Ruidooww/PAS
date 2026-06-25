@@ -52,17 +52,41 @@ function session(overrides: Partial<SessionClaims> = {}): SessionClaims {
   };
 }
 
+function proposalRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "proposal-1",
+    customerRef: "customer-a",
+    opportunityRef: null,
+    title: "Customer A Proposal",
+    status: "draft",
+    requirementJson: {
+      customer: "ABC",
+      industry: "manufacturing",
+      scale: "500",
+      needs: ["document encryption"],
+      constraints: [],
+    },
+    contentJson: null,
+    pptFileKey: null,
+    createdBy: "user-1",
+    version: 1,
+    createdAt: new Date("2026-06-25T00:00:00.000Z"),
+    deletedAt: null,
+    ...overrides,
+  };
+}
+
 describe("proposal generation worker API", () => {
   let app: INestApplication;
   let baseUrl: string;
   let jwt: JwtSessionService;
-  const proposalFindUnique = vi.fn();
+  const proposalFindFirst = vi.fn();
   const queueEnqueue = vi.fn();
   const progressStream = vi.fn();
 
   beforeEach(async () => {
     vi.resetModules();
-    proposalFindUnique.mockReset();
+    proposalFindFirst.mockReset();
     queueEnqueue.mockReset();
     progressStream.mockReset();
     for (const [key, value] of Object.entries(completeEnv)) {
@@ -89,7 +113,7 @@ describe("proposal generation worker API", () => {
       .overrideProvider(PrismaService)
       .useValue({
         proposal: {
-          findUnique: proposalFindUnique,
+          findFirst: proposalFindFirst,
         },
         auditLog: {
           create: vi.fn().mockResolvedValue({}),
@@ -111,17 +135,7 @@ describe("proposal generation worker API", () => {
   });
 
   it("enqueues the proposal owner generation job", async () => {
-    proposalFindUnique.mockResolvedValue({
-      id: "proposal-1",
-      createdBy: "user-1",
-      requirementJson: {
-        customer: "ABC",
-        industry: "manufacturing",
-        scale: "500",
-        needs: ["document encryption"],
-        constraints: [],
-      },
-    });
+    proposalFindFirst.mockResolvedValue(proposalRow());
 
     const response = await fetch(`${baseUrl}/api/internal/proposals/proposal-1/generate`, {
       method: "POST",
@@ -137,6 +151,9 @@ describe("proposal generation worker API", () => {
       proposalId: "proposal-1",
       status: "queued",
     });
+    expect(proposalFindFirst).toHaveBeenCalledWith({
+      where: { id: "proposal-1", deletedAt: null },
+    });
     expect(queueEnqueue).toHaveBeenCalledWith({
       proposalId: "proposal-1",
       requirementJson: {
@@ -151,12 +168,40 @@ describe("proposal generation worker API", () => {
     });
   });
 
-  it("returns 400 instead of enqueueing when templateId is missing", async () => {
-    proposalFindUnique.mockResolvedValue({
-      id: "proposal-1",
-      createdBy: "user-1",
-      requirementJson: {},
+  it("returns 404 instead of enqueueing when the proposal is soft-deleted", async () => {
+    proposalFindFirst.mockResolvedValue(null);
+
+    const response = await fetch(`${baseUrl}/api/internal/proposals/proposal-1/generate`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie: authCookie(session()),
+      },
+      body: JSON.stringify({ templateId: "ip-guard-standard-v1" }),
     });
+
+    expect(response.status).toBe(404);
+    expect(queueEnqueue).not.toHaveBeenCalled();
+  });
+
+  it("returns 409 instead of enqueueing when the proposal is already finalized", async () => {
+    proposalFindFirst.mockResolvedValue(proposalRow({ status: "final" }));
+
+    const response = await fetch(`${baseUrl}/api/internal/proposals/proposal-1/generate`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie: authCookie(session()),
+      },
+      body: JSON.stringify({ templateId: "ip-guard-standard-v1" }),
+    });
+
+    expect(response.status).toBe(409);
+    expect(queueEnqueue).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 instead of enqueueing when templateId is missing", async () => {
+    proposalFindFirst.mockResolvedValue(proposalRow());
 
     const response = await fetch(`${baseUrl}/api/internal/proposals/proposal-1/generate`, {
       method: "POST",
@@ -172,10 +217,7 @@ describe("proposal generation worker API", () => {
   });
 
   it("returns 403 before opening SSE for a proposal owned by another user", async () => {
-    proposalFindUnique.mockResolvedValue({
-      id: "proposal-1",
-      createdBy: "user-1",
-    });
+    proposalFindFirst.mockResolvedValue(proposalRow());
 
     const response = await fetch(`${baseUrl}/api/internal/proposals/proposal-1/progress`, {
       headers: {
@@ -189,10 +231,7 @@ describe("proposal generation worker API", () => {
   });
 
   it("streams seven ordered chapter events and the final done event to the owner", async () => {
-    proposalFindUnique.mockResolvedValue({
-      id: "proposal-1",
-      createdBy: "user-1",
-    });
+    proposalFindFirst.mockResolvedValue(proposalRow());
     const chapterEvents = Array.from({ length: 7 }, (_, index) => ({
       chapter: `chapter-${index + 1}`,
       n: index + 1,

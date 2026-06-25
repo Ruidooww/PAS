@@ -23,6 +23,7 @@ export interface ProposalSectionReference {
 }
 
 export interface GeneratedProposalSection {
+  id: string;
   title: string;
   body: string;
   refs: ProposalSectionReference[];

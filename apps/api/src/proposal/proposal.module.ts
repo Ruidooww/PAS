@@ -4,6 +4,10 @@ import { AuditModule } from "../audit/audit.module";
 import { AuthModule } from "../auth/auth.module";
 import { ClientsModule } from "../clients";
 import { InternalOnlyGuard } from "../internal/internal-only.guard";
+import { QaModule } from "../qa/qa.module";
+import { ProposalCrudController } from "./proposal-crud.controller";
+import { ProposalCrudService } from "./proposal-crud.service";
+import { ProposalOwnerService } from "./proposal-owner.service";
 import { ProposalController } from "./proposal.controller";
 import { ProposalService } from "./proposal.service";
 import { PROPOSAL_PROMPT, proposalRequirementPrompt } from "./proposal.prompt";
@@ -15,10 +19,16 @@ import {
 } from "./proposal-template.service";
 
 @Module({
-  imports: [AuditModule, AuthModule, ClientsModule],
-  controllers: [ProposalController, ProposalTemplateController],
+  imports: [AuditModule, AuthModule, ClientsModule, QaModule],
+  controllers: [
+    ProposalController,
+    ProposalCrudController,
+    ProposalTemplateController,
+  ],
   providers: [
     InternalOnlyGuard,
+    ProposalCrudService,
+    ProposalOwnerService,
     ProposalService,
     TemplateService,
     {
@@ -30,6 +40,6 @@ import {
       useFactory: resolveProposalTemplateDirectory,
     },
   ],
-  exports: [ProposalService, TemplateService],
+  exports: [ProposalOwnerService, ProposalService, TemplateService],
 })
 export class ProposalModule {}
