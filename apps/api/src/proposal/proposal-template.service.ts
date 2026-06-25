@@ -23,6 +23,12 @@ export class TemplateService {
     this.templates ??= loadTemplates(this.templateDirectory);
     return this.templates;
   }
+
+  getTemplate(id: string): ProposalTemplate {
+    const template = this.listTemplates().find((candidate) => candidate.id === id);
+    if (!template) throw new Error(`Proposal template not found: ${id}`);
+    return template;
+  }
 }
 
 export function resolveProposalTemplateDirectory(): string {

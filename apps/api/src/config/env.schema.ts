@@ -22,6 +22,7 @@ export const envSchema = z
     MINIO_BUCKET: z.string().min(1),
     MINIO_ENDPOINT: z.string().url(),
     MINIO_SECRET_KEY: z.string().min(1),
+    PAS_KB_ID: z.string().min(1),
     PORT: z.coerce.number().int().positive().max(65_535).default(3001),
     RAGFLOW_API_KEY: z.string().min(1),
     RAGFLOW_BASE_URL: z.string().url(),

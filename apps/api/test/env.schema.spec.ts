@@ -20,6 +20,7 @@ const completeEnv = {
   MINIO_BUCKET: "pas-dev",
   MINIO_ENDPOINT: "http://localhost:9900",
   MINIO_SECRET_KEY: "test-minio-secret",
+  PAS_KB_ID: "proposal-kb",
   RAGFLOW_API_KEY: "test-ragflow-key",
   RAGFLOW_BASE_URL: "http://localhost:9380",
   RAGFLOW_CLIENT_MODE: "mock",
@@ -48,6 +49,13 @@ describe("validateEnv", () => {
     delete incompleteEnv.APP_BASE_URL;
 
     expect(() => validateEnv(incompleteEnv)).toThrow(/APP_BASE_URL/);
+  });
+
+  it("requires PAS_KB_ID for proposal retrieval", () => {
+    const incompleteEnv: Partial<typeof completeEnv> = { ...completeEnv };
+    delete incompleteEnv.PAS_KB_ID;
+
+    expect(() => validateEnv(incompleteEnv)).toThrow(/PAS_KB_ID/);
   });
 
   it("rejects an unsupported CRM provider", () => {

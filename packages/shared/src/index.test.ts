@@ -9,6 +9,7 @@ describe("shared domain constants", () => {
 
   it("exports proposal lifecycle states", () => {
     expect(PROPOSAL_STATUSES).toContain("draft");
+    expect(PROPOSAL_STATUSES).toContain("draft-ready");
     expect(PROPOSAL_STATUSES).toContain("final");
   });
 
