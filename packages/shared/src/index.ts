@@ -1,7 +1,7 @@
 export const USER_ROLES = ["admin", "presales", "aftersales", "implementation", "external"] as const;
 export type UserRole = (typeof USER_ROLES)[number];
 
-export const PROPOSAL_STATUSES = ["draft", "final"] as const;
+export const PROPOSAL_STATUSES = ["draft", "draft-ready", "final"] as const;
 export type ProposalStatus = (typeof PROPOSAL_STATUSES)[number];
 
 export const ACL_SCOPES = ["public", "internal"] as const;

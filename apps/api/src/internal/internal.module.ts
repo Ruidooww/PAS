@@ -2,11 +2,18 @@ import { Module } from "@nestjs/common";
 
 import { AuthModule } from "../auth/auth.module";
 import { ProposalModule } from "../proposal/proposal.module";
+import { ProposalWorkerModule } from "../proposal-worker/proposal-worker.module";
 import { InternalAdminModule } from "./admin/internal-admin.module";
 import { InternalQaModule } from "./qa/internal-qa.module";
 
 @Module({
-  imports: [AuthModule, InternalQaModule, InternalAdminModule, ProposalModule],
+  imports: [
+    AuthModule,
+    InternalQaModule,
+    InternalAdminModule,
+    ProposalModule,
+    ProposalWorkerModule,
+  ],
 })
 export class InternalModule {}
 

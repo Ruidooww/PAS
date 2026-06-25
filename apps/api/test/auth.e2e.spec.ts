@@ -29,6 +29,7 @@ const completeEnv = {
   MINIO_ENDPOINT: "http://localhost:9900",
   MINIO_SECRET_KEY: "test-minio-secret",
   NODE_ENV: "test",
+  PAS_KB_ID: "proposal-kb",
   RAGFLOW_API_KEY: "test-ragflow-key",
   RAGFLOW_BASE_URL: "http://localhost:9380",
   RAGFLOW_CLIENT_MODE: "mock",
