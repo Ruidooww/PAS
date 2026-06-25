@@ -1,0 +1,71 @@
+id: ip-guard-standard-v1
+name: IP-Guard 标准方案
+version: 1
+product: IP-Guard
+sections:
+  - id: project-background
+    title: 项目背景
+    retrievalIntent: 无需检索，基于 customer 和 industry 填充客户项目背景
+    promptTemplate: |
+      面向客户说明 {{customer}} 所处的 {{industry}} 行业背景、信息安全建设目标与本项目价值。
+      仅使用已提供的客户信息，不补造经营数据。
+    variables:
+      - customer
+      - industry
+    fixed: true
+
+  - id: requirement-analysis
+    title: 需求分析
+    retrievalIntent: 无需检索，基于 requirementJson 归纳客户需求
+    promptTemplate: |
+      将 {{requirementJson}} 整理为客户现状、核心诉求和特殊约束。
+      保留需求原意，避免扩展未确认的需求。
+    variables:
+      - requirementJson
+    fixed: true
+
+  - id: solution-overview
+    title: 方案概述
+    retrievalIntent: IP-Guard 产品架构
+    promptTemplate: |
+      基于检索到的 IP-Guard 产品架构资料，说明方案总体思路、组件关系和能力边界。
+      引用具体产品能力时标注知识来源；缺少依据时写 [待补充]。
+    variables:
+      - requirementJson
+
+  - id: feature-module-design
+    title: 功能模块设计
+    retrievalIntent: IP-Guard {{need}} 功能说明、配置方式与适用场景
+    promptTemplate: |
+      对 {{requirementJson.needs[]}} 中的每项需求分别检索并设计对应功能模块。
+      每项说明能力、配置建议和与客户需求的对应关系，并标注知识来源。
+    variables:
+      - requirementJson.needs[]
+
+  - id: deployment-architecture
+    title: 部署架构
+    retrievalIntent: IP-Guard 部署架构 {{scale}} 终端规模适配
+    promptTemplate: |
+      基于检索资料和客户规模 {{scale}}，给出组件部署、网络位置、容量与高可用建议。
+      不得编造未在资料中出现的产品规格；缺少依据时写 [待补充]。
+    variables:
+      - scale
+
+  - id: implementation-plan
+    title: 实施计划
+    retrievalIntent: 无需检索，基于 requirementJson 微调标准实施阶段和交付边界
+    promptTemplate: |
+      按调研确认、方案设计、环境准备、部署配置、试运行、验收交付的阶段输出实施计划。
+      根据 {{requirementJson}} 微调重点、前置条件和客户配合事项。
+    variables:
+      - requirementJson
+    fixed: true
+
+  - id: service-support
+    title: 服务与支持
+    retrievalIntent: 无需检索，使用标准服务与支持章节
+    promptTemplate: |
+      说明标准的实施支持、问题响应、知识转移和运维建议。
+      不承诺未明确的服务等级、期限或商务条款。
+    variables: []
+    fixed: true

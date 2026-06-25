@@ -7,18 +7,29 @@ import { InternalOnlyGuard } from "../internal/internal-only.guard";
 import { ProposalController } from "./proposal.controller";
 import { ProposalService } from "./proposal.service";
 import { PROPOSAL_PROMPT, proposalRequirementPrompt } from "./proposal.prompt";
+import { ProposalTemplateController } from "./proposal-template.controller";
+import {
+  PROPOSAL_TEMPLATE_DIRECTORY,
+  resolveProposalTemplateDirectory,
+  TemplateService,
+} from "./proposal-template.service";
 
 @Module({
   imports: [AuditModule, AuthModule, ClientsModule],
-  controllers: [ProposalController],
+  controllers: [ProposalController, ProposalTemplateController],
   providers: [
     InternalOnlyGuard,
     ProposalService,
+    TemplateService,
     {
       provide: PROPOSAL_PROMPT,
       useValue: proposalRequirementPrompt,
     },
+    {
+      provide: PROPOSAL_TEMPLATE_DIRECTORY,
+      useFactory: resolveProposalTemplateDirectory,
+    },
   ],
-  exports: [ProposalService],
+  exports: [ProposalService, TemplateService],
 })
 export class ProposalModule {}
