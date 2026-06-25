@@ -69,7 +69,7 @@ export interface Proposal {
   title: string;
   status: ProposalStatus;
   requirementJson: JsonObject;
-  contentJson: JsonObject;
+  contentJson: JsonObject | null;
   pptFileKey: string | null;
   createdBy: string;
   version: number;

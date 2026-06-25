@@ -79,7 +79,6 @@ model CustomerMirror {
   scale     Int?
   ownerId   String?        @map("owner_id")
   syncedAt  DateTime       @map("synced_at")
-  proposals Proposal[]
 
   @@index([ownerId])
   @@map("customer_mirrors")
@@ -92,12 +91,11 @@ model Proposal {
   title           String
   status          ProposalStatus @default(draft)
   requirementJson Json           @map("requirement_json")
-  contentJson     Json           @map("content_json")
+  contentJson     Json?          @map("content_json")
   pptFileKey      String?        @map("ppt_file_key")
   createdBy       String         @map("created_by")
   version         Int            @default(1)
   createdAt       DateTime       @default(now()) @map("created_at")
-  customer        CustomerMirror @relation(fields: [customerRef], references: [ref], onDelete: Restrict)
   creator         User           @relation("ProposalCreator", fields: [createdBy], references: [id], onDelete: Restrict)
 
   @@index([customerRef])
