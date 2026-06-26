@@ -97,12 +97,27 @@ model Proposal {
   createdBy       String         @map("created_by")
   version         Int            @default(1)
   createdAt       DateTime       @default(now()) @map("created_at")
+  deletedAt       DateTime?      @map("deleted_at")
   creator         User           @relation("ProposalCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  versions        ProposalVersion[]
 
   @@index([customerRef])
   @@index([opportunityRef])
   @@index([createdBy])
   @@map("proposals")
+}
+
+model ProposalVersion {
+  id          String   @id @default(cuid())
+  proposalId  String   @map("proposal_id")
+  version     Int
+  contentJson Json     @map("content_json")
+  createdAt   DateTime @default(now()) @map("created_at")
+  proposal    Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@unique([proposalId, version])
+  @@index([proposalId, createdAt])
+  @@map("proposal_versions")
 }
 
 model KbDocument {

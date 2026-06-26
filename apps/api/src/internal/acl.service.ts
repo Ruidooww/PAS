@@ -1,4 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
+import type { Prisma } from "@prisma/client";
 
 import type { SessionClaims } from "../auth/types";
 import { PrismaService } from "../prisma/prisma.service";
@@ -20,6 +21,25 @@ export class AclService {
       ORDER BY "created_at" ASC, "ragflow_doc_id" ASC
     `;
     return rows.map((row) => row.ragflow_doc_id);
+  }
+
+  async computeVisibleProposalIds(user: SessionClaims): Promise<string[]> {
+    const ownerOrDepartment: Prisma.ProposalWhereInput[] = [{ createdBy: user.uid }];
+    if (user.deptId) {
+      ownerOrDepartment.push({
+        creator: { tenantId: user.tenantId, deptId: user.deptId },
+      });
+    }
+
+    const rows = await this.prisma.proposal.findMany({
+      where: {
+        deletedAt: null,
+        OR: ownerOrDepartment,
+      },
+      select: { id: true },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    });
+    return rows.map((row) => row.id);
   }
 
   private computeVisibleScopes(user: SessionClaims): string[] {

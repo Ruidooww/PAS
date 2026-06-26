@@ -1,12 +1,11 @@
 import {
   BadRequestException,
   Body,
+  ConflictException,
   Controller,
-  ForbiddenException,
   Get,
   HttpCode,
   Inject,
-  NotFoundException,
   Param,
   Post,
   Req,
@@ -18,7 +17,7 @@ import { z } from "zod";
 import { AuthGuard } from "../auth/auth.guard";
 import type { AuthenticatedRequest } from "../auth/types";
 import { InternalOnlyGuard } from "../internal/internal-only.guard";
-import { PrismaService } from "../prisma/prisma.service";
+import { ProposalOwnerService } from "../proposal/proposal-owner.service";
 import { ProposalGenerationQueue } from "./proposal-generation.queue";
 import { ProposalProgressService } from "./proposal-progress.service";
 
@@ -32,7 +31,7 @@ const generationRequestSchema = z
 @UseGuards(AuthGuard, InternalOnlyGuard)
 export class ProposalWorkerController {
   constructor(
-    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(ProposalOwnerService) private readonly owner: ProposalOwnerService,
     @Inject(ProposalGenerationQueue) private readonly queue: ProposalGenerationQueue,
     @Inject(ProposalProgressService) private readonly progress: ProposalProgressService,
   ) {}
@@ -51,7 +50,12 @@ export class ProposalWorkerController {
         issues: parsedBody.error.issues,
       });
     }
-    const proposal = await this.findOwnedProposal(proposalId, request.user!.uid);
+    const proposal = await this.owner.findOwnedProposal(proposalId, request.user!.uid);
+    if (proposal.status === "final") {
+      throw new ConflictException(
+        "Proposal is finalized; PATCH a section first to fork a new draft version",
+      );
+    }
     const { templateId } = parsedBody.data;
     await this.queue.enqueue({
       proposalId,
@@ -68,23 +72,7 @@ export class ProposalWorkerController {
     @Param("id") proposalId: string,
     @Req() request: AuthenticatedRequest,
   ) {
-    await this.findOwnedProposal(proposalId, request.user!.uid);
+    await this.owner.findOwnedProposal(proposalId, request.user!.uid);
     return this.progress.stream(proposalId);
-  }
-
-  private async findOwnedProposal(proposalId: string, userId: string) {
-    const proposal = await this.prisma.proposal.findUnique({
-      where: { id: proposalId },
-      select: {
-        id: true,
-        createdBy: true,
-        requirementJson: true,
-      },
-    });
-    if (!proposal) throw new NotFoundException("Proposal not found");
-    if (proposal.createdBy !== userId) {
-      throw new ForbiddenException("Proposal owner required");
-    }
-    return proposal;
   }
 }

@@ -56,6 +56,7 @@ export class ProposalGenerationService {
       } catch (error) {
         errorMessage = errorMessageOf(error);
         generated = {
+          id: section.id,
           title: section.title,
           body: "",
           refs: [],
@@ -70,8 +71,12 @@ export class ProposalGenerationService {
       });
     }
 
-    await this.prisma.proposal.update({
-      where: { id: job.proposalId },
+    const result = await this.prisma.proposal.updateMany({
+      where: {
+        id: job.proposalId,
+        deletedAt: null,
+        status: { not: "final" },
+      },
       data: {
         contentJson: {
           sections,
@@ -79,6 +84,13 @@ export class ProposalGenerationService {
         status: "draft_ready",
       },
     });
+    if (result.count === 0) {
+      await this.progress.publish(job.proposalId, {
+        done: true,
+        errorMessage: "Proposal is no longer eligible for generation result",
+      });
+      return;
+    }
     await this.progress.publish(job.proposalId, { done: true });
   }
 
@@ -87,6 +99,7 @@ export class ProposalGenerationService {
     requirementJson: Prisma.JsonValue,
   ): GeneratedProposalSection {
     return {
+      id: section.id,
       title: section.title,
       body: renderTemplate(section.promptTemplate, requirementJson),
       refs: [],
@@ -112,6 +125,7 @@ export class ProposalGenerationService {
           temperature: PROPOSAL_LLM_TEMPERATURE,
         });
         return {
+          id: section.id,
           title: section.title,
           body,
           refs: citedReferences(body, chunks),

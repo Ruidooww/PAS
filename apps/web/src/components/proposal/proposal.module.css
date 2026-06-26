@@ -1,0 +1,372 @@
+.shell {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: 64px 1fr;
+  background: #eef3f5;
+  color: #17262b;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  color: #ffffff;
+  background: #153f49;
+  border-bottom: 3px solid #2c8c83;
+}
+
+.topbar a,
+.topbar button {
+  color: #ffffff;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.topbar a:hover,
+.topbar button:hover {
+  border-color: #ffffff;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 16px;
+}
+
+.brandMark {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: #2c8c83;
+  font-weight: 700;
+}
+
+.content {
+  padding: 24px;
+  display: grid;
+  gap: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #d8e1e4;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.card h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+
+.card p.hint {
+  color: #5a6b71;
+  font-size: 13px;
+  margin: 0 0 16px;
+}
+
+.formGrid {
+  display: grid;
+  gap: 14px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field label {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.field input,
+.field textarea,
+.field select {
+  font-family: inherit;
+  font-size: 14px;
+  padding: 8px 10px;
+  border: 1px solid #c7d3d7;
+  border-radius: 6px;
+  background: #ffffff;
+  color: inherit;
+}
+
+.field textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.checklist {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+}
+
+.checklist label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 400;
+  font-size: 14px;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.primary,
+.secondary {
+  font: inherit;
+  font-size: 14px;
+  padding: 10px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.primary {
+  background: #2c8c83;
+  color: #ffffff;
+  border-color: #2c8c83;
+}
+
+.primary:hover:not(:disabled) {
+  background: #25756e;
+}
+
+.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.secondary {
+  background: #ffffff;
+  color: #153f49;
+  border-color: #c7d3d7;
+}
+
+.secondary:hover:not(:disabled) {
+  border-color: #153f49;
+}
+
+.errorBanner {
+  background: #fdecec;
+  border: 1px solid #f3b8b8;
+  color: #962020;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.statusBanner {
+  background: #e7f4f1;
+  border: 1px solid #b9dcd5;
+  color: #1f5b53;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.progressList {
+  display: grid;
+  gap: 8px;
+}
+
+.progressItem {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid #d8e1e4;
+  border-radius: 6px;
+}
+
+.dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: #c7d3d7;
+}
+
+.dot[data-status="completed"] { background: #2c8c83; }
+.dot[data-status="running"] { background: #f0a500; animation: pulse 1.2s infinite; }
+.dot[data-status="failed"] { background: #b54040; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.detailLayout {
+  display: grid;
+  grid-template-columns: 220px 1fr 280px;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .detailLayout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sidebar {
+  background: #ffffff;
+  border: 1px solid #d8e1e4;
+  border-radius: 8px;
+  padding: 16px;
+  position: sticky;
+  top: 88px;
+}
+
+.sidebar h3 {
+  font-size: 13px;
+  margin: 0 0 12px;
+  color: #5a6b71;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.tocList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.tocList button {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.tocList button:hover,
+.tocList button[aria-current="true"] {
+  background: #e7f4f1;
+}
+
+.sectionCard {
+  background: #ffffff;
+  border: 1px solid #d8e1e4;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.sectionCard h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.markdownPreview {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.markdownPreview p { margin: 0 0 12px; }
+.markdownPreview ul,
+.markdownPreview ol { margin: 0 0 12px 20px; padding: 0; }
+
+.editor {
+  width: 100%;
+  min-height: 220px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  padding: 10px 12px;
+  border: 1px solid #c7d3d7;
+  border-radius: 6px;
+  background: #f8fafb;
+  color: inherit;
+  resize: vertical;
+}
+
+.refList {
+  margin: 12px 0 0;
+  padding: 12px 16px;
+  border-left: 3px solid #2c8c83;
+  background: #f4f9f8;
+  font-size: 13px;
+  color: #34555c;
+}
+
+.refList ol { margin: 0; padding-left: 18px; }
+
+.versionList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.versionList li {
+  padding: 8px 10px;
+  border: 1px solid #d8e1e4;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.exportRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.exportRow a {
+  background: #153f49;
+  color: #ffffff;
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.exportRow a:hover { background: #112e35; }
+
+.statusPill {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #e7f4f1;
+  color: #1f5b53;
+  font-weight: 600;
+}
+
+.statusPill[data-status="final"] {
+  background: #fff4d8;
+  color: #735200;
+}
+
+.statusPill[data-status="draft"] {
+  background: #eef3f5;
+  color: #34555c;
+}

@@ -46,7 +46,7 @@ describe("ProposalGenerationService", () => {
   const llmComplete = vi.fn();
   const computeVisibleDocIds = vi.fn();
   const getTemplate = vi.fn();
-  const proposalUpdate = vi.fn();
+  const proposalUpdateMany = vi.fn();
   const userFindUnique = vi.fn();
   const publish = vi.fn();
   let service: ProposalGenerationService;
@@ -55,7 +55,7 @@ describe("ProposalGenerationService", () => {
     vi.clearAllMocks();
     userFindUnique.mockResolvedValue(user);
     computeVisibleDocIds.mockResolvedValue(["allowed-doc"]);
-    proposalUpdate.mockResolvedValue({});
+    proposalUpdateMany.mockResolvedValue({ count: 1 });
     publish.mockResolvedValue(undefined);
 
     const moduleRef = await Test.createTestingModule({
@@ -80,7 +80,7 @@ describe("ProposalGenerationService", () => {
         {
           provide: PrismaService,
           useValue: {
-            proposal: { update: proposalUpdate },
+            proposal: { updateMany: proposalUpdateMany },
             user: { findUnique: userFindUnique },
           },
         },
@@ -125,12 +125,17 @@ describe("ProposalGenerationService", () => {
 
     expect(ragflowRetrieve).not.toHaveBeenCalled();
     expect(llmComplete).not.toHaveBeenCalled();
-    expect(proposalUpdate).toHaveBeenCalledWith({
-      where: { id: "proposal-1" },
+    expect(proposalUpdateMany).toHaveBeenCalledWith({
+      where: {
+        id: "proposal-1",
+        deletedAt: null,
+        status: { not: "final" },
+      },
       data: {
         contentJson: {
           sections: [
             {
+              id: "background",
               title: "Project background",
               body: expect.stringContaining("ABC / manufacturing"),
               refs: [],
@@ -191,12 +196,17 @@ describe("ProposalGenerationService", () => {
     expect(completion.messages[1].content).toContain("[1] Allowed capability");
     expect(completion.messages[1].content).not.toContain("Private capability");
     expect(completion.temperature).toBe(0.2);
-    expect(proposalUpdate).toHaveBeenCalledWith({
-      where: { id: "proposal-1" },
+    expect(proposalUpdateMany).toHaveBeenCalledWith({
+      where: {
+        id: "proposal-1",
+        deletedAt: null,
+        status: { not: "final" },
+      },
       data: {
         contentJson: {
           sections: [
             {
+              id: "overview",
               title: "Solution overview",
               body: "Use the allowed capability [1]. Ignore [9].",
               refs: [
@@ -264,7 +274,7 @@ describe("ProposalGenerationService", () => {
     publish.mockRejectedValueOnce(new Error("Redis unavailable"));
 
     await expect(service.generate(job)).rejects.toThrow("Redis unavailable");
-    expect(proposalUpdate).not.toHaveBeenCalled();
+    expect(proposalUpdateMany).not.toHaveBeenCalled();
   });
 
   it("retries a failed chapter three times, reports the failure, and continues", async () => {
@@ -301,17 +311,23 @@ describe("ProposalGenerationService", () => {
     await service.generate(job);
 
     expect(llmComplete).toHaveBeenCalledTimes(5);
-    expect(proposalUpdate).toHaveBeenCalledWith({
-      where: { id: "proposal-1" },
+    expect(proposalUpdateMany).toHaveBeenCalledWith({
+      where: {
+        id: "proposal-1",
+        deletedAt: null,
+        status: { not: "final" },
+      },
       data: {
         contentJson: {
           sections: [
             {
+              id: "failing",
               title: "Failing chapter",
               body: "",
               refs: [],
             },
             {
+              id: "following",
               title: "Following chapter",
               body: "Following chapter [1]",
               refs: [
@@ -339,6 +355,29 @@ describe("ProposalGenerationService", () => {
       total: 2,
     });
     expect(publish).toHaveBeenNthCalledWith(3, "proposal-1", { done: true });
+  });
+
+  it("does not overwrite a finalized or soft-deleted proposal when CAS write loses", async () => {
+    getTemplate.mockReturnValue(
+      template([
+        {
+          id: "background",
+          title: "Project background",
+          retrievalIntent: "no retrieval",
+          promptTemplate: "{{customer}}",
+          variables: ["customer"],
+          fixed: true,
+        },
+      ]),
+    );
+    proposalUpdateMany.mockResolvedValueOnce({ count: 0 });
+
+    await service.generate(job);
+
+    expect(publish).toHaveBeenNthCalledWith(2, "proposal-1", {
+      done: true,
+      errorMessage: "Proposal is no longer eligible for generation result",
+    });
   });
 });
 
