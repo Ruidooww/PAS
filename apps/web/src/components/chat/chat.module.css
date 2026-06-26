@@ -1,11 +1,40 @@
 .workspace {
-  height: 100dvh;
-  min-height: 100dvh;
   display: grid;
-  grid-template-rows: 64px minmax(0, 1fr);
-  overflow: hidden;
-  color: #17262b;
-  background: #eef3f5;
+  grid-template-rows: minmax(0, 1fr);
+  color: #1d1d1f;
+  background: transparent;
+  margin: -16px -32px -32px;
+  min-height: calc(100dvh - 56px - 28px - 100px);
+}
+
+.embedToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 32px;
+  background: #ffffff;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.08);
+}
+
+.embedUser {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.embedNewBtn {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 7px;
+  border: 0.5px solid rgba(0, 0, 0, 0.12);
+  background: #ffffff;
+  color: #1d1d1f;
+  cursor: pointer;
+}
+
+.embedNewBtn:hover {
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .topbar {

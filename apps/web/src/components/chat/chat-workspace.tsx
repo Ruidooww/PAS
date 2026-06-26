@@ -189,26 +189,15 @@ export function ChatWorkspace() {
 
   return (
     <main className={styles.workspace}>
-      <header className={styles.topbar}>
-        <div className={styles.brand}>
-          <span className={styles.brandMark}>P</span>
-          <div>
-            <strong>PAS</strong>
-            <span>售前知识问答</span>
-          </div>
-        </div>
-        <div className={styles.user}>
-          <div>
-            <strong>{user?.name ?? "售前用户"}</strong>
-            <span>{user?.role ?? "presales"}</span>
-          </div>
-          <button type="button" onClick={startNewConversation}>
-            新建对话
+      <section className={styles.chat}>
+        <div className={styles.embedToolbar}>
+          <span className={styles.embedUser}>
+            {user?.name ?? "售前用户"} · {user?.role ?? "presales"}
+          </span>
+          <button type="button" className={styles.embedNewBtn} onClick={startNewConversation}>
+            + 新建对话
           </button>
         </div>
-      </header>
-
-      <section className={styles.chat}>
         <div className={styles.transcript} ref={transcript}>
           <ChatMessageList
             feedbackPendingMessageId={feedbackPendingMessageId}
