@@ -141,6 +141,10 @@ importers:
         version: 3.2.6(@types/debug@4.1.13)(@types/node@22.20.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0)
 
   packages/clients:
+    dependencies:
+      '@pas/shared':
+        specifier: workspace:*
+        version: link:../shared
     devDependencies:
       typescript:
         specifier: ^5.8.3

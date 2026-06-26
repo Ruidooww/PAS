@@ -6,6 +6,7 @@ import { AuditInterceptor } from "./audit/audit.interceptor";
 import { AuditModule } from "./audit/audit.module";
 import { AuthModule } from "./auth/auth.module";
 import { validateEnv } from "./config/env.schema";
+import { CustomerModule } from "./customer/customer.module";
 import { InternalModule } from "./internal/internal.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { PublicModule } from "./public/public.module";
@@ -22,6 +23,7 @@ import { SharedModule } from "./shared/shared.module";
     PrismaModule,
     AuditModule,
     AuthModule,
+    CustomerModule,
     InternalModule,
     PublicModule,
     SharedModule,

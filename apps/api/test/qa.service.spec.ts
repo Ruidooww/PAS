@@ -114,6 +114,7 @@ function deferred<T>() {
 
 describe("QaService", () => {
   beforeEach(() => {
+    vi.stubEnv("QA_KB_ID", "e0-mock-kb");
     vi.spyOn(Logger.prototype, "log").mockImplementation(() => undefined);
   });
 

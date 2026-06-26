@@ -1,3 +1,5 @@
+import type { Customer, Opportunity } from "@pas/shared";
+
 export type IdpProvider = "feishu" | "mock" | "wecom";
 
 export interface UserProfile {
@@ -324,5 +326,245 @@ export class WecomIdpClient implements IdpClient {
       );
     }
     return response.json() as Promise<T>;
+  }
+}
+
+export type CrmProvider = "external" | "mock" | "pas";
+
+export interface CrmListCustomersParams {
+  q?: string;
+  ownerId?: string;
+  page?: number;
+}
+
+export interface CrmListOpportunitiesParams {
+  customerRef?: string;
+  stage?: string;
+  page?: number;
+}
+
+export interface CrmClient {
+  getCustomer(ref: string): Promise<Customer>;
+  listCustomers(params: CrmListCustomersParams): Promise<Customer[]>;
+  getOpportunity(ref: string): Promise<Opportunity>;
+  listOpportunities(params: CrmListOpportunitiesParams): Promise<Opportunity[]>;
+}
+
+export class CrmClientError extends Error {
+  constructor(
+    message: string,
+    readonly provider: CrmProvider,
+    readonly status?: number,
+  ) {
+    super(message);
+    this.name = "CrmClientError";
+  }
+}
+
+function isCustomer(value: unknown): value is Customer {
+  if (!value || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.ref === "string" &&
+    typeof record.name === "string" &&
+    (record.industry === null || typeof record.industry === "string") &&
+    (record.scale === null || typeof record.scale === "number") &&
+    (record.ownerId === null || typeof record.ownerId === "string")
+  );
+}
+
+function isOpportunity(value: unknown): value is Opportunity {
+  if (!value || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.ref === "string" &&
+    typeof record.customerRef === "string" &&
+    typeof record.title === "string" &&
+    typeof record.stage === "string" &&
+    (record.amountEstimate === null || typeof record.amountEstimate === "number") &&
+    (record.ownerId === null || typeof record.ownerId === "string")
+  );
+}
+
+export interface ExternalCrmClientOptions {
+  baseUrl: string;
+  apiKey: string;
+  fetchImpl?: FetchImpl;
+}
+
+export class ExternalCrmClient implements CrmClient {
+  private readonly fetchImpl: FetchImpl;
+  private readonly baseUrl: string;
+
+  constructor(private readonly options: ExternalCrmClientOptions) {
+    this.fetchImpl = options.fetchImpl ?? fetch;
+    this.baseUrl = options.baseUrl.replace(/\/$/, "");
+  }
+
+  async getCustomer(ref: string): Promise<Customer> {
+    const value = await this.get(`/customers/${encodeURIComponent(ref)}`);
+    if (!isCustomer(value)) {
+      throw new CrmClientError(`Invalid customer payload for ${ref}`, "external");
+    }
+    return value;
+  }
+
+  async listCustomers(params: CrmListCustomersParams): Promise<Customer[]> {
+    const value = await this.get("/customers", { ...params });
+    if (!Array.isArray(value) || !value.every(isCustomer)) {
+      throw new CrmClientError("Invalid listCustomers payload", "external");
+    }
+    return value;
+  }
+
+  async getOpportunity(ref: string): Promise<Opportunity> {
+    const value = await this.get(`/opportunities/${encodeURIComponent(ref)}`);
+    if (!isOpportunity(value)) {
+      throw new CrmClientError(`Invalid opportunity payload for ${ref}`, "external");
+    }
+    return value;
+  }
+
+  async listOpportunities(params: CrmListOpportunitiesParams): Promise<Opportunity[]> {
+    const value = await this.get("/opportunities", { ...params });
+    if (!Array.isArray(value) || !value.every(isOpportunity)) {
+      throw new CrmClientError("Invalid listOpportunities payload", "external");
+    }
+    return value;
+  }
+
+  private async get(
+    path: string,
+    query: Record<string, string | number | undefined> = {},
+  ): Promise<unknown> {
+    const url = new URL(`${this.baseUrl}${path}`);
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined) url.searchParams.set(key, String(value));
+    }
+    const response = await this.fetchImpl(url, {
+      headers: { Authorization: `Bearer ${this.options.apiKey}` },
+    });
+    if (!response.ok) {
+      throw new CrmClientError(
+        `CRM request failed with HTTP ${response.status}`,
+        "external",
+        response.status,
+      );
+    }
+    return response.json();
+  }
+}
+
+export class PasCrmClient implements CrmClient {
+  getCustomer(_ref: string): Promise<Customer> {
+    return this.stageTwo();
+  }
+  listCustomers(_params: CrmListCustomersParams): Promise<Customer[]> {
+    return this.stageTwo();
+  }
+  getOpportunity(_ref: string): Promise<Opportunity> {
+    return this.stageTwo();
+  }
+  listOpportunities(_params: CrmListOpportunitiesParams): Promise<Opportunity[]> {
+    return this.stageTwo();
+  }
+  private stageTwo<T>(): Promise<T> {
+    return Promise.reject(
+      new CrmClientError("PAS-native CRM is reserved for phase two", "pas"),
+    );
+  }
+}
+
+export interface MockCrmClientOptions {
+  customers?: Customer[];
+  opportunities?: Opportunity[];
+}
+
+const defaultMockCustomers: Customer[] = [
+  {
+    ref: "cust-acme",
+    name: "Acme 制造",
+    industry: "制造业",
+    scale: 1200,
+    ownerId: "user-1",
+  },
+  {
+    ref: "cust-hyya",
+    name: "华义匀安演示客户",
+    industry: "信息安全",
+    scale: 500,
+    ownerId: "user-1",
+  },
+];
+
+const defaultMockOpportunities: Opportunity[] = [
+  {
+    ref: "opp-acme-dlp",
+    customerRef: "cust-acme",
+    title: "Acme 端点 DLP 一期",
+    stage: "discovery",
+    amountEstimate: 800_000,
+    ownerId: "user-1",
+  },
+  {
+    ref: "opp-hyya-pilot",
+    customerRef: "cust-hyya",
+    title: "华义匀安 PAS 试点",
+    stage: "evaluation",
+    amountEstimate: 200_000,
+    ownerId: "user-1",
+  },
+];
+
+export class MockCrmClient implements CrmClient {
+  private readonly customers: Map<string, Customer>;
+  private readonly opportunities: Map<string, Opportunity>;
+
+  constructor(options: MockCrmClientOptions = {}) {
+    this.customers = new Map(
+      (options.customers ?? defaultMockCustomers).map((customer) => [customer.ref, customer]),
+    );
+    this.opportunities = new Map(
+      (options.opportunities ?? defaultMockOpportunities).map((opportunity) => [
+        opportunity.ref,
+        opportunity,
+      ]),
+    );
+  }
+
+  async getCustomer(ref: string): Promise<Customer> {
+    const customer = this.customers.get(ref);
+    if (!customer) {
+      throw new CrmClientError(`Unknown mock customer: ${ref}`, "mock", 404);
+    }
+    return customer;
+  }
+
+  async listCustomers(params: CrmListCustomersParams): Promise<Customer[]> {
+    const query = (params.q ?? "").trim().toLowerCase();
+    const filtered = [...this.customers.values()].filter((customer) => {
+      if (params.ownerId && customer.ownerId !== params.ownerId) return false;
+      if (query && !customer.name.toLowerCase().includes(query) && !customer.ref.toLowerCase().includes(query)) {
+        return false;
+      }
+      return true;
+    });
+    return filtered;
+  }
+
+  async getOpportunity(ref: string): Promise<Opportunity> {
+    const opportunity = this.opportunities.get(ref);
+    if (!opportunity) {
+      throw new CrmClientError(`Unknown mock opportunity: ${ref}`, "mock", 404);
+    }
+    return opportunity;
+  }
+
+  async listOpportunities(params: CrmListOpportunitiesParams): Promise<Opportunity[]> {
+    return [...this.opportunities.values()].filter((opportunity) => {
+      if (params.customerRef && opportunity.customerRef !== params.customerRef) return false;
+      if (params.stage && opportunity.stage !== params.stage) return false;
+      return true;
+    });
   }
 }

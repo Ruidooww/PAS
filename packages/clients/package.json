@@ -25,6 +25,11 @@
       "types": "./dist/idp/mock/index.d.ts",
       "import": "./dist/idp/mock/index.js",
       "require": "./dist/cjs/idp/mock/index.js"
+    },
+    "./crm": {
+      "types": "./dist/crm/index.d.ts",
+      "import": "./dist/crm/index.js",
+      "require": "./dist/cjs/crm/index.js"
     }
   },
   "files": [
@@ -34,9 +39,12 @@
     "build": "pnpm run build:esm && pnpm run build:cjs",
     "build:cjs": "tsc -p tsconfig.cjs.json && node scripts/write-cjs-package.mjs",
     "build:esm": "tsc -p tsconfig.json",
-    "lint": "eslint src idp --max-warnings=0",
+    "lint": "eslint src idp crm --max-warnings=0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
+  },
+  "dependencies": {
+    "@pas/shared": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.8.3",
