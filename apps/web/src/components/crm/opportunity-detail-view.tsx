@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { AppShell } from "../shell/app-shell";
 import { CrmApiError, getOpportunity } from "../../lib/crm/api-client";
 import type { OpportunitySummary } from "../../lib/crm/types";
 import styles from "./crm.module.css";
@@ -31,103 +32,138 @@ export function OpportunityDetailView({ opportunityRef }: { opportunityRef: stri
       .finally(() => {
         if (active) setLoading(false);
       });
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [opportunityRef, router]);
 
-  if (loading) {
+  if (loading || error || !opp) {
     return (
-      <div className={styles.shell}>
-        <TopBar />
-        <main className={styles.content}>
+      <AppShell
+        pageTitle={loading ? "商机详情" : "商机不存在"}
+        breadcrumb={[
+          { label: "客户", href: "/customers" },
+          { label: "商机管理", href: "/opportunities" },
+          { label: opportunityRef },
+        ]}
+      >
+        {loading ? (
           <div className={styles.loading}>加载中…</div>
-        </main>
-      </div>
-    );
-  }
-
-  if (error || !opp) {
-    return (
-      <div className={styles.shell}>
-        <TopBar />
-        <main className={styles.content}>
+        ) : (
           <div className={styles.errorBanner}>{error ?? "商机不存在"}</div>
-          <Link href="/opportunities">← 返回列表</Link>
-        </main>
-      </div>
+        )}
+      </AppShell>
     );
   }
 
-  const generateUrl =
-    `/proposals/new?customerRef=${encodeURIComponent(opp.customerRef)}&opportunityRef=${encodeURIComponent(opp.ref)}`;
+  const generateUrl = `/proposals/new?customerRef=${encodeURIComponent(opp.customerRef)}&opportunityRef=${encodeURIComponent(opp.ref)}`;
+  const initials = opp.title.slice(0, 1);
 
   return (
-    <div className={styles.shell}>
-      <TopBar />
-      <main className={styles.content}>
-        <div className={styles.detailGrid}>
-          <aside>
-            <div className={styles.metaCard}>
-              <h3>商机信息</h3>
-              <dl className={styles.metaRow}>
-                <dt>标题</dt>
-                <dd>{opp.title}</dd>
-                <dt>阶段</dt>
-                <dd>{opp.stage}</dd>
-                <dt>金额</dt>
-                <dd>
-                  {opp.amountEstimate != null
-                    ? `¥${opp.amountEstimate.toLocaleString()}`
-                    : "—"}
-                </dd>
-                <dt>Owner</dt>
-                <dd>{opp.ownerId ?? "—"}</dd>
-              </dl>
-              <div className={styles.actions}>
-                <Link className={styles.primary} href={generateUrl}>
-                  生成方案
-                </Link>
+    <AppShell
+      pageTitle={opp.title}
+      pageDescription={`Ref ${opp.ref} · 客户 ${opp.customerRef}`}
+      breadcrumb={[
+        { label: "客户", href: "/customers" },
+        { label: "商机管理", href: "/opportunities" },
+        { label: opp.title },
+      ]}
+      actions={
+        <>
+          <Link href="/opportunities" className={styles.filterPill} style={{ textDecoration: "none" }}>
+            ← 返回
+          </Link>
+          <Link
+            href={generateUrl}
+            style={{
+              fontSize: 13,
+              padding: "7px 14px",
+              borderRadius: 7,
+              background: "#0a84ff",
+              color: "#fff",
+              textDecoration: "none",
+              fontWeight: 500,
+            }}
+          >
+            生成方案
+          </Link>
+        </>
+      }
+    >
+      <div className={styles.detailGrid}>
+        <aside>
+          <div className={styles.metaCard}>
+            <div className={styles.metaHeader}>
+              <div className={styles.metaAvatar}>{initials}</div>
+              <div>
+                <p className={styles.metaName}>{opp.title}</p>
+                <p className={styles.metaSubline}>
+                  <span className={styles.tag}>{opp.stage}</span>
+                </p>
               </div>
             </div>
-          </aside>
+            <dl className={styles.metaList}>
+              <dt>Ref</dt>
+              <dd>{opp.ref}</dd>
+              <dt>客户</dt>
+              <dd>
+                <Link className={styles.linkName} href={`/customers/${encodeURIComponent(opp.customerRef)}`}>
+                  {opp.customerRef}
+                </Link>
+              </dd>
+              <dt>阶段</dt>
+              <dd>{opp.stage}</dd>
+              <dt>金额</dt>
+              <dd>{opp.amountEstimate != null ? `¥${opp.amountEstimate.toLocaleString()}` : "—"}</dd>
+              <dt>Owner</dt>
+              <dd>{opp.ownerId ?? "—"}</dd>
+            </dl>
+          </div>
+        </aside>
 
+        <div className={styles.cardStack}>
           <div className={styles.card}>
-            <h2>关联客户</h2>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>关联客户</h2>
+            </div>
             <table className={styles.table}>
               <thead>
                 <tr>
                   <th>客户 Ref</th>
+                  <th>操作</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
                   <td>
-                    <Link href={`/customers/${encodeURIComponent(opp.customerRef)}`}>
+                    <Link className={styles.linkName} href={`/customers/${encodeURIComponent(opp.customerRef)}`}>
                       {opp.customerRef}
+                    </Link>
+                  </td>
+                  <td>
+                    <Link className={styles.linkName} href={`/customers/${encodeURIComponent(opp.customerRef)}`}>
+                      查看客户详情 →
                     </Link>
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
-        </div>
-      </main>
-    </div>
-  );
-}
 
-function TopBar() {
-  return (
-    <header className={styles.topbar}>
-      <div className={styles.brand}>
-        <span className={styles.brandMark}>P</span>
-        <div>
-          <strong>PAS</strong>
-          <span style={{ display: "block", fontSize: 12, opacity: 0.8 }}>商机详情</span>
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>方案历史</h2>
+              <span className={styles.cardSub}>需通过客户详情查看完整方案列表</span>
+            </div>
+            <div className={styles.empty}>
+              暂未直接关联，
+              <Link className={styles.linkName} href={`/customers/${encodeURIComponent(opp.customerRef)}`}>
+                跳到客户查看方案 →
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
-      <nav className={styles.nav}>
-        <Link href="/opportunities">← 商机列表</Link>
-      </nav>
-    </header>
+    </AppShell>
   );
 }

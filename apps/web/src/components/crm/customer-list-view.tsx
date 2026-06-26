@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { AppShell } from "../shell/app-shell";
 import { CrmApiError, listCustomers } from "../../lib/crm/api-client";
 import type { CustomerSummary } from "../../lib/crm/types";
 import styles from "./crm.module.css";
@@ -39,93 +40,136 @@ export function CustomerListView() {
       .finally(() => {
         if (active) setLoading(false);
       });
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [q, ownerId, page, router]);
 
-  function handleSearch(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setPage(1);
-  }
+  const owners = useMemo(() => {
+    const set = new Set(items.map((i) => i.ownerId).filter((v): v is string => !!v));
+    return Array.from(set);
+  }, [items]);
 
   return (
-    <div className={styles.shell}>
-      <header className={styles.topbar}>
-        <div className={styles.brand}>
-          <span className={styles.brandMark}>P</span>
-          <div>
-            <strong>PAS</strong>
-            <span style={{ display: "block", fontSize: 12, opacity: 0.8 }}>客户管理</span>
-          </div>
+    <AppShell
+      pageTitle="客户列表"
+      pageDescription="来自 mock / external CRM 的客户数据，可按名称、Owner 进行筛选与方案跳转。"
+      breadcrumb={[{ label: "客户", href: "/customers" }, { label: "客户列表" }]}
+      actions={
+        <Link href="/proposals/new" className={`${styles.linkName}`} style={{
+          fontSize: 13,
+          padding: "7px 14px",
+          borderRadius: 7,
+          background: "#0a84ff",
+          color: "#fff",
+          textDecoration: "none",
+          fontWeight: 500,
+        }}>
+          + 新建方案
+        </Link>
+      }
+    >
+      <div className={styles.statSection}>
+        <div className={styles.statCard}>
+          <div className={styles.statLabel}>客户总数</div>
+          <div className={styles.statValue}>{items.length}</div>
+          <div className={styles.statHint}>当前页</div>
         </div>
-        <nav className={styles.nav}>
-          <Link href="/opportunities">商机列表</Link>
-          <Link href="/proposals/new">新建方案</Link>
-        </nav>
-      </header>
+        <div className={styles.statCard}>
+          <div className={styles.statLabel}>外部 CRM 来源</div>
+          <div className={styles.statValue}>{items.filter((i) => i.source === "external").length}</div>
+          <div className={styles.statHint}>同步自 mock</div>
+        </div>
+        <div className={styles.statCard}>
+          <div className={styles.statLabel}>Owner 数</div>
+          <div className={styles.statValue}>{owners.length}</div>
+          <div className={styles.statHint}>不同负责人</div>
+        </div>
+        <div className={styles.statCard}>
+          <div className={styles.statLabel}>当前页</div>
+          <div className={styles.statValue}>{page}</div>
+          <div className={styles.statHint}>每页 20 条</div>
+        </div>
+      </div>
 
-      <main className={styles.content}>
-        <div className={styles.card}>
-          <h2>客户列表</h2>
-          {error && <div className={styles.errorBanner}>{error}</div>}
-          <form className={styles.toolbar} onSubmit={handleSearch}>
-            <input
-              type="search"
-              placeholder="搜索客户名称…"
-              value={q}
-              onChange={(e) => { setQ(e.target.value); setPage(1); }}
-            />
-            <input
-              type="text"
-              placeholder="按 Owner ID 筛选"
-              value={ownerId}
-              onChange={(e) => { setOwnerId(e.target.value); setPage(1); }}
-            />
-          </form>
+      {error && <div className={styles.errorBanner}>{error}</div>}
 
-          {loading ? (
-            <div className={styles.loading}>加载中…</div>
-          ) : items.length === 0 ? (
-            <div className={styles.empty}>暂无客户数据</div>
-          ) : (
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>名称</th>
-                  <th>行业</th>
-                  <th>规模</th>
-                  <th>Owner</th>
-                  <th>来源</th>
+      <div className={styles.filterRow}>
+        <input
+          className={styles.searchInput}
+          type="search"
+          placeholder="搜索客户名称…"
+          value={q}
+          onChange={(e) => {
+            setQ(e.target.value);
+            setPage(1);
+          }}
+        />
+        <input
+          className={styles.searchInput}
+          type="text"
+          placeholder="按 Owner ID 筛选"
+          value={ownerId}
+          onChange={(e) => {
+            setOwnerId(e.target.value);
+            setPage(1);
+          }}
+          style={{ minWidth: 180 }}
+        />
+        <span className={styles.toolbarSpacer} />
+        <button className={styles.filterPill} onClick={() => { setQ(""); setOwnerId(""); }}>
+          重置筛选
+        </button>
+      </div>
+
+      <div className={styles.card}>
+        <div className={styles.cardHeader}>
+          <h2 className={styles.cardTitle}>客户</h2>
+          <span className={styles.cardSub}>{loading ? "加载中…" : `共 ${items.length} 条`}</span>
+        </div>
+        {loading ? (
+          <div className={styles.loading}>加载中…</div>
+        ) : items.length === 0 ? (
+          <div className={styles.empty}>暂无客户数据</div>
+        ) : (
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>名称</th>
+                <th>行业</th>
+                <th>规模</th>
+                <th>Owner</th>
+                <th>来源</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((c) => (
+                <tr key={c.ref}>
+                  <td>
+                    <Link className={styles.linkName} href={`/customers/${encodeURIComponent(c.ref)}`}>
+                      {c.name}
+                    </Link>
+                  </td>
+                  <td>{c.industry ?? "—"}</td>
+                  <td>{c.scale != null ? `${c.scale.toLocaleString()} 人` : "—"}</td>
+                  <td>{c.ownerId ?? "—"}</td>
+                  <td><span className={styles.tag}>{c.source}</span></td>
                 </tr>
-              </thead>
-              <tbody>
-                {items.map((c) => (
-                  <tr key={c.ref}>
-                    <td>
-                      <Link href={`/customers/${encodeURIComponent(c.ref)}`}>{c.name}</Link>
-                    </td>
-                    <td>{c.industry ?? "—"}</td>
-                    <td>{c.scale != null ? c.scale.toLocaleString() : "—"}</td>
-                    <td>{c.ownerId ?? "—"}</td>
-                    <td>
-                      <span className={styles.sourceTag}>{c.source}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-
-          <div className={styles.pagination}>
-            <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-              上一页
-            </button>
-            <span>第 {page} 页</span>
-            <button disabled={!hasNext} onClick={() => setPage((p) => p + 1)}>
-              下一页
-            </button>
-          </div>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <div className={styles.pager}>
+          <span>{items.length > 0 ? `${items.length} 条 · 第 ${page} 页` : ""}</span>
+          <span className={styles.toolbarSpacer} />
+          <button className={styles.pagerBtn} disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+            上一页
+          </button>
+          <button className={styles.pagerBtn} disabled={!hasNext} onClick={() => setPage((p) => p + 1)}>
+            下一页
+          </button>
         </div>
-      </main>
-    </div>
+      </div>
+    </AppShell>
   );
 }

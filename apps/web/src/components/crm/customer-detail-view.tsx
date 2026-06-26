@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { AppShell } from "../shell/app-shell";
 import { CrmApiError, getCustomer, listOpportunities } from "../../lib/crm/api-client";
 import type { CustomerDetail, OpportunitySummary } from "../../lib/crm/types";
 import styles from "./crm.module.css";
@@ -17,10 +18,7 @@ export function CustomerDetailView({ customerRef }: { customerRef: string }) {
 
   useEffect(() => {
     let active = true;
-    Promise.all([
-      getCustomer(customerRef),
-      listOpportunities({ customerRef }),
-    ])
+    Promise.all([getCustomer(customerRef), listOpportunities({ customerRef })])
       .then(([cust, oppRes]) => {
         if (!active) return;
         setCustomer(cust);
@@ -37,29 +35,27 @@ export function CustomerDetailView({ customerRef }: { customerRef: string }) {
       .finally(() => {
         if (active) setLoading(false);
       });
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [customerRef, router]);
 
-  if (loading) {
+  if (loading || error || !customer) {
     return (
-      <div className={styles.shell}>
-        <TopBar />
-        <main className={styles.content}>
+      <AppShell
+        pageTitle={loading ? "客户详情" : "客户不存在"}
+        breadcrumb={[
+          { label: "客户", href: "/customers" },
+          { label: "客户列表", href: "/customers" },
+          { label: customerRef },
+        ]}
+      >
+        {loading ? (
           <div className={styles.loading}>加载中…</div>
-        </main>
-      </div>
-    );
-  }
-
-  if (error || !customer) {
-    return (
-      <div className={styles.shell}>
-        <TopBar />
-        <main className={styles.content}>
+        ) : (
           <div className={styles.errorBanner}>{error ?? "客户不存在"}</div>
-          <Link href="/customers">← 返回列表</Link>
-        </main>
-      </div>
+        )}
+      </AppShell>
     );
   }
 
@@ -68,127 +64,140 @@ export function CustomerDetailView({ customerRef }: { customerRef: string }) {
     ? `/proposals/new?customerRef=${encodeURIComponent(customer.ref)}&opportunityRef=${encodeURIComponent(primaryOpp.ref)}`
     : `/proposals/new?customerRef=${encodeURIComponent(customer.ref)}`;
 
+  const initials = customer.name.slice(0, 1);
+
   return (
-    <div className={styles.shell}>
-      <TopBar />
-      <main className={styles.content}>
-        <div className={styles.detailGrid}>
-          <aside>
-            <div className={styles.metaCard}>
-              <h3>客户信息</h3>
-              <dl className={styles.metaRow}>
-                <dt>名称</dt>
-                <dd>
-                  {customer.name}
-                  <span className={styles.sourceTag}>{customer.source}</span>
-                </dd>
-                <dt>行业</dt>
-                <dd>{customer.industry ?? "—"}</dd>
-                <dt>规模</dt>
-                <dd>{customer.scale != null ? customer.scale.toLocaleString() : "—"}</dd>
-                <dt>Owner</dt>
-                <dd>{customer.ownerId ?? "—"}</dd>
-                <dt>同步时间</dt>
-                <dd>{new Date(customer.syncedAt).toLocaleString("zh-CN")}</dd>
-              </dl>
-              <div className={styles.actions}>
-                <Link className={styles.primary} href={generateUrl}>
-                  生成方案
-                </Link>
+    <AppShell
+      pageTitle={customer.name}
+      pageDescription={`Ref ${customer.ref} · 同步于 ${new Date(customer.syncedAt).toLocaleString("zh-CN")}`}
+      breadcrumb={[
+        { label: "客户", href: "/customers" },
+        { label: "客户列表", href: "/customers" },
+        { label: customer.name },
+      ]}
+      actions={
+        <>
+          <Link href="/customers" className={styles.filterPill} style={{ textDecoration: "none" }}>
+            ← 返回
+          </Link>
+          <Link
+            href={generateUrl}
+            style={{
+              fontSize: 13,
+              padding: "7px 14px",
+              borderRadius: 7,
+              background: "#0a84ff",
+              color: "#fff",
+              textDecoration: "none",
+              fontWeight: 500,
+            }}
+          >
+            生成方案
+          </Link>
+        </>
+      }
+    >
+      <div className={styles.detailGrid}>
+        <aside>
+          <div className={styles.metaCard}>
+            <div className={styles.metaHeader}>
+              <div className={styles.metaAvatar}>{initials}</div>
+              <div>
+                <p className={styles.metaName}>{customer.name}</p>
+                <p className={styles.metaSubline}>
+                  <span className={styles.tag}>{customer.source}</span>
+                </p>
               </div>
             </div>
-          </aside>
+            <dl className={styles.metaList}>
+              <dt>Ref</dt>
+              <dd>{customer.ref}</dd>
+              <dt>行业</dt>
+              <dd>{customer.industry ?? "—"}</dd>
+              <dt>规模</dt>
+              <dd>{customer.scale != null ? `${customer.scale.toLocaleString()} 人` : "—"}</dd>
+              <dt>Owner</dt>
+              <dd>{customer.ownerId ?? "—"}</dd>
+              <dt>同步</dt>
+              <dd>{new Date(customer.syncedAt).toLocaleString("zh-CN")}</dd>
+            </dl>
+          </div>
+        </aside>
 
-          <div style={{ display: "grid", gap: 20 }}>
-            <div className={styles.card}>
-              <h2>关联商机</h2>
-              {opportunities.length === 0 ? (
-                <div className={styles.empty}>暂无商机</div>
-              ) : (
-                <table className={styles.table}>
-                  <thead>
-                    <tr>
-                      <th>商机</th>
-                      <th>阶段</th>
-                      <th>金额估算</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {opportunities.map((opp) => (
-                      <tr key={opp.ref}>
-                        <td>
-                          <Link href={`/opportunities/${encodeURIComponent(opp.ref)}`}>
-                            {opp.title}
-                          </Link>
-                        </td>
-                        <td>{opp.stage}</td>
-                        <td>
-                          {opp.amountEstimate != null
-                            ? `¥${opp.amountEstimate.toLocaleString()}`
-                            : "—"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+        <div className={styles.cardStack}>
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>关联商机</h2>
+              <span className={styles.cardSub}>{opportunities.length} 条</span>
             </div>
+            {opportunities.length === 0 ? (
+              <div className={styles.empty}>暂无商机</div>
+            ) : (
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>商机</th>
+                    <th>阶段</th>
+                    <th>金额估算</th>
+                    <th>Owner</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {opportunities.map((opp) => (
+                    <tr key={opp.ref}>
+                      <td>
+                        <Link className={styles.linkName} href={`/opportunities/${encodeURIComponent(opp.ref)}`}>
+                          {opp.title}
+                        </Link>
+                      </td>
+                      <td><span className={styles.tag}>{opp.stage}</span></td>
+                      <td>{opp.amountEstimate != null ? `¥${opp.amountEstimate.toLocaleString()}` : "—"}</td>
+                      <td>{opp.ownerId ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
 
-            <div className={styles.card}>
-              <h2>关联方案</h2>
-              {customer.proposals.length === 0 ? (
-                <div className={styles.empty}>暂无方案</div>
-              ) : (
-                <table className={styles.table}>
-                  <thead>
-                    <tr>
-                      <th>方案</th>
-                      <th>状态</th>
-                      <th>版本</th>
-                      <th>创建时间</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {customer.proposals.map((p) => (
-                      <tr key={p.id}>
-                        <td>
-                          <Link href={`/proposals/${encodeURIComponent(p.id)}`}>
-                            {p.title}
-                          </Link>
-                        </td>
-                        <td>
-                          <span className={styles.statusPill} data-status={p.status}>
-                            {p.status}
-                          </span>
-                        </td>
-                        <td>v{p.version}</td>
-                        <td>{new Date(p.createdAt).toLocaleDateString("zh-CN")}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>关联方案</h2>
+              <span className={styles.cardSub}>{customer.proposals.length} 条</span>
             </div>
+            {customer.proposals.length === 0 ? (
+              <div className={styles.empty}>暂无方案</div>
+            ) : (
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>方案</th>
+                    <th>状态</th>
+                    <th>版本</th>
+                    <th>创建时间</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {customer.proposals.map((p) => (
+                    <tr key={p.id}>
+                      <td>
+                        <Link className={styles.linkName} href={`/proposals/${encodeURIComponent(p.id)}`}>
+                          {p.title}
+                        </Link>
+                      </td>
+                      <td>
+                        <span className={styles.statusPill} data-status={p.status}>{p.status}</span>
+                      </td>
+                      <td>v{p.version}</td>
+                      <td>{new Date(p.createdAt).toLocaleDateString("zh-CN")}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
-      </main>
-    </div>
-  );
-}
-
-function TopBar() {
-  return (
-    <header className={styles.topbar}>
-      <div className={styles.brand}>
-        <span className={styles.brandMark}>P</span>
-        <div>
-          <strong>PAS</strong>
-          <span style={{ display: "block", fontSize: 12, opacity: 0.8 }}>客户详情</span>
-        </div>
       </div>
-      <nav className={styles.nav}>
-        <Link href="/customers">← 客户列表</Link>
-      </nav>
-    </header>
+    </AppShell>
   );
 }
