@@ -13,10 +13,10 @@
   --hover: rgba(0, 0, 0, 0.04);
   --teal: #2c8c83;
 
-  min-height: 100dvh;
+  height: 100dvh;
   display: grid;
   grid-template-columns: 232px 1fr;
-  grid-template-rows: 1fr 28px;
+  grid-template-rows: 56px 1fr 28px;
   background: var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
@@ -24,7 +24,8 @@
 }
 
 .sidebar {
-  grid-row: 1 / 3;
+  grid-column: 1;
+  grid-row: 1 / 4;
   background: var(--sidebar-bg);
   border-right: 0.5px solid var(--border);
   display: flex;
@@ -135,7 +136,7 @@
 
 .topbar {
   grid-column: 2;
-  height: 56px;
+  grid-row: 1;
   background: var(--surface);
   border-bottom: 0.5px solid var(--border);
   display: flex;
@@ -281,7 +282,9 @@
 
 .main {
   grid-column: 2;
+  grid-row: 2;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .pageHeader {
@@ -352,6 +355,7 @@
 
 .statusbar {
   grid-column: 2;
+  grid-row: 3;
   background: var(--surface);
   border-top: 0.5px solid var(--border);
   display: flex;
@@ -360,7 +364,6 @@
   font-size: 11px;
   color: var(--text-tertiary);
   gap: 16px;
-  height: 28px;
 }
 
 .statusbar .spacer {
