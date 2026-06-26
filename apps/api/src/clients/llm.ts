@@ -99,7 +99,8 @@ export class LlmClientImpl implements LlmClient {
 export class LlmClientMock implements LlmClient {
   async complete(params: Parameters<LlmClient["complete"]>[0]): Promise<string> {
     const question = [...params.messages].reverse().find((message) => message.role === "user")?.content;
-    return `Mock LLM answer for: ${question ?? "empty question"}`;
+    const citation = params.messages.some((message) => /\[1\]/.test(message.content)) ? " [1]" : "";
+    return `Mock LLM answer for: ${question ?? "empty question"}${citation}`;
   }
 
   async *stream(params: Parameters<LlmClient["stream"]>[0]): AsyncIterable<string> {

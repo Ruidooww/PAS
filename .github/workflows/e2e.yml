@@ -1,0 +1,73 @@
+name: E2E
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: pas
+          POSTGRES_PASSWORD: pas
+          POSTGRES_DB: pas
+        ports:
+          - 5544:5432
+        options: >-
+          --health-cmd "pg_isready -U pas -d pas"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6399:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Deploy Prisma migrations
+        run: pnpm --filter api exec prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://pas:pas@localhost:5544/pas
+
+      - name: Run e2e suite
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p apps/e2e/test-results
+          pnpm e2e 2>&1 | tee apps/e2e/test-results/e2e.log
+
+      - name: Upload e2e diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-diagnostics
+          path: |
+            apps/e2e/test-results/**
+          if-no-files-found: ignore
