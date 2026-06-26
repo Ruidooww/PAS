@@ -2,7 +2,12 @@ import { Module } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 
 import { AGENT_CLIENT, AgentClientMock } from "./agent";
-import { CRM_CLIENT, ExternalCrmClient, PasCrmClient } from "./crm";
+import {
+  CRM_CLIENT,
+  ExternalCrmClient,
+  MockCrmClient,
+  PasCrmClient,
+} from "./crm";
 import { LLM_CLIENT, LlmClientImpl, LlmClientMock } from "./llm";
 import { RAGFLOW_CLIENT, RagflowClientImpl, RagflowClientMock } from "./ragflow";
 
@@ -27,10 +32,15 @@ import { RAGFLOW_CLIENT, RagflowClientImpl, RagflowClientMock } from "./ragflow"
     {
       provide: CRM_CLIENT,
       inject: [ConfigService],
-      useFactory: (config: ConfigService) =>
-        config.getOrThrow<string>("CRM_PROVIDER") === "pas"
-          ? new PasCrmClient()
-          : new ExternalCrmClient(config),
+      useFactory: (config: ConfigService) => {
+        const provider = config.getOrThrow<string>("CRM_PROVIDER");
+        if (provider === "pas") return new PasCrmClient();
+        if (provider === "mock") return new MockCrmClient();
+        return new ExternalCrmClient({
+          baseUrl: config.getOrThrow<string>("CRM_BASE_URL"),
+          apiKey: config.getOrThrow<string>("CRM_API_KEY"),
+        });
+      },
     },
     {
       // MVP 永远走 Mock — ADR-001 § 决策修订记录 (2026-06-23)。

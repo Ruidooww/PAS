@@ -9,6 +9,6 @@
     "rootDir": ".",
     "sourceMap": true
   },
-  "include": ["src/index.ts", "idp/**/*.ts"],
+  "include": ["src/index.ts", "idp/**/*.ts", "crm/**/*.ts"],
   "exclude": ["dist", "node_modules", "**/*.spec.ts"]
 }

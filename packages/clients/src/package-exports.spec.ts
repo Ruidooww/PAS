@@ -13,20 +13,22 @@ function runNode(args: string[]): string {
 }
 
 describe("@pas/clients package exports", () => {
-  it("loads the root and mock subpath through CommonJS require", () => {
+  it("loads the root, mock, and crm subpath through CommonJS require", () => {
     const output = runNode([
       "-e",
       [
         'const root = require("@pas/clients");',
         'const mock = require("@pas/clients/idp/mock");',
+        'const crm = require("@pas/clients/crm");',
         "console.log(JSON.stringify({",
         '  root: typeof root.MockIdpClient === "function",',
         '  subpath: typeof mock.MockIdpClient === "function",',
+        '  crm: typeof crm.MockCrmClient === "function",',
         "}));",
       ].join("\n"),
     ]);
 
-    expect(JSON.parse(output)).toEqual({ root: true, subpath: true });
+    expect(JSON.parse(output)).toEqual({ root: true, subpath: true, crm: true });
   });
 
   it("keeps the root export loadable through ESM import", () => {

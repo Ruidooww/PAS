@@ -5,7 +5,7 @@ export const envSchema = z
     APP_BASE_URL: z.string().url(),
     CRM_API_KEY: z.string().min(1),
     CRM_BASE_URL: z.string().url(),
-    CRM_PROVIDER: z.enum(["external", "pas"]),
+    CRM_PROVIDER: z.enum(["external", "mock", "pas"]),
     DATABASE_URL: z.string().url(),
     JWT_SECRET: z.string().min(32),
     JWT_SESSION_TTL_SECONDS: z.coerce.number().int().positive().default(604_800),
