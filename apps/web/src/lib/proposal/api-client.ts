@@ -87,6 +87,27 @@ export async function getProposal(proposalId: string): Promise<Proposal> {
   );
 }
 
+export interface ProposalListResponse {
+  items: Proposal[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+export async function listProposals(params: {
+  customerRef?: string;
+  page?: number;
+} = {}): Promise<ProposalListResponse> {
+  const search = new URLSearchParams();
+  if (params.customerRef) search.set("customerRef", params.customerRef);
+  if (params.page && params.page > 1) search.set("page", String(params.page));
+  const qs = search.toString();
+  return jsonRequest<ProposalListResponse>(
+    `/api/internal/proposals${qs ? `?${qs}` : ""}`,
+  );
+}
+
 interface WaitForGeneratedProposalOptions {
   intervalMs?: number;
   load?: (proposalId: string) => Promise<Proposal>;

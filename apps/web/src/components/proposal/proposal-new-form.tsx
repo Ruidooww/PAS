@@ -14,6 +14,7 @@ import type {
   DraftRequirementForm,
   ProposalTemplateSummary,
 } from "../../lib/proposal/types";
+import { AppShell } from "../shell/app-shell";
 import styles from "./proposal.module.css";
 
 const DEFAULT_INDUSTRIES = ["制造业", "金融业", "互联网", "政府/事业单位", "教育", "其他"];
@@ -142,29 +143,17 @@ export function ProposalNewForm() {
   }
 
   return (
-    <div className={styles.shell}>
-      <header className={styles.topbar}>
-        <div className={styles.brand}>
-          <span className={styles.brandMark}>P</span>
-          <div>
-            <strong>PAS</strong>
-            <span style={{ display: "block", fontSize: 12, opacity: 0.8 }}>
-              方案录入
-            </span>
-          </div>
-        </div>
-        <div>
-          <Link href="/qa">返回问答</Link>
-        </div>
-      </header>
-
-      <main className={styles.content}>
-        <section className={styles.card}>
-          <h2>新建方案</h2>
-          <p className={styles.hint}>
-            填写客户需求并选择模板，提交后将自动开始生成。需求字段不齐时可在“freeText
-            辅助补全”里粘贴会议记录或调研笔记。
-          </p>
+    <AppShell
+      pageTitle="新建方案"
+      pageDescription="填写客户需求并选择模板，提交后将自动开始生成。需求字段不齐可在 freeText 辅助补全里粘贴会议记录或调研笔记。"
+      breadcrumb={[{ label: "方案", href: "/proposals" }, { label: "新建方案" }]}
+      actions={
+        <Link href="/qa" className={styles.shellLinkBtn}>
+          返回问答
+        </Link>
+      }
+    >
+      <section className={styles.card}>
           {error && (
             <div className={styles.errorBanner} role="alert">
               {error}
@@ -288,7 +277,6 @@ export function ProposalNewForm() {
             </div>
           </form>
         </section>
-      </main>
-    </div>
+    </AppShell>
   );
 }

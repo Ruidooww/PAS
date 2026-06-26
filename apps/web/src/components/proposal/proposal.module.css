@@ -370,3 +370,37 @@
   background: #eef3f5;
   color: #34555c;
 }
+
+.shellLinkBtn {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 14px;
+  border-radius: 7px;
+  border: 0.5px solid rgba(0, 0, 0, 0.12);
+  background: #ffffff;
+  color: #1d1d1f;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.shellLinkBtn:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.shellLinkBtnPrimary {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 14px;
+  border-radius: 7px;
+  border: 0.5px solid #0a84ff;
+  background: #0a84ff;
+  color: #ffffff;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.shellLinkBtnPrimary:hover {
+  background: #006fe0;
+}

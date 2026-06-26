@@ -20,6 +20,7 @@ import type {
   ProposalSection,
   ProposalVersionRecord,
 } from "../../lib/proposal/types";
+import { AppShell } from "../shell/app-shell";
 import styles from "./proposal.module.css";
 
 interface Props {
@@ -118,23 +119,20 @@ export function ProposalDetailView({ proposalId }: Props) {
   );
 
   return (
-    <div className={styles.shell}>
-      <header className={styles.topbar}>
-        <div className={styles.brand}>
-          <span className={styles.brandMark}>P</span>
-          <div>
-            <strong>PAS</strong>
-            <span style={{ display: "block", fontSize: 12, opacity: 0.8 }}>
-              方案详情
-            </span>
-          </div>
-        </div>
-        <div>
-          <Link href="/proposals/new">新建方案</Link>
-        </div>
-      </header>
-
-      <main className={styles.content}>
+    <AppShell
+      pageTitle={proposal?.title ?? "方案详情"}
+      pageDescription={proposal ? `ID ${proposal.id} · v${proposal.version}` : undefined}
+      breadcrumb={[
+        { label: "方案", href: "/proposals" },
+        { label: "方案列表", href: "/proposals" },
+        { label: proposal?.title ?? proposalId },
+      ]}
+      actions={
+        <Link href="/proposals/new" className={styles.shellLinkBtnPrimary}>
+          + 新建方案
+        </Link>
+      }
+    >
         {error && (
           <div className={styles.errorBanner} role="alert">
             {error}
@@ -313,7 +311,6 @@ export function ProposalDetailView({ proposalId }: Props) {
             </aside>
           </div>
         )}
-      </main>
-    </div>
+    </AppShell>
   );
 }

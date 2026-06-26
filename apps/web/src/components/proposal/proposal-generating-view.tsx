@@ -17,6 +17,7 @@ import {
   streamProposalProgress,
 } from "../../lib/proposal/progress-sse";
 import type { Proposal } from "../../lib/proposal/types";
+import { AppShell } from "../shell/app-shell";
 import styles from "./proposal.module.css";
 
 interface Props {
@@ -88,23 +89,20 @@ export function ProposalGeneratingView({ proposalId }: Props) {
   }, [state.chapters, state.total]);
 
   return (
-    <div className={styles.shell}>
-      <header className={styles.topbar}>
-        <div className={styles.brand}>
-          <span className={styles.brandMark}>P</span>
-          <div>
-            <strong>PAS</strong>
-            <span style={{ display: "block", fontSize: 12, opacity: 0.8 }}>
-              方案生成中
-            </span>
-          </div>
-        </div>
-        <div>
-          <Link href="/proposals/new">新建另一份</Link>
-        </div>
-      </header>
-
-      <main className={styles.content}>
+    <AppShell
+      pageTitle="方案生成中"
+      pageDescription={`已完成 ${completionRatio}%（${state.chapters.filter((c) => c.status === "completed").length} / ${state.total || state.chapters.length}）。生成完毕将自动跳转到详情页。`}
+      breadcrumb={[
+        { label: "方案", href: "/proposals" },
+        { label: "新建方案", href: "/proposals/new" },
+        { label: "生成中" },
+      ]}
+      actions={
+        <Link href="/proposals/new" className={styles.shellLinkBtn}>
+          新建另一份
+        </Link>
+      }
+    >
         <section className={styles.card}>
           <h2>
             {proposal?.title ?? "方案"}
@@ -162,7 +160,6 @@ export function ProposalGeneratingView({ proposalId }: Props) {
             </div>
           )}
         </section>
-      </main>
-    </div>
+    </AppShell>
   );
 }
