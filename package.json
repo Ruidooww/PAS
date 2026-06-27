@@ -6,9 +6,10 @@
   "scripts": {
     "dev": "pnpm --filter @pas/shared build && pnpm --filter @pas/clients build && pnpm --parallel --filter api --filter web dev",
     "build": "pnpm -r build",
+    "e2e": "pnpm --filter @pas/shared build && pnpm --filter @pas/clients build && pnpm --filter @pas/e2e test",
     "lint": "pnpm --filter @pas/shared build && pnpm --filter @pas/clients build && pnpm -r lint",
     "typecheck": "pnpm --filter @pas/shared build && pnpm --filter @pas/clients build && pnpm -r typecheck",
-    "test": "pnpm --filter @pas/shared build && pnpm --filter @pas/clients build && pnpm -r test"
+    "test": "pnpm --filter @pas/shared build && pnpm --filter @pas/clients build && pnpm --filter @pas/shared test && pnpm --filter @pas/clients test && pnpm --filter api test && pnpm --filter web test"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",

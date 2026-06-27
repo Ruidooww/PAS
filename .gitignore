@@ -16,6 +16,7 @@ node_modules/
 dist/
 .next/
 coverage/
+apps/e2e/test-results/
 *.tsbuildinfo
 
 # Source material binaries (kept local for now)
