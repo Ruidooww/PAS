@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect, useState } from "react";
+import React, { type ReactNode, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -29,6 +29,11 @@ interface NavLink {
 interface NavGroup {
   label: string;
   items: NavLink[];
+  adminOnly?: boolean;
+}
+
+interface MeResponse {
+  role?: string;
 }
 
 const NAV: NavGroup[] = [
@@ -52,6 +57,13 @@ const NAV: NavGroup[] = [
       { href: "/qa", label: "知识问答", icon: <ChatIcon /> },
     ],
   },
+  {
+    label: "管理",
+    adminOnly: true,
+    items: [
+      { href: "/admin/feedback", label: "反馈看板", icon: <ChartIcon /> },
+    ],
+  },
 ];
 
 export function AppShell({
@@ -63,6 +75,7 @@ export function AppShell({
 }: AppShellProps) {
   const pathname = usePathname();
   const [now, setNow] = useState<string>("");
+  const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
     const update = () => {
@@ -75,6 +88,24 @@ export function AppShell({
     update();
     const id = setInterval(update, 30_000);
     return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/me", {
+      credentials: "include",
+      headers: { accept: "application/json" },
+    })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((me: MeResponse | null) => {
+        if (active) setRole(typeof me?.role === "string" ? me.role : null);
+      })
+      .catch(() => {
+        if (active) setRole(null);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   function isActive(href: string): boolean {
@@ -93,7 +124,7 @@ export function AppShell({
             <span className={styles.logoSub}>售前助手</span>
           </div>
         </div>
-        {NAV.map((group) => (
+        {NAV.filter((group) => !group.adminOnly || role === "admin").map((group) => (
           <div key={group.label} className={styles.navGroup}>
             <div className={styles.navLabel}>{group.label}</div>
             {group.items.map((item) => (
@@ -249,6 +280,15 @@ function ChatIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+
+function ChartIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 3v18h18" />
+      <path d="M7 15l4-4 3 3 5-7" />
     </svg>
   );
 }

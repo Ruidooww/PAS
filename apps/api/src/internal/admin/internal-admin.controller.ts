@@ -1,11 +1,16 @@
 import { BadRequestException, Controller, Get, Inject, Query, UseGuards } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
+import { z } from "zod";
 
 import { AuthGuard } from "../../auth/auth.guard";
 import { Roles } from "../../auth/roles.decorator";
 import { RolesGuard } from "../../auth/roles.guard";
 import { PrismaService } from "../../prisma/prisma.service";
 import { InternalOnlyGuard } from "../internal-only.guard";
+import {
+  FeedbackDashboardService,
+  type FeedbackDashboardResponse,
+} from "./feedback-dashboard.service";
 
 interface AuditLogResponse {
   id: string;
@@ -17,11 +22,43 @@ interface AuditLogResponse {
   createdAt: string;
 }
 
+const optionalIsoDate = z.preprocess(
+  (value) => (Array.isArray(value) ? value[0] : value),
+  z
+    .string()
+    .trim()
+    .min(1)
+    .refine((value) => !Number.isNaN(new Date(value).getTime()), {
+      message: "must be an ISO date",
+    })
+    .optional(),
+);
+
+const feedbackDashboardQuerySchema = z
+  .object({
+    from: optionalIsoDate,
+    to: optionalIsoDate,
+  })
+  .passthrough()
+  .superRefine((value, ctx) => {
+    if (!value.from || !value.to) return;
+    if (new Date(value.from).getTime() <= new Date(value.to).getTime()) return;
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["from"],
+      message: "from must be before to",
+    });
+  });
+
 @Controller("api/internal/admin")
 @UseGuards(AuthGuard, InternalOnlyGuard, RolesGuard)
 @Roles("admin")
 export class InternalAdminController {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(FeedbackDashboardService)
+    private readonly feedbackDashboard: FeedbackDashboardService,
+  ) {}
 
   @Get("ping")
   ping(): { ok: true } {
@@ -58,6 +95,23 @@ export class InternalAdminController {
       detailJson: log.detailJson,
       createdAt: log.createdAt.toISOString(),
     }));
+  }
+
+  @Get("feedback-dashboard")
+  feedbackDashboardData(
+    @Query() query: Record<string, unknown>,
+  ): Promise<FeedbackDashboardResponse> {
+    const parsed = feedbackDashboardQuerySchema.safeParse(query);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        message: "Invalid feedback dashboard query",
+        issues: parsed.error.issues,
+      });
+    }
+    return this.feedbackDashboard.getDashboard({
+      from: parsed.data.from ? new Date(parsed.data.from) : undefined,
+      to: parsed.data.to ? new Date(parsed.data.to) : undefined,
+    });
   }
 }
 
