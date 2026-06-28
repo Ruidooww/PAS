@@ -62,8 +62,8 @@
   justify-content: space-between;
   padding: 0 24px;
   color: #ffffff;
-  background: #153f49;
-  border-bottom: 3px solid #2c8c83;
+  background: var(--navy);
+  border-bottom: 3px solid var(--blue-strong);
 }
 
 .brand,
@@ -80,7 +80,7 @@
 .emptyMark {
   display: grid;
   place-items: center;
-  color: #153f49;
+  color: var(--blue);
   background: #ffffff;
   border-radius: 6px;
   font-weight: 800;
@@ -163,7 +163,7 @@
   height: 52px;
   margin-bottom: 22px;
   color: #ffffff;
-  background: #24766f;
+  background: var(--blue-strong);
   font-size: 22px;
 }
 
@@ -227,7 +227,7 @@
   display: grid;
   place-items: center;
   color: #ffffff;
-  background: #24766f;
+  background: var(--blue-strong);
   border-radius: 6px;
   font-size: 12px;
   font-weight: 800;
@@ -286,7 +286,7 @@
 }
 
 .markdown a {
-  color: #0d645e;
+  color: var(--blue);
   text-underline-offset: 3px;
 }
 
@@ -411,7 +411,7 @@
 }
 
 .referencePanel button span {
-  color: #176b64;
+  color: var(--blue);
   font-weight: 800;
 }
 
@@ -467,7 +467,7 @@
   display: inline-block;
   margin-left: 3px;
   vertical-align: -2px;
-  background: #24766f;
+  background: var(--blue);
   animation: blink 0.9s steps(2, start) infinite;
 }
 
@@ -518,8 +518,8 @@
   min-height: 40px;
   padding: 0 18px;
   color: #ffffff;
-  background: #176b64;
-  border: 1px solid #176b64;
+  background: var(--blue);
+  border: 1px solid var(--blue);
   border-radius: 6px;
   font-weight: 700;
   cursor: pointer;

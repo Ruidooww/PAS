@@ -1,0 +1,80 @@
+:root {
+  color-scheme: light;
+  --blue: #1E3A8A;
+  --blue-strong: #2B4DA8;
+  --blue-soft: #E8EEF8;
+  --bg: #f5f7fb;
+  --surface: rgba(255, 255, 255, 0.92);
+  --surface-solid: #ffffff;
+  --surface-muted: #f8fafc;
+  --text: #111827;
+  --ink: var(--text);
+  --muted: #667085;
+  --faint: #98a2b3;
+  --navy: #111827;
+  --border: #d9e0e7;
+  --hairline: rgba(15, 23, 42, 0.09);
+  --hairline-strong: rgba(15, 23, 42, 0.16);
+  --green: #16a34a;
+  --green-soft: #e9f8ef;
+  --amber: #f59e0b;
+  --amber-soft: #fff7e6;
+  --danger: #dc2626;
+  --danger-soft: #fff1f2;
+  --text-on-blue: #ffffff;
+  --shadow: 0 10px 30px rgba(30, 58, 138, 0.07);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0b1220;
+    --surface: rgba(15, 23, 42, 0.88);
+    --surface-solid: #111827;
+    --surface-muted: #172033;
+    --text: #f8fafc;
+    --ink: var(--text);
+    --muted: #aab4c4;
+    --faint: #778399;
+    --navy: #07111e;
+    --border: rgba(226, 232, 240, 0.18);
+    --hairline: rgba(226, 232, 240, 0.12);
+    --hairline-strong: rgba(226, 232, 240, 0.2);
+    --blue: #8fa9f8;
+    --blue-strong: #a7bafa;
+    --blue-soft: rgba(43, 77, 168, 0.28);
+    --green: #4ade80;
+    --green-soft: rgba(22, 163, 74, 0.18);
+    --amber-soft: rgba(245, 158, 11, 0.16);
+    --danger-soft: rgba(220, 38, 38, 0.16);
+    --shadow: 0 14px 36px rgba(0, 0, 0, 0.28);
+  }
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0b1220;
+  --surface: rgba(15, 23, 42, 0.88);
+  --surface-solid: #111827;
+  --surface-muted: #172033;
+  --text: #f8fafc;
+  --ink: var(--text);
+  --muted: #aab4c4;
+  --faint: #778399;
+  --navy: #07111e;
+  --border: rgba(226, 232, 240, 0.18);
+  --hairline: rgba(226, 232, 240, 0.12);
+  --hairline-strong: rgba(226, 232, 240, 0.2);
+  --blue: #8fa9f8;
+  --blue-strong: #a7bafa;
+  --blue-soft: rgba(43, 77, 168, 0.28);
+  --green: #4ade80;
+  --green-soft: rgba(22, 163, 74, 0.18);
+  --amber-soft: rgba(245, 158, 11, 0.16);
+  --danger-soft: rgba(220, 38, 38, 0.16);
+  --shadow: 0 14px 36px rgba(0, 0, 0, 0.28);
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
+}
