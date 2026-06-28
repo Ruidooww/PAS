@@ -28,3 +28,17 @@ export async function loginWithMockIdp(
   if (!row) throw new Error(`Mock login user was not persisted: ${user.uid}`);
   return { agent, user };
 }
+
+export async function loginAsAdmin(agent: Agent, prisma: PrismaClient): Promise<LoginResult> {
+  const firstLogin = await loginWithMockIdp(agent, prisma);
+  await prisma.$executeRaw`
+    UPDATE "users"
+    SET "role" = 'admin'::"UserRole"
+    WHERE "id" = ${firstLogin.user.uid}
+  `;
+  const adminLogin = await loginWithMockIdp(agent, prisma);
+  if (adminLogin.user.role !== "admin") {
+    throw new Error(`Mock admin login did not issue an admin session: ${adminLogin.user.uid}`);
+  }
+  return adminLogin;
+}
