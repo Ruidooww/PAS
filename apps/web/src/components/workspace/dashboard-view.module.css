@@ -1,0 +1,288 @@
+.dashboard {
+  min-height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 10px;
+}
+
+.mainColumn,
+.sideColumn {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.hero,
+.panel,
+.metricCard,
+.statePanel,
+.errorPanel {
+  border: 0.5px solid var(--hairline, rgba(15, 23, 42, 0.09));
+  border-radius: 8px;
+  background: var(--surface-solid, #ffffff);
+  box-shadow: var(--shadow, 0 10px 30px rgba(30, 58, 138, 0.07));
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 22px;
+  background: linear-gradient(180deg, var(--surface-solid, #ffffff), var(--surface-muted, #f8fafc));
+}
+
+.hero h1 {
+  margin: 0 0 8px;
+  color: var(--text, #111827);
+  font-size: 26px;
+  letter-spacing: 0;
+}
+
+.hero p {
+  margin: 0;
+  color: var(--muted, #667085);
+  font-size: 14px;
+}
+
+.heroMetric {
+  min-width: 112px;
+  text-align: right;
+}
+
+.heroMetric strong {
+  display: block;
+  color: var(--text, #111827);
+  font-size: 30px;
+  letter-spacing: 0;
+}
+
+.heroMetric span {
+  color: var(--green, #16a34a);
+  font-weight: 700;
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.metricCard {
+  min-height: 118px;
+  display: grid;
+  align-content: center;
+  gap: 7px;
+  padding: 16px;
+}
+
+.metricCard span,
+.metricCard small {
+  color: var(--muted, #667085);
+}
+
+.metricCard span {
+  font-size: 12px;
+}
+
+.metricCard strong {
+  color: var(--text, #111827);
+  font-size: 28px;
+  letter-spacing: 0;
+}
+
+.splitGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.16fr) minmax(260px, 0.84fr);
+  gap: 10px;
+}
+
+.panel {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.panelHeader {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 0.5px solid var(--hairline, rgba(15, 23, 42, 0.09));
+}
+
+.panelHeader h2 {
+  margin: 0;
+  color: var(--text, #111827);
+  font-size: 15px;
+  font-weight: 760;
+  letter-spacing: 0;
+}
+
+.panelHeader a {
+  color: var(--blue-strong, #2b4da8);
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--text, #111827);
+  font-size: 12px;
+}
+
+.table th,
+.table td {
+  padding: 12px 14px;
+  border-bottom: 0.5px solid var(--hairline, rgba(15, 23, 42, 0.09));
+  text-align: left;
+}
+
+.table th {
+  color: var(--muted, #667085);
+  font-weight: 650;
+}
+
+.table tr:last-child td {
+  border-bottom: 0;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: var(--blue-soft, #e8eef8);
+  color: var(--blue-strong, #2b4da8);
+  font-weight: 700;
+}
+
+.progressList {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+.progressList a {
+  min-height: 58px;
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 0.5px solid var(--hairline, rgba(15, 23, 42, 0.09));
+  border-radius: 8px;
+  background: var(--surface-muted, #f8fafc);
+  color: var(--text, #111827);
+  text-decoration: none;
+}
+
+.progressList a:hover {
+  border-color: var(--blue-strong, #2b4da8);
+  background: var(--blue-soft, #e8eef8);
+}
+
+.progressList strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.progressList span {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted, #667085);
+}
+
+.progressList em {
+  color: var(--blue-strong, #2b4da8);
+  font-style: normal;
+  font-weight: 700;
+}
+
+.progressList p {
+  margin: 0;
+  color: var(--muted, #667085);
+}
+
+.summaryList,
+.todoList {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+.summaryList div {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--surface-muted, #f8fafc);
+}
+
+.summaryList strong {
+  color: var(--text, #111827);
+}
+
+.summaryList span,
+.todoList {
+  color: var(--muted, #667085);
+  line-height: 1.55;
+}
+
+.todoList label {
+  min-height: 36px;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  color: var(--text, #111827);
+}
+
+.todoList input {
+  accent-color: var(--blue-strong, #2b4da8);
+}
+
+.statePanel,
+.errorPanel {
+  padding: 18px;
+}
+
+.statePanel {
+  color: var(--muted, #667085);
+}
+
+.errorPanel {
+  color: #9f1239;
+  background: #fff1f2;
+}
+
+@media (max-width: 1120px) {
+  .dashboard,
+  .splitGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .metricGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .hero,
+  .metricGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .heroMetric {
+    text-align: left;
+  }
+
+  .table {
+    display: block;
+    overflow-x: auto;
+  }
+}
