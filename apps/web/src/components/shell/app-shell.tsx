@@ -21,11 +21,12 @@ export interface AppShellProps {
 
 type ThemePreference = "light" | "dark";
 
-interface NavLink {
+export interface NavLink {
   id: string;
   href: string;
   label: string;
   icon: ReactNode;
+  adminOnly?: boolean;
 }
 
 interface MeResponse {
@@ -45,7 +46,12 @@ const NAV: NavLink[] = [
   { id: "qa", href: "/qa", label: "AI 助手", icon: <ChatIcon /> },
   { id: "analytics", href: "/analytics", label: "数据分析", icon: <ChartIcon /> },
   { id: "tasks", href: "/tasks", label: "任务检查", icon: <TaskIcon /> },
+  { id: "admin-feedback", href: "/admin/feedback", label: "反馈看板", icon: <ChartIcon />, adminOnly: true },
 ];
+
+export function getVisibleNavLinks(role: string | null | undefined): NavLink[] {
+  return NAV.filter((item) => !item.adminOnly || role === "admin");
+}
 
 export function AppShell({
   pageTitle,
@@ -111,6 +117,7 @@ export function AppShell({
   }
 
   const nextTheme = theme === "dark" ? "light" : "dark";
+  const visibleNavLinks = getVisibleNavLinks(me?.role);
 
   return (
     <div className={styles.shell} data-theme={theme}>
@@ -119,7 +126,7 @@ export function AppShell({
           PAS
         </Link>
         <nav className={styles.railNav}>
-          {NAV.map((item) => (
+          {visibleNavLinks.map((item) => (
             <Link
               aria-current={isActive(item) ? "page" : undefined}
               aria-label={item.label}

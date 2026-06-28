@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import Link from "next/link";
 import { describe, expect, it, vi } from "vitest";
 
-import { AppShell } from "./app-shell";
+import { AppShell, getVisibleNavLinks } from "./app-shell";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/proposals/demo/workspace",
@@ -36,5 +36,19 @@ describe("AppShell", () => {
     expect(html).toContain("三栏方案工作台");
     expect(html).toContain("新建方案");
     expect(html).toContain("正文区域");
+  });
+
+  it("does not include admin feedback nav for presales users", () => {
+    expect(getVisibleNavLinks("presales").some((item) => item.id === "admin-feedback")).toBe(false);
+  });
+
+  it("includes admin feedback nav for admin users", () => {
+    const adminFeedback = getVisibleNavLinks("admin").find((item) => item.id === "admin-feedback");
+
+    expect(adminFeedback).toMatchObject({
+      href: "/admin/feedback",
+      id: "admin-feedback",
+      label: "反馈看板",
+    });
   });
 });
