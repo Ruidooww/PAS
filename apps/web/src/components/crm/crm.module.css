@@ -24,9 +24,9 @@
 }
 
 .filterPill.active {
-  background: #e6f1fb;
-  color: #0c447c;
-  border-color: #b5d4f4;
+  background: var(--blue-soft);
+  color: var(--blue-strong);
+  border-color: var(--blue-strong);
 }
 
 .searchInput {
@@ -44,8 +44,8 @@
 }
 
 .searchInput:focus {
-  border-color: #0a84ff;
-  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.15);
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 15%, transparent);
 }
 
 .statSection {
@@ -138,11 +138,11 @@
 }
 
 .table tr:hover td {
-  background: rgba(10, 132, 255, 0.03);
+  background: color-mix(in srgb, var(--blue) 3%, transparent);
 }
 
 .linkName {
-  color: #0a84ff;
+  color: var(--blue);
   font-weight: 500;
   text-decoration: none;
 }
@@ -277,8 +277,8 @@
   width: 44px;
   height: 44px;
   border-radius: 10px;
-  background: #e6f1fb;
-  color: #0a84ff;
+  background: var(--blue-soft);
+  color: var(--blue);
   display: grid;
   place-items: center;
   font-size: 18px;

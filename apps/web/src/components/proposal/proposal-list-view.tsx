@@ -60,7 +60,7 @@ export function ProposalListView() {
             fontSize: 13,
             padding: "7px 14px",
             borderRadius: 7,
-            background: "#0a84ff",
+            background: "var(--blue)",
             color: "#fff",
             textDecoration: "none",
             fontWeight: 500,

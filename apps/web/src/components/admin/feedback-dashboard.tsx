@@ -153,7 +153,7 @@ export function FeedbackDashboardContent({
               <path
                 d={linePath}
                 fill="none"
-                stroke="#0a84ff"
+                    stroke="var(--blue)"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth="2.5"

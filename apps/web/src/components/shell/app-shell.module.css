@@ -1,21 +1,4 @@
 .shell {
-  --blue: #1e3a8a;
-  --blue-strong: #2b4da8;
-  --blue-soft: #e8eef8;
-  --bg: #f5f7fb;
-  --surface: rgba(255, 255, 255, 0.92);
-  --surface-solid: #ffffff;
-  --surface-muted: #f8fafc;
-  --text: #111827;
-  --muted: #667085;
-  --faint: #98a2b3;
-  --hairline: rgba(15, 23, 42, 0.09);
-  --hairline-strong: rgba(15, 23, 42, 0.16);
-  --green: #16a34a;
-  --green-soft: #e9f8ef;
-  --amber: #f59e0b;
-  --shadow: 0 10px 30px rgba(30, 58, 138, 0.07);
-
   height: 100dvh;
   min-height: 720px;
   display: grid;
@@ -23,7 +6,7 @@
   grid-template-rows: 56px minmax(0, 1fr) 72px;
   overflow: hidden;
   background:
-    radial-gradient(circle at 14% 0%, rgba(30, 58, 138, 0.06), transparent 28%),
+    radial-gradient(circle at 14% 0%, color-mix(in srgb, var(--blue) 8%, transparent), transparent 28%),
     linear-gradient(180deg, #fbfcff 0%, var(--bg) 54%, #eef2f8 100%);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
@@ -31,23 +14,8 @@
 }
 
 .shell[data-theme="dark"] {
-  --bg: #0b1220;
-  --surface: rgba(15, 23, 42, 0.88);
-  --surface-solid: #111827;
-  --surface-muted: #172033;
-  --text: #f8fafc;
-  --muted: #aab4c4;
-  --faint: #778399;
-  --hairline: rgba(226, 232, 240, 0.12);
-  --hairline-strong: rgba(226, 232, 240, 0.2);
-  --blue: #8fa9f8;
-  --blue-strong: #a7bafa;
-  --blue-soft: rgba(43, 77, 168, 0.28);
-  --green: #4ade80;
-  --green-soft: rgba(22, 163, 74, 0.18);
-  --shadow: 0 14px 36px rgba(0, 0, 0, 0.28);
   background:
-    radial-gradient(circle at 10% 0%, rgba(43, 77, 168, 0.18), transparent 30%),
+    radial-gradient(circle at 10% 0%, color-mix(in srgb, var(--blue-strong) 18%, transparent), transparent 30%),
     linear-gradient(180deg, #07111e 0%, var(--bg) 60%, #08101c 100%);
 }
 
