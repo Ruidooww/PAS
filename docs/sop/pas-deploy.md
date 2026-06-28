@@ -110,7 +110,7 @@ docker compose --env-file infra/.env.prod -f infra/docker-compose.prod.yml ps
 ## 7. 执行 Prisma migration
 
 ```bash
-docker compose --env-file infra/.env.prod -f infra/docker-compose.prod.yml run --rm pas-api pnpm --filter api exec prisma migrate deploy
+docker compose --env-file infra/.env.prod -f infra/docker-compose.prod.yml --profile migrate run --rm pas-api-migrator pnpm --filter api exec prisma migrate deploy
 ```
 
 ## 8. 启动 API + Web
