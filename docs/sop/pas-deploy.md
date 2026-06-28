@@ -72,6 +72,7 @@ chmod 600 infra/.env.prod
 - 所有 `<change_me>`、`<paste>`、`<vm-ip>` 必须替换。
 - `NODE_ENV=production` 时必须使用 `IDP_MODE=real`；现有 `apps/api/src/config/env.schema.ts` 会拒绝 `IDP_MODE=mock && NODE_ENV=production`。
 - `APP_BASE_URL` 使用内网 API 地址，例如 `http://10.0.0.12:3001`。
+- 当前 v1 默认内网 IP + HTTP，`APP_BASE_URL=http://<vm-ip>:3001` 时 session cookie 不带 `Secure` 是预期行为；如果未来切到 HTTPS / 反代 / 域名，必须同步改成 `https://...`，否则 session cookie 的 `Secure` flag 不会开启。
 - `RAGFLOW_BASE_URL` 使用 shared network 上可达的 RAGFlow container/service 名。
 
 常见启动期 env schema 报错：
