@@ -54,7 +54,7 @@ model User {
   isExternal   Boolean                @default(false) @map("is_external")
   deptId       String?                @map("dept_id")
   tenantId     String                 @map("tenant_id")
-  idpProvider  IdpProvider            @map("idp_provider")
+  idpProvider  IdpProvider            @default(mock) @map("idp_provider")
   idpUserId    String                 @map("idp_user_id")
   avatar       String?
   lastLoginAt  DateTime?              @map("last_login_at")
@@ -121,20 +121,38 @@ model ProposalVersion {
 }
 
 model KbDocument {
-  id            String   @id @default(cuid())
-  ragflowDocId  String   @unique @map("ragflow_doc_id")
-  ragflowKbId   String   @map("ragflow_kb_id")
-  name          String
-  product       String?
-  aclScope      String   @map("acl_scope")
-  uploadedBy    String   @map("uploaded_by")
-  createdAt     DateTime @default(now()) @map("created_at")
-  uploader      User     @relation("DocumentUploader", fields: [uploadedBy], references: [id], onDelete: Restrict)
+  id               String    @id @default(cuid())
+  ragflowDocId     String    @unique @map("ragflow_doc_id")
+  ragflowKbId      String    @map("ragflow_kb_id")
+  name             String
+  product          String?
+  aclScope         String    @default("internal") @map("acl_scope")
+  uploadedBy       String?   @map("uploaded_by")
+  size             Int?
+  ragflowUpdatedAt DateTime? @map("ragflow_updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+  syncedAt         DateTime  @default(now()) @map("synced_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  uploader         User?     @relation("DocumentUploader", fields: [uploadedBy], references: [id], onDelete: Restrict)
 
   @@index([ragflowKbId])
   @@index([aclScope])
   @@index([uploadedBy])
   @@map("kb_documents")
+}
+
+model KbSyncLog {
+  id           String   @id @default(cuid())
+  ragflowKbId  String   @map("ragflow_kb_id")
+  addedCount   Int      @default(0) @map("added_count")
+  deletedCount Int      @default(0) @map("deleted_count")
+  updatedCount Int      @default(0) @map("updated_count")
+  status       String
+  errorMessage String?  @map("error_message") @db.Text
+  runAt        DateTime @default(now()) @map("run_at")
+
+  @@index([ragflowKbId, runAt(sort: Desc)])
+  @@map("kb_sync_logs")
 }
 
 model AuditLog {

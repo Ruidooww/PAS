@@ -1,4 +1,12 @@
-import { BadRequestException, Controller, Get, Inject, Query, UseGuards } from "@nestjs/common";
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  Inject,
+  Post,
+  Query,
+  UseGuards,
+} from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 
@@ -7,6 +15,11 @@ import { Roles } from "../../auth/roles.decorator";
 import { RolesGuard } from "../../auth/roles.guard";
 import { PrismaService } from "../../prisma/prisma.service";
 import { InternalOnlyGuard } from "../internal-only.guard";
+import {
+  KbSyncService,
+  type KbSyncLogListResponse,
+  type KbSyncRunSummary,
+} from "../kb-sync/kb-sync.service";
 import {
   FeedbackDashboardService,
   type FeedbackDashboardResponse,
@@ -50,6 +63,30 @@ const feedbackDashboardQuerySchema = z
     });
   });
 
+const optionalQueryString = z.preprocess(
+  (value) => (Array.isArray(value) ? value[0] : value),
+  z.string().trim().min(1).optional(),
+);
+
+const queryPositiveInt = (defaultValue: number, max?: number) =>
+  z.preprocess(
+    (value) => (Array.isArray(value) ? value[0] : value),
+    z.coerce
+      .number()
+      .int()
+      .positive()
+      .max(max ?? Number.MAX_SAFE_INTEGER)
+      .default(defaultValue),
+  );
+
+const kbSyncLogsQuerySchema = z
+  .object({
+    kbId: optionalQueryString,
+    page: queryPositiveInt(1),
+    pageSize: queryPositiveInt(20, 100),
+  })
+  .passthrough();
+
 @Controller("api/internal/admin")
 @UseGuards(AuthGuard, InternalOnlyGuard, RolesGuard)
 @Roles("admin")
@@ -58,6 +95,8 @@ export class InternalAdminController {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(FeedbackDashboardService)
     private readonly feedbackDashboard: FeedbackDashboardService,
+    @Inject(KbSyncService)
+    private readonly kbSyncService: KbSyncService,
   ) {}
 
   @Get("ping")
@@ -111,6 +150,27 @@ export class InternalAdminController {
     return this.feedbackDashboard.getDashboard({
       from: parsed.data.from ? new Date(parsed.data.from) : undefined,
       to: parsed.data.to ? new Date(parsed.data.to) : undefined,
+    });
+  }
+
+  @Post("kb-sync/run")
+  runKbSync(): Promise<KbSyncRunSummary> {
+    return this.kbSyncService.runOnce();
+  }
+
+  @Get("kb-sync/logs")
+  kbSyncLogs(@Query() query: Record<string, unknown>): Promise<KbSyncLogListResponse> {
+    const parsed = kbSyncLogsQuerySchema.safeParse(query);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        message: "Invalid kb sync logs query",
+        issues: parsed.error.issues,
+      });
+    }
+    return this.kbSyncService.listLogs({
+      kbId: parsed.data.kbId,
+      page: parsed.data.page,
+      pageSize: parsed.data.pageSize,
     });
   }
 }

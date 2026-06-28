@@ -34,7 +34,24 @@ const completeEnv = {
 
 describe("validateEnv", () => {
   it("accepts a complete E0 environment", () => {
-    expect(validateEnv(completeEnv)).toMatchObject(completeEnv);
+    expect(validateEnv(completeEnv)).toMatchObject({
+      ...completeEnv,
+      PAS_KB_SYNC_CRON: "0 * * * *",
+      PAS_KB_SYNC_ENABLED: true,
+    });
+  });
+
+  it("parses kb sync scheduling overrides", () => {
+    expect(
+      validateEnv({
+        ...completeEnv,
+        PAS_KB_SYNC_CRON: "*/15 * * * *",
+        PAS_KB_SYNC_ENABLED: "false",
+      }),
+    ).toMatchObject({
+      PAS_KB_SYNC_CRON: "*/15 * * * *",
+      PAS_KB_SYNC_ENABLED: false,
+    });
   });
 
   it("rejects a missing required variable", () => {
