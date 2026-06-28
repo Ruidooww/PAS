@@ -128,7 +128,9 @@ docker compose --env-file infra/.env.prod -f infra/docker-compose.prod.yml up -d
 ```bash
 df -h
 du -sh /var/backups/pas
+du -sh /var/lib/docker/containers
 docker system df
+docker ps --format 'table {{.Names}}\t{{.Size}}'
 docker volume ls | grep pas-prod
 ```
 
@@ -137,6 +139,8 @@ docker volume ls | grep pas-prod
 - 调低 `PAS_BACKUP_RETENTION_DAYS`。
 - 清理旧的 `/var/backups/pas/pas-pg-*.dump.gz`。
 - 检查 `pas-prod-minio-data` 是否异常增长。
+- 检查容器日志是否异常增长；单容器日志通常在 `/var/lib/docker/containers/<id>/<id>-json.log`。
+- 默认容器日志轮转为 `PAS_LOG_MAX_SIZE=50m`、`PAS_LOG_MAX_FILE=5`。如果 50m × 5 仍不够，在 `infra/.env.prod` 调整 `PAS_LOG_MAX_SIZE` / `PAS_LOG_MAX_FILE` 后执行 `docker compose --env-file infra/.env.prod -f infra/docker-compose.prod.yml up -d` 重建容器生效；仅 `restart` 不会应用 logging 变更。
 - 不要删除 `pas-prod-postgres-data`、`pas-prod-redis-data`、`pas-prod-minio-data`，除非已确认要销毁生产数据。
 
 ## RAGFlow 不通

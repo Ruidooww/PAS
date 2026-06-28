@@ -33,4 +33,5 @@ curl http://localhost:3001/api/health
 - `docker compose ps` 当前 5 个容器为 `healthy`。
 - `/var/backups/pas` 有当天或升级前手动备份。
 - `infra/.env.prod` 没有未替换的 `<change_me>`、`<paste>`、`<vm-ip>`。
+- 如果本次升级伴随 HTTPS / 反代切换，确认 `APP_BASE_URL` 已经从 `http://...` 切到 `https://...`。
 - RAGFlow / FastGPT 容器和 shared network 未被重建或改名。
