@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 
-import { OpportunityListView } from "../../components/crm/opportunity-list-view";
+import { WorkshopView } from "../../components/workspace/workshop-view";
 
 export const metadata: Metadata = {
-  title: "商机列表 | PAS",
+  title: "商机阶段 | PAS",
 };
 
 export default function OpportunitiesPage() {
-  return <OpportunityListView />;
+  return <WorkshopView viewId="opportunities" />;
 }

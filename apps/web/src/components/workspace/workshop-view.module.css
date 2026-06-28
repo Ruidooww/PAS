@@ -1,0 +1,240 @@
+.view {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.mainPanel,
+.sidePanel,
+.qaPanel,
+.statePanel,
+.errorPanel {
+  min-height: 0;
+  border: 0.5px solid var(--hairline, rgba(15, 23, 42, 0.09));
+  border-radius: 8px;
+  background: var(--surface-solid, #ffffff);
+  box-shadow: var(--shadow, 0 10px 30px rgba(30, 58, 138, 0.07));
+}
+
+.mainPanel {
+  overflow-y: auto;
+  padding: 18px;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 22px;
+  border: 0.5px solid var(--hairline, rgba(15, 23, 42, 0.09));
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--surface-solid, #ffffff), var(--surface-muted, #f8fafc));
+}
+
+.hero h1 {
+  margin: 0 0 8px;
+  color: var(--text, #111827);
+  font-size: 26px;
+  letter-spacing: 0;
+}
+
+.hero p {
+  margin: 0;
+  color: var(--muted, #667085);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.heroMetric {
+  min-width: 112px;
+  text-align: right;
+}
+
+.heroMetric strong {
+  display: block;
+  color: var(--text, #111827);
+  font-size: 30px;
+  letter-spacing: 0;
+}
+
+.heroMetric span {
+  color: var(--green, #16a34a);
+  font-weight: 700;
+}
+
+.cardsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.card {
+  min-height: 96px;
+  display: grid;
+  align-content: center;
+  gap: 7px;
+  padding: 16px;
+  border: 0.5px solid var(--hairline, rgba(15, 23, 42, 0.09));
+  border-radius: 8px;
+  background: var(--surface-solid, #ffffff);
+  box-shadow: 0 8px 22px rgba(30, 58, 138, 0.05);
+}
+
+.card span {
+  color: var(--muted, #667085);
+  font-size: 12px;
+}
+
+.card strong {
+  color: var(--text, #111827);
+  font-size: 24px;
+  letter-spacing: 0;
+}
+
+.tableCard {
+  margin-top: 14px;
+  overflow: hidden;
+  border: 0.5px solid var(--hairline, rgba(15, 23, 42, 0.09));
+  border-radius: 8px;
+  background: var(--surface-solid, #ffffff);
+}
+
+.tableCard table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--text, #111827);
+  font-size: 12px;
+}
+
+.tableCard th,
+.tableCard td {
+  padding: 12px 14px;
+  border-bottom: 0.5px solid var(--hairline, rgba(15, 23, 42, 0.09));
+  text-align: left;
+  vertical-align: top;
+}
+
+.tableCard th {
+  color: var(--muted, #667085);
+  font-weight: 700;
+}
+
+.tableCard tr:last-child td {
+  border-bottom: 0;
+}
+
+.tableCard a {
+  color: var(--blue-strong, #2b4da8);
+  font-weight: 680;
+  text-decoration: none;
+}
+
+.tableCard a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.sidePanel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.sideHeader {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 0.5px solid var(--hairline, rgba(15, 23, 42, 0.09));
+}
+
+.sideHeader h2 {
+  margin: 0;
+  color: var(--text, #111827);
+  font-size: 15px;
+  font-weight: 760;
+  letter-spacing: 0;
+}
+
+.summaryList {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 14px;
+  overflow-y: auto;
+}
+
+.summaryList div {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--surface-muted, #f8fafc);
+}
+
+.summaryList strong {
+  color: var(--text, #111827);
+}
+
+.summaryList span {
+  color: var(--muted, #667085);
+  line-height: 1.55;
+}
+
+.qaPanel {
+  height: 560px;
+  margin-top: 14px;
+  overflow: hidden;
+}
+
+.qaPanel > main {
+  height: 100%;
+}
+
+.statePanel,
+.errorPanel {
+  padding: 18px;
+}
+
+.statePanel {
+  color: var(--muted, #667085);
+}
+
+.errorPanel {
+  color: #9f1239;
+  background: #fff1f2;
+}
+
+@media (max-width: 980px) {
+  .view {
+    height: auto;
+    min-height: 100%;
+    grid-template-columns: 1fr;
+    overflow: auto;
+  }
+
+  .mainPanel,
+  .sidePanel {
+    overflow: visible;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero,
+  .cardsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .heroMetric {
+    text-align: left;
+  }
+
+  .tableCard {
+    overflow-x: auto;
+  }
+}

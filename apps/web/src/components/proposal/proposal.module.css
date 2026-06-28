@@ -12,8 +12,8 @@
   justify-content: space-between;
   padding: 0 24px;
   color: #ffffff;
-  background: #153f49;
-  border-bottom: 3px solid #2c8c83;
+  background: var(--navy);
+  border-bottom: 3px solid var(--blue-strong);
 }
 
 .topbar a,
@@ -46,7 +46,7 @@
   display: grid;
   place-items: center;
   border-radius: 6px;
-  background: #2c8c83;
+  background: var(--blue-strong);
   font-weight: 700;
 }
 
@@ -142,9 +142,9 @@
 }
 
 .primary {
-  background: #2c8c83;
+  background: var(--blue);
   color: #ffffff;
-  border-color: #2c8c83;
+  border-color: var(--blue);
 }
 
 .primary:hover:not(:disabled) {
@@ -158,12 +158,12 @@
 
 .secondary {
   background: #ffffff;
-  color: #153f49;
+  color: var(--blue);
   border-color: #c7d3d7;
 }
 
 .secondary:hover:not(:disabled) {
-  border-color: #153f49;
+  border-color: var(--blue);
 }
 
 .errorBanner {
@@ -206,7 +206,7 @@
   background: #c7d3d7;
 }
 
-.dot[data-status="completed"] { background: #2c8c83; }
+.dot[data-status="completed"] { background: var(--blue-strong); }
 .dot[data-status="running"] { background: #f0a500; animation: pulse 1.2s infinite; }
 .dot[data-status="failed"] { background: #b54040; }
 
@@ -312,7 +312,7 @@
 .refList {
   margin: 12px 0 0;
   padding: 12px 16px;
-  border-left: 3px solid #2c8c83;
+  border-left: 3px solid var(--blue-strong);
   background: #f4f9f8;
   font-size: 13px;
   color: #34555c;
@@ -342,7 +342,7 @@
 }
 
 .exportRow a {
-  background: #153f49;
+  background: var(--navy);
   color: #ffffff;
   text-decoration: none;
   padding: 6px 12px;
@@ -393,8 +393,8 @@
   font-weight: 500;
   padding: 7px 14px;
   border-radius: 7px;
-  border: 0.5px solid #0a84ff;
-  background: #0a84ff;
+  border: 0.5px solid var(--blue);
+  background: var(--blue);
   color: #ffffff;
   text-decoration: none;
   display: inline-flex;
@@ -402,5 +402,5 @@
 }
 
 .shellLinkBtnPrimary:hover {
-  background: #006fe0;
+  background: var(--blue-strong);
 }
