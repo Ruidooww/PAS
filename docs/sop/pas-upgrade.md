@@ -9,7 +9,7 @@ cd /opt/pas
 git fetch --tags origin
 git checkout <new-release-tag-or-commit>
 docker compose --env-file infra/.env.prod -f infra/docker-compose.prod.yml build
-docker compose --env-file infra/.env.prod -f infra/docker-compose.prod.yml run --rm pas-api pnpm --filter api exec prisma migrate deploy
+docker compose --env-file infra/.env.prod -f infra/docker-compose.prod.yml --profile migrate run --rm pas-api-migrator pnpm --filter api exec prisma migrate deploy
 docker compose --env-file infra/.env.prod -f infra/docker-compose.prod.yml up -d pas-api pas-web
 docker compose --env-file infra/.env.prod -f infra/docker-compose.prod.yml ps
 curl http://localhost:3001/api/health

@@ -122,6 +122,19 @@ services:
       - pas-net
       - shared
 
+  pas-api-migrator:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+      target: migrator
+    image: pas-api-migrator:prod
+    env_file:
+      - .env.prod
+    profiles:
+      - migrate
+    networks:
+      - pas-net
+
   pas-web:
     build:
       context: ..

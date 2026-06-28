@@ -87,13 +87,13 @@ docker compose --env-file infra/.env.prod -f infra/docker-compose.prod.yml exec 
 先看状态：
 
 ```bash
-docker compose --env-file infra/.env.prod -f infra/docker-compose.prod.yml run --rm pas-api pnpm --filter api exec prisma migrate status
+docker compose --env-file infra/.env.prod -f infra/docker-compose.prod.yml --profile migrate run --rm pas-api-migrator pnpm --filter api exec prisma migrate status
 ```
 
 如果某个 migration 已人工确认落库但 Prisma 标记失败，按 Prisma 提示谨慎执行：
 
 ```bash
-docker compose --env-file infra/.env.prod -f infra/docker-compose.prod.yml run --rm pas-api pnpm --filter api exec prisma migrate resolve --applied <migration_name>
+docker compose --env-file infra/.env.prod -f infra/docker-compose.prod.yml --profile migrate run --rm pas-api-migrator pnpm --filter api exec prisma migrate resolve --applied <migration_name>
 ```
 
 不要在未确认数据库状态时随意 `resolve`。
