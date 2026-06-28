@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 
-import { ProposalListView } from "../../components/proposal/proposal-list-view";
+import { WorkshopView } from "../../components/workspace/workshop-view";
 
 export const metadata: Metadata = {
-  title: "方案列表 | PAS",
+  title: "方案文档 | PAS",
 };
 
 export default function ProposalsPage() {
-  return <ProposalListView />;
+  return <WorkshopView viewId="documents" />;
 }
