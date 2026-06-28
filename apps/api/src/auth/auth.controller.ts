@@ -95,6 +95,10 @@ export class AuthController {
   }
 
   private useSecureSessionCookie(): boolean {
+    const appBaseUrl = this.config.get<string>("APP_BASE_URL");
+    if (appBaseUrl) {
+      return new URL(appBaseUrl).protocol === "https:";
+    }
     return this.config.get<string>("NODE_ENV") === "production";
   }
 }

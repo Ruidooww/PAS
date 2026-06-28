@@ -1,0 +1,15 @@
+.git
+.gitignore
+.gitattributes
+.env
+.env.*
+**/node_modules
+**/.next
+**/dist
+**/coverage
+**/test
+**/*.test.ts
+**/*.spec.ts
+apps/e2e/test-results
+docs/screenshots
+ragflow-gate
