@@ -1,0 +1,1561 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PAS 方案工作室 Apple 风格原型</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f5f7;
+      --surface: #ffffff;
+      --surface-soft: #fafafa;
+      --surface-strong: #f0f3f6;
+      --text: #1d1d1f;
+      --muted: rgba(29, 29, 31, 0.6);
+      --quiet: rgba(29, 29, 31, 0.42);
+      --hairline: rgba(0, 0, 0, 0.08);
+      --hairline-strong: rgba(0, 0, 0, 0.13);
+      --blue: #0a84ff;
+      --blue-soft: #e8f2ff;
+      --green: #34c759;
+      --green-soft: #e8f7ed;
+      --amber: #ff9500;
+      --amber-soft: #fff3df;
+      --red: #ff3b30;
+      --shadow: 0 16px 34px rgba(32, 43, 54, 0.08);
+      --radius: 8px;
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      min-height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .app {
+      height: 100vh;
+      min-height: 720px;
+      display: grid;
+      grid-template-columns: 72px minmax(0, 1fr);
+      grid-template-rows: 54px minmax(0, 1fr) 74px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 10% 0%, rgba(10, 132, 255, 0.05), transparent 26%),
+        linear-gradient(180deg, #fbfbfd 0%, var(--bg) 54%, #eef1f5 100%);
+    }
+
+    .iconRail {
+      grid-column: 1;
+      grid-row: 1 / 4;
+      display: grid;
+      grid-template-rows: 54px minmax(0, 1fr) 70px;
+      background: rgba(255, 255, 255, 0.78);
+      border-right: 0.5px solid var(--hairline);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand {
+      display: grid;
+      place-items: center;
+      color: var(--blue);
+      font-size: 22px;
+      font-weight: 750;
+      letter-spacing: -0.03em;
+    }
+
+    .railNav,
+    .railUtility {
+      display: grid;
+      justify-items: center;
+      align-content: start;
+      gap: 8px;
+      padding: 10px 8px;
+    }
+
+    .railUtility {
+      align-content: end;
+    }
+
+    .railButton {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      position: relative;
+      border: 0;
+      border-radius: 9px;
+      background: transparent;
+      color: #425166;
+    }
+
+    .railButton svg {
+      width: 20px;
+      height: 20px;
+      stroke-width: 1.8;
+    }
+
+    .railButton:hover {
+      background: rgba(0, 0, 0, 0.045);
+      color: var(--text);
+    }
+
+    .railButton.active {
+      color: var(--blue);
+      background: var(--blue-soft);
+    }
+
+    .railButton.active::before {
+      content: "";
+      position: absolute;
+      left: -8px;
+      top: 8px;
+      width: 3px;
+      height: 26px;
+      border-radius: 999px;
+      background: var(--blue);
+    }
+
+    .topBar {
+      grid-column: 2;
+      grid-row: 1;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 18px;
+      padding: 0 24px 0 18px;
+      background: rgba(255, 255, 255, 0.86);
+      border-bottom: 0.5px solid var(--hairline);
+      backdrop-filter: blur(20px);
+    }
+
+    .projectPicker {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 300px;
+    }
+
+    .sectionTitle {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      white-space: nowrap;
+    }
+
+    .selectLike,
+    .searchBox,
+    .toolbarButton,
+    .segmented {
+      min-height: 34px;
+      border-radius: 8px;
+      border: 0.5px solid var(--hairline-strong);
+      background: rgba(255, 255, 255, 0.86);
+      color: var(--text);
+      box-shadow: 0 1px 1px rgba(0, 0, 0, 0.02);
+    }
+
+    .selectLike {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 12px;
+      font-weight: 500;
+    }
+
+    .searchBox {
+      width: min(440px, 100%);
+      justify-self: center;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 0 13px;
+      color: var(--quiet);
+      background: #f8f9fb;
+    }
+
+    .searchBox input {
+      min-width: 0;
+      width: 100%;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--text);
+    }
+
+    .topActions {
+      display: flex;
+      align-items: center;
+      justify-content: end;
+      gap: 8px;
+    }
+
+    .saveState {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 3px rgba(52, 199, 89, 0.12);
+    }
+
+    .toolbarButton {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 0 12px;
+      font-weight: 560;
+    }
+
+    .toolbarButton.primary {
+      border-color: var(--blue);
+      background: var(--blue);
+      color: white;
+    }
+
+    .avatar {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      overflow: hidden;
+      background: linear-gradient(160deg, #ffe0a3 0%, #f6a557 52%, #3c4654 53%, #3c4654 100%);
+    }
+
+    .avatar::after {
+      content: "";
+      width: 10px;
+      height: 10px;
+      margin-top: -8px;
+      border-radius: 50%;
+      background: #ffe5c4;
+      box-shadow: 0 13px 0 6px #ffe5c4;
+    }
+
+    .workspace {
+      grid-column: 2;
+      grid-row: 2;
+      min-height: 0;
+      padding: 10px;
+      overflow: hidden;
+    }
+
+    .view {
+      height: 100%;
+      min-height: 0;
+      display: none;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    .proposalLayout {
+      height: 100%;
+      display: grid;
+      grid-template-columns: 326px minmax(450px, 1fr) 396px;
+      gap: 10px;
+      min-height: 0;
+    }
+
+    .panel {
+      background: rgba(255, 255, 255, 0.9);
+      border: 0.5px solid var(--hairline);
+      border-radius: 8px;
+      box-shadow: 0 4px 14px rgba(32, 43, 54, 0.04);
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .panel.scroll {
+      overflow-y: auto;
+    }
+
+    .panelHeader {
+      min-height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 14px;
+      border-bottom: 0.5px solid var(--hairline);
+      background: rgba(255, 255, 255, 0.74);
+    }
+
+    .panelTitle {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .panelHint,
+    .muted {
+      color: var(--muted);
+    }
+
+    .leftStack {
+      display: grid;
+      gap: 14px;
+      padding: 12px;
+    }
+
+    .clientCard {
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+      border: 0.5px solid var(--hairline);
+      border-radius: 8px;
+      background: linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+    }
+
+    .clientName {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .clientIcon,
+    .miniIcon {
+      width: 28px;
+      height: 28px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 7px;
+      background: var(--blue-soft);
+      color: var(--blue);
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: var(--green-soft);
+      color: #0c7a2c;
+      font-size: 11px;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    .fieldGrid {
+      display: grid;
+      grid-template-columns: 82px 1fr;
+      gap: 8px 12px;
+      font-size: 12px;
+    }
+
+    .fieldGrid span:nth-child(odd) {
+      color: var(--muted);
+    }
+
+    .subsection {
+      display: grid;
+      gap: 10px;
+    }
+
+    .subsectionTitle {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .editLink {
+      border: 0;
+      color: var(--muted);
+      background: transparent;
+      font-size: 12px;
+    }
+
+    .stageLine {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      align-items: start;
+      gap: 0;
+      padding: 4px 2px;
+      position: relative;
+    }
+
+    .stageLine::before {
+      content: "";
+      position: absolute;
+      left: 20px;
+      right: 20px;
+      top: 16px;
+      height: 2px;
+      background: #d8dde5;
+    }
+
+    .stage {
+      display: grid;
+      justify-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 11px;
+      z-index: 1;
+    }
+
+    .stageNumber {
+      width: 22px;
+      height: 22px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 0.5px solid #cfd6df;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .stage.done .stageNumber,
+    .stage.current .stageNumber {
+      background: var(--green);
+      border-color: var(--green);
+      color: white;
+    }
+
+    .stage.current {
+      color: #0c7a2c;
+      font-weight: 700;
+    }
+
+    .infoRows {
+      display: grid;
+      grid-template-columns: 82px 1fr;
+      gap: 8px 12px;
+      padding-top: 8px;
+      border-top: 0.5px solid var(--hairline);
+      font-size: 12px;
+    }
+
+    .infoRows span:nth-child(odd) {
+      color: var(--muted);
+    }
+
+    .demandList,
+    .fileList,
+    .simpleList {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .demandList li {
+      display: grid;
+      grid-template-columns: 22px 1fr;
+      align-items: start;
+      gap: 8px;
+      font-size: 12px;
+    }
+
+    .num {
+      width: 18px;
+      height: 18px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: white;
+      background: var(--green);
+      font-size: 11px;
+      font-weight: 750;
+    }
+
+    .fileItem {
+      display: grid;
+      grid-template-columns: 24px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text);
+    }
+
+    .fileIcon {
+      width: 22px;
+      height: 22px;
+      display: grid;
+      place-items: center;
+      border-radius: 5px;
+      background: var(--amber-soft);
+      color: #a45a00;
+      font-weight: 750;
+    }
+
+    .fileIcon.green {
+      background: var(--green-soft);
+      color: #0c7a2c;
+    }
+
+    .editorPanel {
+      display: grid;
+      grid-template-rows: 40px 42px minmax(0, 1fr) 40px;
+      min-height: 0;
+    }
+
+    .editorToolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 14px;
+      border-bottom: 0.5px solid var(--hairline);
+      color: #334155;
+      background: #fbfcfd;
+      overflow-x: auto;
+    }
+
+    .toolIcon {
+      min-width: 26px;
+      height: 26px;
+      display: grid;
+      place-items: center;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: #4c596a;
+      font-weight: 650;
+    }
+
+    .toolIcon:hover {
+      background: rgba(0, 0, 0, 0.05);
+    }
+
+    .divider {
+      width: 1px;
+      height: 20px;
+      background: var(--hairline);
+    }
+
+    .document {
+      overflow-y: auto;
+      padding: 28px 30px 42px;
+      background: #ffffff;
+    }
+
+    .document h2 {
+      margin: 0 0 14px;
+      font-size: 21px;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+    }
+
+    .document h3 {
+      margin: 28px 0 12px;
+      font-size: 20px;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+    }
+
+    .document h4 {
+      margin: 22px 0 10px;
+      font-size: 16px;
+    }
+
+    .document p,
+    .document li {
+      color: #24272d;
+      font-size: 13px;
+      line-height: 1.9;
+    }
+
+    .document ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .citation {
+      display: inline-grid;
+      min-width: 20px;
+      height: 20px;
+      place-items: center;
+      margin-left: 4px;
+      border: 0.5px solid #9bcaff;
+      border-radius: 5px;
+      color: var(--blue);
+      background: var(--blue-soft);
+      font-size: 11px;
+      font-weight: 700;
+      vertical-align: 1px;
+    }
+
+    .editorStatus {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 0 16px;
+      border-top: 0.5px solid var(--hairline);
+      color: var(--muted);
+      background: #fbfcfd;
+      font-size: 12px;
+    }
+
+    .editorStatus .spacer {
+      flex: 1;
+    }
+
+    .rightPanel {
+      display: grid;
+      grid-template-rows: 1fr 1fr;
+      gap: 10px;
+      min-height: 0;
+    }
+
+    .assistantPanel,
+    .refsPanel {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+    }
+
+    .tabs {
+      min-height: 40px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border-bottom: 0.5px solid var(--hairline);
+    }
+
+    .tab {
+      display: grid;
+      place-items: center;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 650;
+    }
+
+    .tab.active {
+      color: var(--blue);
+      border-bottom-color: var(--blue);
+    }
+
+    .assistantBody,
+    .refsBody {
+      overflow-y: auto;
+      padding: 14px;
+    }
+
+    .generation {
+      display: grid;
+      gap: 8px;
+      padding-bottom: 14px;
+      border-bottom: 0.5px solid var(--hairline);
+    }
+
+    .generationTitle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--blue);
+      font-size: 15px;
+      font-weight: 750;
+    }
+
+    .progressRow {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .track {
+      height: 7px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e4e8ee;
+    }
+
+    .fill {
+      height: 100%;
+      border-radius: inherit;
+      background: var(--blue);
+    }
+
+    .chatThread {
+      display: grid;
+      gap: 12px;
+      padding-top: 14px;
+    }
+
+    .message {
+      padding: 13px 14px;
+      border: 0.5px solid var(--hairline);
+      border-radius: 8px;
+      background: #ffffff;
+      box-shadow: 0 8px 18px rgba(32, 43, 54, 0.045);
+    }
+
+    .message.user {
+      margin-left: 28px;
+      background: #fbfcff;
+    }
+
+    .messageMeta {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .messageMeta strong {
+      color: var(--blue);
+    }
+
+    .inputLike {
+      min-height: 54px;
+      display: grid;
+      grid-template-columns: 1fr 36px;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 8px 8px 12px;
+      border: 0.5px solid var(--hairline);
+      border-radius: 8px;
+      color: var(--quiet);
+      background: #ffffff;
+    }
+
+    .sendButton {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border: 0;
+      border-radius: 7px;
+      color: var(--blue);
+      background: var(--blue-soft);
+    }
+
+    .refHeader {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .refHeader h3 {
+      margin: 0;
+      font-size: 15px;
+    }
+
+    .referenceCards {
+      display: grid;
+      gap: 10px;
+    }
+
+    .refCard {
+      display: grid;
+      grid-template-columns: 28px 1fr auto;
+      gap: 10px;
+      padding: 12px;
+      border: 0.5px solid var(--hairline);
+      border-radius: 8px;
+      background: #ffffff;
+      box-shadow: 0 8px 18px rgba(32, 43, 54, 0.04);
+    }
+
+    .refNo {
+      width: 22px;
+      height: 22px;
+      display: grid;
+      place-items: center;
+      border-radius: 5px;
+      background: var(--blue-soft);
+      color: var(--blue);
+      font-weight: 750;
+      font-size: 12px;
+    }
+
+    .refNo.amber {
+      background: var(--amber-soft);
+      color: #b65d00;
+    }
+
+    .refTitle {
+      display: block;
+      margin-bottom: 3px;
+      font-weight: 700;
+    }
+
+    .refDesc,
+    .refMeta {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .score {
+      align-self: center;
+      padding-left: 12px;
+      border-left: 0.5px solid var(--hairline);
+      text-align: right;
+      color: var(--green);
+      font-size: 21px;
+      font-weight: 750;
+      letter-spacing: -0.03em;
+    }
+
+    .score span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .bottomFlow {
+      grid-column: 2;
+      grid-row: 3;
+      display: grid;
+      grid-template-columns: 132px minmax(520px, 1fr) 158px 154px 156px;
+      align-items: center;
+      gap: 20px;
+      padding: 0 24px;
+      background: rgba(255, 255, 255, 0.88);
+      border-top: 0.5px solid var(--hairline);
+      backdrop-filter: blur(20px);
+    }
+
+    .flowLabel {
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    .flowSteps {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      align-items: center;
+      gap: 8px;
+    }
+
+    .flowStep {
+      min-width: 0;
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 8px;
+      align-items: center;
+      color: var(--muted);
+      position: relative;
+    }
+
+    .flowStep:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      right: -11px;
+      top: 15px;
+      width: 12px;
+      height: 1px;
+      background: #c9d0da;
+    }
+
+    .flowNo {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border: 0.5px solid #cfd6df;
+      border-radius: 50%;
+      color: var(--text);
+      background: #ffffff;
+      font-weight: 750;
+    }
+
+    .flowStep.done .flowNo {
+      border-color: var(--green);
+      color: var(--green);
+      box-shadow: inset 0 0 0 1px var(--green);
+    }
+
+    .flowStep.current .flowNo {
+      border-color: var(--amber);
+      color: var(--amber);
+      box-shadow: inset 0 0 0 1px var(--amber);
+    }
+
+    .flowName {
+      color: var(--text);
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    .flowState {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .flowStep.current .flowName,
+    .flowStep.current .flowState {
+      color: var(--amber);
+    }
+
+    .statusBlock {
+      display: grid;
+      gap: 3px;
+      padding-left: 20px;
+      border-left: 0.5px solid var(--hairline);
+      white-space: nowrap;
+    }
+
+    .statusBlock strong {
+      font-size: 13px;
+    }
+
+    .statusBlock span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .genericView {
+      height: 100%;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 10px;
+      min-height: 0;
+    }
+
+    .genericMain {
+      overflow-y: auto;
+      padding: 18px;
+    }
+
+    .viewHero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: center;
+      padding: 22px;
+      border: 0.5px solid var(--hairline);
+      border-radius: 8px;
+      background: linear-gradient(180deg, #ffffff, #fbfcfe);
+      box-shadow: var(--shadow);
+    }
+
+    .viewHero h1 {
+      margin: 0 0 8px;
+      font-size: 26px;
+      letter-spacing: -0.035em;
+    }
+
+    .viewHero p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .heroMetric {
+      min-width: 120px;
+      text-align: right;
+    }
+
+    .heroMetric strong {
+      display: block;
+      font-size: 30px;
+      letter-spacing: -0.04em;
+    }
+
+    .heroMetric span {
+      color: var(--green);
+      font-weight: 650;
+    }
+
+    .cardsGrid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .card {
+      padding: 16px;
+      border: 0.5px solid var(--hairline);
+      border-radius: 8px;
+      background: #ffffff;
+      box-shadow: 0 8px 22px rgba(32, 43, 54, 0.045);
+    }
+
+    .cardLabel {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .cardValue {
+      margin-top: 5px;
+      font-size: 24px;
+      font-weight: 740;
+      letter-spacing: -0.03em;
+    }
+
+    .tableCard {
+      margin-top: 14px;
+      overflow: hidden;
+      border: 0.5px solid var(--hairline);
+      border-radius: 8px;
+      background: #ffffff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    th,
+    td {
+      padding: 11px 13px;
+      border-bottom: 0.5px solid var(--hairline);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      background: #fafafa;
+      font-weight: 600;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--blue-soft);
+      color: var(--blue);
+      font-size: 11px;
+      font-weight: 650;
+    }
+
+    .pill.green {
+      background: var(--green-soft);
+      color: #0c7a2c;
+    }
+
+    .pill.amber {
+      background: var(--amber-soft);
+      color: #a45a00;
+    }
+
+    .sideSummary {
+      padding: 14px;
+      overflow-y: auto;
+    }
+
+    .summaryList {
+      display: grid;
+      gap: 10px;
+    }
+
+    .summaryItem {
+      padding: 13px;
+      border: 0.5px solid var(--hairline);
+      border-radius: 8px;
+      background: #ffffff;
+    }
+
+    .summaryItem strong {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .summaryItem span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    @media (max-width: 1180px) {
+      .app {
+        min-height: 900px;
+        grid-template-columns: 62px 1fr;
+      }
+
+      .proposalLayout,
+      .genericView {
+        grid-template-columns: 1fr;
+        overflow-y: auto;
+      }
+
+      .proposalLayout {
+        height: auto;
+      }
+
+      .rightPanel {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto;
+      }
+
+      .bottomFlow {
+        grid-template-columns: 1fr;
+        align-content: center;
+        gap: 8px;
+        min-height: 150px;
+      }
+
+      .flowSteps {
+        grid-template-columns: repeat(5, minmax(120px, 1fr));
+        overflow-x: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="iconRail" aria-label="主导航">
+      <div class="brand">PAS</div>
+      <nav class="railNav">
+        <button class="railButton" type="button" data-view="home" aria-label="总览" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.8V21h14V9.8"/><path d="M9 21v-6h6v6"/></svg>
+        </button>
+        <button class="railButton active" type="button" data-view="proposal" aria-label="方案工作室" aria-selected="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 3h8l4 4v14H7z"/><path d="M15 3v5h5"/><path d="M10 13h6"/><path d="M10 17h5"/></svg>
+        </button>
+        <button class="railButton" type="button" data-view="customers" aria-label="客户画像" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.8"/><path d="M16 3.2a4 4 0 0 1 0 7.6"/></svg>
+        </button>
+        <button class="railButton" type="button" data-view="opportunities" aria-label="商机阶段" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </button>
+        <button class="railButton" type="button" data-view="documents" aria-label="方案文档" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h6"/></svg>
+        </button>
+        <button class="railButton" type="button" data-view="knowledge" aria-label="知识库" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z"/></svg>
+        </button>
+        <button class="railButton" type="button" data-view="qa" aria-label="AI 助手" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a4 4 0 0 1-4 4H7l-4 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg>
+        </button>
+        <button class="railButton" type="button" data-view="analytics" aria-label="数据分析" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg>
+        </button>
+        <button class="railButton" type="button" data-view="tasks" aria-label="任务检查" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </button>
+      </nav>
+      <div class="railUtility">
+        <button class="railButton" type="button" data-view="settings" aria-label="设置" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.6-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.7 1.7 0 0 0 19.4 9c.2.6.8 1 1.6 1h.1a2 2 0 1 1 0 4H21c-.8 0-1.4.4-1.6 1z"/></svg>
+        </button>
+      </div>
+    </aside>
+
+    <header class="topBar">
+      <div class="projectPicker">
+        <div class="sectionTitle" id="currentTitle">方案工作室</div>
+        <button class="selectLike" type="button">智能制造平台项目 <span>⌄</span></button>
+      </div>
+      <label class="searchBox">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="search" placeholder="搜索 (⌘K)" aria-label="全局搜索">
+      </label>
+      <div class="topActions">
+        <span class="saveState"><span class="dot"></span>已保存 10:24</span>
+        <button class="toolbarButton" type="button">分享</button>
+        <button class="toolbarButton" type="button">导出</button>
+        <button class="toolbarButton" type="button">版本 v1.2 ⌄</button>
+        <button class="toolIcon" type="button" aria-label="通知">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        </button>
+        <div class="avatar" aria-hidden="true"></div>
+        <span>张伟 ⌄</span>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="view" id="view-home" aria-label="总览">
+        <div class="genericView">
+          <div class="panel genericMain">
+            <div class="viewHero">
+              <div>
+                <h1>售前总览</h1>
+                <p>集中查看客户、商机、方案生成队列与知识库状态，保持每天的推进优先级清晰。</p>
+              </div>
+              <div class="heroMetric"><strong>27</strong><span>新增商机</span></div>
+            </div>
+            <div class="cardsGrid">
+              <div class="card"><div class="cardLabel">方案进行中</div><div class="cardValue">12</div><span class="pill green">生成稳定</span></div>
+              <div class="card"><div class="cardLabel">RAG 命中率</div><div class="cardValue">92%</div><span class="pill">较上周 +6%</span></div>
+              <div class="card"><div class="cardLabel">本周截止</div><div class="cardValue">8</div><span class="pill amber">需关注</span></div>
+            </div>
+            <div class="tableCard">
+              <table>
+                <thead><tr><th>重点事项</th><th>关联对象</th><th>状态</th><th>负责人</th></tr></thead>
+                <tbody>
+                  <tr><td>补全智能制造平台项目总体方案</td><td>海天精工</td><td><span class="pill amber">方案设计</span></td><td>张伟</td></tr>
+                  <tr><td>同步数字化车间知识库资料</td><td>知识库</td><td><span class="pill green">已同步</span></td><td>系统</td></tr>
+                  <tr><td>确认商务方案边界</td><td>华东制造集团</td><td><span class="pill">待评审</span></td><td>李娜</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <aside class="panel sideSummary">
+            <div class="summaryList">
+              <div class="summaryItem"><strong>今日建议</strong><span>优先处理 2 个已进入方案设计阶段的商机。</span></div>
+              <div class="summaryItem"><strong>系统状态</strong><span>资料同步正常，RAGFlow 引用响应稳定。</span></div>
+              <div class="summaryItem"><strong>最近更新</strong><span>张伟 10:24 更新智能制造平台项目方案。</span></div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="view active" id="view-proposal" aria-label="方案工作室">
+        <div class="proposalLayout">
+          <aside class="panel scroll">
+            <div class="leftStack">
+              <div class="subsection">
+                <div class="subsectionTitle">客户画像 <button class="editLink" type="button">编辑 ↗</button></div>
+                <div class="clientCard">
+                  <div class="clientName">
+                    <span><span class="clientIcon">▦</span> 海天精工股份有限公司</span>
+                    <span class="tag">战略客户</span>
+                  </div>
+                  <div class="fieldGrid">
+                    <span>行业</span><strong>高端装备制造</strong>
+                    <span>规模</span><strong>员工 5,800+</strong>
+                    <span>地域</span><strong>华东地区</strong>
+                    <span>数字化阶段</span><strong>数字化深化期</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div class="subsection">
+                <div class="subsectionTitle">商机阶段 <button class="editLink" type="button">编辑 ↗</button></div>
+                <div class="stageLine">
+                  <div class="stage done"><span class="stageNumber">1</span><span>发现需求</span></div>
+                  <div class="stage current"><span class="stageNumber">2</span><span>方案设计</span></div>
+                  <div class="stage"><span class="stageNumber">3</span><span>商务谈判</span></div>
+                  <div class="stage"><span class="stageNumber">4</span><span>签约</span></div>
+                </div>
+                <div class="infoRows">
+                  <span>阶段说明</span><strong>已完成需求调研，确认方案范围与关键目标</strong>
+                  <span>预计成交</span><strong>2025-06-30</strong>
+                  <span>商机金额</span><strong>¥ 18,600,000</strong>
+                  <span>负责人</span><strong>张伟</strong>
+                </div>
+              </div>
+
+              <div class="subsection">
+                <div class="subsectionTitle">关键需求 <button class="editLink" type="button">编辑 ↗</button></div>
+                <ol class="demandList">
+                  <li><span class="num">1</span><span>打通生产、质量、设备数据，消除数据孤岛</span></li>
+                  <li><span class="num">2</span><span>建立统一的制造运营平台，提升透明度</span></li>
+                  <li><span class="num">3</span><span>通过数据分析优化生产效率，降低不良率</span></li>
+                  <li><span class="num">4</span><span>支持多工厂协同与集团化管控</span></li>
+                  <li><span class="num">5</span><span>保障系统安全稳定，满足合规要求</span></li>
+                </ol>
+              </div>
+
+              <div class="subsection">
+                <div class="subsectionTitle">相关资料 <button class="editLink" type="button">→</button></div>
+                <ul class="fileList">
+                  <li class="fileItem"><span class="fileIcon">▤</span><strong>需求调研纪要 v1.1</strong><span class="muted">2025-05-10</span></li>
+                  <li class="fileItem"><span class="fileIcon">▤</span><strong>技术交流记录 v1.0</strong><span class="muted">2025-05-08</span></li>
+                  <li class="fileItem"><span class="fileIcon green">▣</span><strong>客户组织架构.png</strong><span class="muted">2025-05-07</span></li>
+                </ul>
+              </div>
+            </div>
+          </aside>
+
+          <section class="panel editorPanel">
+            <div class="panelHeader">
+              <h2 class="panelTitle">方案正文</h2>
+              <span class="saveState"><span class="dot"></span>自动保存中… <span>字数：5,842</span></span>
+            </div>
+            <div class="editorToolbar" aria-label="编辑器工具栏">
+              <button class="toolIcon" type="button">↶</button>
+              <button class="toolIcon" type="button">↷</button>
+              <span class="divider"></span>
+              <button class="selectLike" type="button">正文 ⌄</button>
+              <span class="divider"></span>
+              <button class="toolIcon" type="button">B</button>
+              <button class="toolIcon" type="button"><em>I</em></button>
+              <button class="toolIcon" type="button"><u>U</u></button>
+              <span class="divider"></span>
+              <button class="toolIcon" type="button">☰</button>
+              <button class="toolIcon" type="button">≡</button>
+              <button class="toolIcon" type="button">▦</button>
+              <button class="toolIcon" type="button">⌁</button>
+              <button class="toolIcon" type="button">◉</button>
+            </div>
+            <article class="document">
+              <h2>1. 项目背景</h2>
+              <p>海天精工作为高端装备制造领域的领先企业，面临生产数据分散、运营透明度不足、跨工厂协同效率低等挑战。为实现数字化转型升级，提升整体运营效率与管理水平，建设统一的智能制造平台势在必行。<span class="citation">1</span></p>
+
+              <h3>2. 建设目标</h3>
+              <ul>
+                <li>打通生产、质量、设备等关键数据，消除数据孤岛；</li>
+                <li>建立统一的制造运营平台，实现多工厂协同与可视化管理；</li>
+                <li>通过数据分析与智能应用，优化生产效率，降低不良率；</li>
+                <li>构建安全稳定、可扩展的平台架构，满足合规与未来发展需求。<span class="citation">2</span><span class="citation">3</span></li>
+              </ul>
+
+              <h3>3. 总体方案</h3>
+              <p>本方案基于“平台 + 数据 + 应用”的整体架构，分三层建设：</p>
+              <ul>
+                <li><strong>数据层：</strong>统一数据采集与治理，构建企业级数据中台；</li>
+                <li><strong>平台层：</strong>建设制造运营平台，提供统一的业务与数据服务；</li>
+                <li><strong>应用层：</strong>覆盖生产管理、质量管理、设备管理、能源管理等核心应用场景。<span class="citation">4</span></li>
+              </ul>
+
+              <h3>4. 关键功能</h3>
+              <h4>4.1 生产管理</h4>
+              <p>实现生产计划、排产、执行、报工的全流程管理，支持可视化监控与异常预警，提升生产执行效率。<span class="citation">5</span></p>
+              <h4>4.2 质量管理</h4>
+              <p>建立质量全流程追溯体系，支持检验管理、不良分析与改进闭环，降低质量风险。<span class="citation">6</span></p>
+            </article>
+            <footer class="editorStatus">
+              <span>H2</span><span>›</span><span>第 1/3 章</span><span>›</span><span>字数 5,842</span>
+              <span class="spacer"></span><button class="toolIcon" type="button">−</button><span>100%</span><button class="toolIcon" type="button">＋</button><button class="toolIcon" type="button">⛶</button>
+            </footer>
+          </section>
+
+          <aside class="rightPanel">
+            <section class="panel assistantPanel">
+              <div class="tabs">
+                <button class="tab active" type="button">AI 助手</button>
+                <button class="tab" type="button">RAG 引用</button>
+              </div>
+              <div class="assistantBody">
+                <div class="generation">
+                  <div class="generationTitle">◌ 生成中</div>
+                  <div class="muted">正在基于项目资料与知识库生成“总体方案”章节内容…</div>
+                  <div class="progressRow"><div class="track"><div class="fill" style="width: 76%"></div></div><strong>76%</strong></div>
+                </div>
+                <div class="chatThread">
+                  <div class="message user">
+                    <div class="messageMeta"><strong>我</strong><span>10:21</span></div>
+                    <div>请补充一下本项目的总体架构和技术路线。</div>
+                  </div>
+                  <div class="message">
+                    <div class="messageMeta"><strong>AI 助手</strong><span>10:21</span></div>
+                    <div>好的，已为你补充总体架构与技术路线，主要从三层架构和关键技术选型进行说明。</div>
+                  </div>
+                  <div class="inputLike"><span>询问方案或知识库内容…</span><button class="sendButton" type="button">↗</button></div>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel refsPanel">
+              <div class="assistantBody">
+                <div class="refHeader">
+                  <h3>引用来源（6）</h3>
+                  <button class="toolbarButton" type="button">全部 ⌄</button>
+                </div>
+                <div class="referenceCards">
+                  <article class="refCard">
+                    <span class="refNo">1</span>
+                    <div><strong class="refTitle">智能制造平台建设白皮书</strong><div class="refDesc">平台建设背景与目标、总体架构设计方法…</div><div class="refMeta">版本 v2.1 ｜ 2024-11-15</div></div>
+                    <div class="score"><span>相似度</span>92%</div>
+                  </article>
+                  <article class="refCard">
+                    <span class="refNo">2</span>
+                    <div><strong class="refTitle">制造运营平台解决方案</strong><div class="refDesc">平台分层架构、核心功能模块说明…</div><div class="refMeta">版本 v3.0 ｜ 2024-09-20</div></div>
+                    <div class="score"><span>相似度</span>88%</div>
+                  </article>
+                  <article class="refCard">
+                    <span class="refNo amber">3</span>
+                    <div><strong class="refTitle">某装备集团智能制造案例</strong><div class="refDesc">多工厂协同、数据中台建设实践…</div><div class="refMeta">版本 v1.3 ｜ 2024-08-05</div></div>
+                    <div class="score"><span>相似度</span>85%</div>
+                  </article>
+                </div>
+              </div>
+            </section>
+          </aside>
+        </div>
+      </section>
+
+      <section class="view" id="view-customers" aria-label="客户画像">
+        <div class="genericView">
+          <div class="panel genericMain">
+            <div class="viewHero"><div><h1>客户画像</h1><p>查看客户组织、行业、数字化阶段、关键联系人和历史方案记录。</p></div><div class="heroMetric"><strong>238</strong><span>客户总数</span></div></div>
+            <div class="cardsGrid">
+              <div class="card"><div class="cardLabel">战略客户</div><div class="cardValue">42</div></div>
+              <div class="card"><div class="cardLabel">本月新增</div><div class="cardValue">16</div></div>
+              <div class="card"><div class="cardLabel">待补全画像</div><div class="cardValue">9</div></div>
+            </div>
+            <div class="tableCard"><table><thead><tr><th>客户</th><th>行业</th><th>阶段</th><th>负责人</th></tr></thead><tbody><tr><td>海天精工股份有限公司</td><td>高端装备制造</td><td><span class="pill green">方案设计</span></td><td>张伟</td></tr><tr><td>华东制造集团</td><td>汽车零部件</td><td><span class="pill">需求确认</span></td><td>李娜</td></tr><tr><td>信创基础设施集团</td><td>公共事业</td><td><span class="pill amber">商务谈判</span></td><td>王磊</td></tr></tbody></table></div>
+          </div>
+          <aside class="panel sideSummary"><div class="summaryList"><div class="summaryItem"><strong>客户摘要</strong><span>海天精工处于数字化深化期，核心诉求集中在生产透明度和多工厂协同。</span></div><div class="summaryItem"><strong>推荐动作</strong><span>补充组织架构和现有系统清单，提高方案引用质量。</span></div></div></aside>
+        </div>
+      </section>
+
+      <section class="view" id="view-opportunities" aria-label="商机阶段">
+        <div class="genericView">
+          <div class="panel genericMain">
+            <div class="viewHero"><div><h1>商机阶段</h1><p>跟踪从发现需求到方案设计、商务谈判和签约的全过程。</p></div><div class="heroMetric"><strong>56</strong><span>商机总数</span></div></div>
+            <div class="cardsGrid"><div class="card"><div class="cardLabel">方案设计</div><div class="cardValue">21</div></div><div class="card"><div class="cardLabel">商务谈判</div><div class="cardValue">17</div></div><div class="card"><div class="cardLabel">预计赢单</div><div class="cardValue">28%</div></div></div>
+            <div class="tableCard"><table><thead><tr><th>商机</th><th>客户</th><th>金额</th><th>预计关闭</th><th>状态</th></tr></thead><tbody><tr><td>智能制造平台项目</td><td>海天精工</td><td>¥18,600,000</td><td>2025-06-30</td><td><span class="pill green">健康</span></td></tr><tr><td>网络安全整体解决方案</td><td>某能源集团</td><td>¥12,800,000</td><td>2025-06-05</td><td><span class="pill amber">关注</span></td></tr><tr><td>数据中台建设项目</td><td>某股份制银行</td><td>¥9,450,000</td><td>2025-06-10</td><td><span class="pill green">良好</span></td></tr></tbody></table></div>
+          </div>
+          <aside class="panel sideSummary"><div class="summaryList"><div class="summaryItem"><strong>阶段提醒</strong><span>智能制造平台项目已经进入方案设计，应优先完成总体方案与关键功能章节。</span></div><div class="summaryItem"><strong>风险点</strong><span>网络安全项目缺少客户预算确认，可能影响关闭日期。</span></div></div></aside>
+        </div>
+      </section>
+
+      <section class="view" id="view-documents" aria-label="方案文档">
+        <div class="genericView">
+          <div class="panel genericMain">
+            <div class="viewHero"><div><h1>方案文档</h1><p>管理方案正文、版本、导出记录和审核意见。</p></div><div class="heroMetric"><strong>12</strong><span>进行中</span></div></div>
+            <div class="tableCard"><table><thead><tr><th>文档</th><th>客户</th><th>版本</th><th>状态</th><th>更新时间</th></tr></thead><tbody><tr><td>智能制造平台项目解决方案</td><td>海天精工</td><td>v1.2</td><td><span class="pill amber">生成中</span></td><td>10:24</td></tr><tr><td>制造运营平台技术方案</td><td>华东制造集团</td><td>v2.0</td><td><span class="pill green">已定稿</span></td><td>昨天</td></tr><tr><td>数据治理规划书</td><td>某股份制银行</td><td>v0.9</td><td><span class="pill">草稿</span></td><td>周二</td></tr></tbody></table></div>
+          </div>
+          <aside class="panel sideSummary"><div class="summaryList"><div class="summaryItem"><strong>版本 v1.2</strong><span>新增总体方案与技术路线，引用 6 条知识库来源。</span></div><div class="summaryItem"><strong>导出</strong><span>支持 Word、PDF、PPT 摘要版导出。</span></div></div></aside>
+        </div>
+      </section>
+
+      <section class="view" id="view-knowledge" aria-label="知识库">
+        <div class="genericView">
+          <div class="panel genericMain">
+            <div class="viewHero"><div><h1>知识库</h1><p>沉淀产品白皮书、解决方案、案例和客户问答，用于 RAG 引用。</p></div><div class="heroMetric"><strong>18,732</strong><span>知识片段</span></div></div>
+            <div class="tableCard"><table><thead><tr><th>资料</th><th>类型</th><th>版本</th><th>命中率</th><th>同步</th></tr></thead><tbody><tr><td>智能制造平台建设白皮书</td><td>产品文档</td><td>v2.1</td><td>92%</td><td><span class="pill green">正常</span></td></tr><tr><td>制造运营平台解决方案</td><td>解决方案</td><td>v3.0</td><td>88%</td><td><span class="pill green">正常</span></td></tr><tr><td>某装备集团智能制造案例</td><td>客户案例</td><td>v1.3</td><td>85%</td><td><span class="pill green">正常</span></td></tr></tbody></table></div>
+          </div>
+          <aside class="panel sideSummary"><div class="summaryList"><div class="summaryItem"><strong>资料同步</strong><span>已同步，最近同步时间 10:24。</span></div><div class="summaryItem"><strong>建议补充</strong><span>新增工业协议接入和设备数据治理相关案例。</span></div></div></aside>
+        </div>
+      </section>
+
+      <section class="view" id="view-qa" aria-label="AI 助手">
+        <div class="genericView">
+          <div class="panel genericMain">
+            <div class="viewHero"><div><h1>AI 助手</h1><p>围绕方案、客户、商机和知识库进行问答，回答附带引用来源。</p></div><div class="heroMetric"><strong>82%</strong><span>引用命中</span></div></div>
+            <div class="chatThread">
+              <div class="message user"><div class="messageMeta"><strong>我</strong><span>10:21</span></div><div>请补充一下本项目的总体架构和技术路线。</div></div>
+              <div class="message"><div class="messageMeta"><strong>AI 助手</strong><span>10:21</span></div><div>建议采用“数据层、平台层、应用层”的三层架构，并结合生产管理、质量管理、设备管理和能源管理逐步落地。</div></div>
+              <div class="inputLike"><span>继续追问知识库内容…</span><button class="sendButton" type="button">↗</button></div>
+            </div>
+          </div>
+          <aside class="panel sideSummary"><div class="summaryList"><div class="summaryItem"><strong>最近引用</strong><span>智能制造平台建设白皮书、制造运营平台解决方案。</span></div><div class="summaryItem"><strong>反馈</strong><span>本会话回答已收到 2 条有效引用反馈。</span></div></div></aside>
+        </div>
+      </section>
+
+      <section class="view" id="view-analytics" aria-label="数据分析">
+        <div class="genericView">
+          <div class="panel genericMain">
+            <div class="viewHero"><div><h1>数据分析</h1><p>观察商机健康度、方案产出效率、引用质量和团队工作负荷。</p></div><div class="heroMetric"><strong>5.8k</strong><span>方案字数</span></div></div>
+            <div class="cardsGrid"><div class="card"><div class="cardLabel">平均生成耗时</div><div class="cardValue">2.4m</div></div><div class="card"><div class="cardLabel">引用覆盖率</div><div class="cardValue">87%</div></div><div class="card"><div class="cardLabel">审核返工率</div><div class="cardValue">13%</div></div></div>
+            <div class="tableCard"><table><thead><tr><th>指标</th><th>当前值</th><th>趋势</th><th>说明</th></tr></thead><tbody><tr><td>方案生成完成率</td><td>76%</td><td><span class="pill green">上升</span></td><td>较上周 +8%</td></tr><tr><td>RAG 引用采纳率</td><td>82%</td><td><span class="pill green">稳定</span></td><td>高相关资料占比提升</td></tr><tr><td>人工编辑占比</td><td>31%</td><td><span class="pill amber">关注</span></td><td>关键章节仍需人工补充</td></tr></tbody></table></div>
+          </div>
+          <aside class="panel sideSummary"><div class="summaryList"><div class="summaryItem"><strong>分析结论</strong><span>当前瓶颈在方案评审阶段，建议提前补齐商务边界和实施计划。</span></div></div></aside>
+        </div>
+      </section>
+
+      <section class="view" id="view-tasks" aria-label="任务检查">
+        <div class="genericView">
+          <div class="panel genericMain">
+            <div class="viewHero"><div><h1>任务检查</h1><p>把方案生成拆成需求分析、方案设计、评审、商务方案和定稿输出五个步骤。</p></div><div class="heroMetric"><strong>2/5</strong><span>当前步骤</span></div></div>
+            <div class="tableCard"><table><thead><tr><th>任务</th><th>阶段</th><th>状态</th><th>负责人</th></tr></thead><tbody><tr><td>整理客户关键需求</td><td>需求分析</td><td><span class="pill green">已完成</span></td><td>张伟</td></tr><tr><td>生成总体方案章节</td><td>方案设计</td><td><span class="pill amber">进行中</span></td><td>AI 助手</td></tr><tr><td>补充实施计划</td><td>方案设计</td><td><span class="pill">待开始</span></td><td>张伟</td></tr><tr><td>提交方案评审</td><td>方案评审</td><td><span class="pill">待开始</span></td><td>李娜</td></tr></tbody></table></div>
+          </div>
+          <aside class="panel sideSummary"><div class="summaryList"><div class="summaryItem"><strong>下一步</strong><span>完成总体方案章节后进入方案评审准备。</span></div><div class="summaryItem"><strong>阻塞项</strong><span>暂无强阻塞，商务方案需等待价格策略确认。</span></div></div></aside>
+        </div>
+      </section>
+
+      <section class="view" id="view-settings" aria-label="设置">
+        <div class="genericView">
+          <div class="panel genericMain">
+            <div class="viewHero"><div><h1>设置</h1><p>配置个人偏好、导出格式、知识库连接和通知策略。</p></div><div class="heroMetric"><strong>在线</strong><span>系统状态</span></div></div>
+            <div class="cardsGrid"><div class="card"><div class="cardLabel">默认语言</div><div class="cardValue">中文</div></div><div class="card"><div class="cardLabel">导出模板</div><div class="cardValue">标准版</div></div><div class="card"><div class="cardLabel">知识库</div><div class="cardValue">正常</div></div></div>
+            <div class="tableCard"><table><thead><tr><th>配置项</th><th>当前值</th><th>状态</th></tr></thead><tbody><tr><td>RAGFlow 连接</td><td>localhost:19380</td><td><span class="pill green">正常</span></td></tr><tr><td>自动保存</td><td>开启</td><td><span class="pill green">正常</span></td></tr><tr><td>通知</td><td>方案生成完成提醒</td><td><span class="pill">已启用</span></td></tr></tbody></table></div>
+          </div>
+          <aside class="panel sideSummary"><div class="summaryList"><div class="summaryItem"><strong>账户</strong><span>张伟，解决方案部。</span></div><div class="summaryItem"><strong>权限</strong><span>可查看客户、商机、方案与知识库引用。</span></div></div></aside>
+        </div>
+      </section>
+    </main>
+
+    <footer class="bottomFlow">
+      <div class="flowLabel">方案编写进度</div>
+      <div class="flowSteps">
+        <div class="flowStep done"><span class="flowNo">1</span><div><div class="flowName">需求分析</div><div class="flowState">已完成</div></div></div>
+        <div class="flowStep current"><span class="flowNo">2</span><div><div class="flowName">方案设计</div><div class="flowState">进行中</div></div></div>
+        <div class="flowStep"><span class="flowNo">3</span><div><div class="flowName">方案评审</div><div class="flowState">待开始</div></div></div>
+        <div class="flowStep"><span class="flowNo">4</span><div><div class="flowName">商务方案</div><div class="flowState">待开始</div></div></div>
+        <div class="flowStep"><span class="flowNo">5</span><div><div class="flowName">定稿输出</div><div class="flowState">待开始</div></div></div>
+      </div>
+      <div class="statusBlock"><strong>资料同步</strong><span><span class="dot"></span> 已同步</span></div>
+      <div class="statusBlock"><strong>最近更新</strong><span>张伟　10:24</span></div>
+      <button class="toolbarButton" type="button">查看变更记录</button>
+    </footer>
+  </div>
+
+  <script>
+    const titles = {
+      home: "售前总览",
+      proposal: "方案工作室",
+      customers: "客户画像",
+      opportunities: "商机阶段",
+      documents: "方案文档",
+      knowledge: "知识库",
+      qa: "AI 助手",
+      analytics: "数据分析",
+      tasks: "任务检查",
+      settings: "设置"
+    };
+
+    const navButtons = document.querySelectorAll("[data-view]");
+    const views = document.querySelectorAll(".view");
+    const currentTitle = document.getElementById("currentTitle");
+
+    function activateView(viewName) {
+      navButtons.forEach((button) => {
+        const isActive = button.dataset.view === viewName;
+        if (isActive) {
+          button.classList.add("active");
+        } else {
+          button.classList.remove("active");
+        }
+        button.setAttribute("aria-selected", String(isActive));
+      });
+      views.forEach((view) => {
+        if (view.id === `view-${viewName}`) {
+          view.classList.add("active");
+        } else {
+          view.classList.remove("active");
+        }
+      });
+      currentTitle.textContent = titles[viewName] ?? "方案工作室";
+    }
+
+    navButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        activateView(button.dataset.view);
+      });
+    });
+  </script>
+</body>
+</html>
