@@ -1,0 +1,9 @@
+{
+  "name": "pas-mock-ragflow",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "fastify": "^5.4.0"
+  }
+}

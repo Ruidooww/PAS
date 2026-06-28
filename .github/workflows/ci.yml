@@ -38,3 +38,50 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+  integration-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build API runner image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          target: runner
+          load: true
+          tags: pas-api:ci
+          cache-from: type=gha,scope=pas-api-runner
+          cache-to: type=gha,mode=max,scope=pas-api-runner
+
+      - name: Run integration smoke
+        run: pnpm smoke
+        env:
+          PAS_SMOKE_API_NO_BUILD: "1"
+
+      - name: Upload smoke diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-smoke-diagnostics
+          path: apps/api/test-results/smoke/**
+          if-no-files-found: ignore

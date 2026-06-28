@@ -19,6 +19,7 @@ dist/
 .next/
 coverage/
 apps/e2e/test-results/
+apps/api/test-results/
 *.tsbuildinfo
 
 # Source material binaries (kept local for now)
