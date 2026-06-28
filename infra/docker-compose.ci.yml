@@ -1,0 +1,89 @@
+name: pas-ci
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: pas
+      POSTGRES_USER: pas
+      POSTGRES_PASSWORD: pas
+    ports:
+      - "127.0.0.1:15444:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "127.0.0.1:16379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
+  mock-ragflow:
+    build:
+      context: ./mock-ragflow
+    image: pas-mock-ragflow:ci
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://localhost:9380/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
+  pas-api:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+      target: runner
+    image: pas-api:ci
+    environment:
+      APP_BASE_URL: http://127.0.0.1:13001
+      CRM_API_KEY: smoke-crm-key
+      CRM_BASE_URL: https://crm.example.com/api
+      CRM_PROVIDER: mock
+      DATABASE_URL: postgresql://pas:pas@postgres:5432/pas
+      FEISHU_APP_ID: cli_smoke
+      FEISHU_APP_SECRET: smoke-feishu-secret
+      FEISHU_REDIRECT_URI: http://127.0.0.1:13001/auth/callback?provider=feishu
+      IDP_MODE: mock
+      JWT_SECRET: smoke-secret-at-least-32-characters
+      LLM_API_KEY: smoke-llm-key
+      LLM_BASE_URL: https://llm.example.com/v1
+      LLM_CLIENT_MODE: mock
+      LLM_MODEL: smoke-model
+      MINIO_ACCESS_KEY: pas
+      MINIO_BUCKET: pas-smoke
+      MINIO_ENDPOINT: http://minio.invalid:9000
+      MINIO_SECRET_KEY: smoke-minio-secret
+      NODE_ENV: development
+      PAS_KB_ID: e0-mock-kb
+      PORT: "3001"
+      RAGFLOW_API_KEY: smoke-ragflow-key
+      RAGFLOW_BASE_URL: http://mock-ragflow:9380
+      RAGFLOW_CLIENT_MODE: real
+      REDIS_URL: redis://redis:6379
+      WECOM_AGENT_ID: "1000002"
+      WECOM_APP_SECRET: smoke-wecom-secret
+      WECOM_CORP_ID: ww_smoke
+      WECOM_REDIRECT_URI: http://127.0.0.1:13001/auth/callback?provider=wecom
+    ports:
+      - "127.0.0.1:13001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mock-ragflow:
+        condition: service_healthy
