@@ -1,0 +1,142 @@
+name: pas-prod
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pas-postgres
+    restart: unless-stopped
+    env_file:
+      - .env.prod
+    ports:
+      - "${PAS_PG_PORT:-5544}:5432"
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          memory: ${PAS_PG_MEM_LIMIT:-1G}
+    networks:
+      - pas-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: pas-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${PAS_REDIS_PORT:-6399}:6379"
+    volumes:
+      - redis_prod_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          memory: ${PAS_REDIS_MEM_LIMIT:-256M}
+    networks:
+      - pas-net
+
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    container_name: pas-minio
+    restart: unless-stopped
+    command: ["server", "/data", "--console-address", ":9001"]
+    env_file:
+      - .env.prod
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    ports:
+      - "${PAS_MINIO_PORT:-9900}:9000"
+      - "${PAS_MINIO_CONSOLE_PORT:-9901}:9001"
+    volumes:
+      - minio_prod_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: ${PAS_MINIO_MEM_LIMIT:-512M}
+    networks:
+      - pas-net
+
+  pas-api:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    image: pas-api:prod
+    container_name: pas-api
+    restart: unless-stopped
+    env_file:
+      - .env.prod
+    environment:
+      PORT: "3001"
+    ports:
+      - "${PAS_API_PORT:-3001}:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: ${PAS_API_MEM_LIMIT:-1500M}
+    networks:
+      - pas-net
+      - shared
+
+  pas-web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+      args:
+        API_BASE_URL: ${API_BASE_URL:-http://pas-api:3001}
+    image: pas-web:prod
+    container_name: pas-web
+    restart: unless-stopped
+    environment:
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
+    ports:
+      - "${PAS_WEB_PORT:-3000}:3000"
+    depends_on:
+      pas-api:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: ${PAS_WEB_MEM_LIMIT:-512M}
+    networks:
+      - pas-net
+
+volumes:
+  postgres_prod_data:
+    name: pas-prod-postgres-data
+  redis_prod_data:
+    name: pas-prod-redis-data
+  minio_prod_data:
+    name: pas-prod-minio-data
+
+networks:
+  pas-net:
+    name: pas-net
+  shared:
+    external: true
+    name: ${SHARED_NETWORK_NAME:-ragflow}

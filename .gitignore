@@ -9,6 +9,8 @@ token.txt
 .env.*
 !.env.example
 !infra/.env.fastgpt.example
+!infra/.env.prod.example
+infra/.env.prod
 
 # Node.js / pnpm
 node_modules/
