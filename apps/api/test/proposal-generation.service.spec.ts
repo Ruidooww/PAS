@@ -46,6 +46,7 @@ describe("ProposalGenerationService", () => {
   const llmComplete = vi.fn();
   const computeVisibleDocIds = vi.fn();
   const getTemplate = vi.fn();
+  const proposalFindFirst = vi.fn();
   const proposalUpdateMany = vi.fn();
   const userFindUnique = vi.fn();
   const publish = vi.fn();
@@ -53,6 +54,7 @@ describe("ProposalGenerationService", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    proposalFindFirst.mockResolvedValue({ status: "draft" });
     userFindUnique.mockResolvedValue(user);
     computeVisibleDocIds.mockResolvedValue(["allowed-doc"]);
     proposalUpdateMany.mockResolvedValue({ count: 1 });
@@ -80,7 +82,7 @@ describe("ProposalGenerationService", () => {
         {
           provide: PrismaService,
           useValue: {
-            proposal: { updateMany: proposalUpdateMany },
+            proposal: { findFirst: proposalFindFirst, updateMany: proposalUpdateMany },
             user: { findUnique: userFindUnique },
           },
         },
@@ -129,7 +131,7 @@ describe("ProposalGenerationService", () => {
       where: {
         id: "proposal-1",
         deletedAt: null,
-        status: { not: "final" },
+        status: "draft",
       },
       data: {
         contentJson: {
@@ -200,7 +202,7 @@ describe("ProposalGenerationService", () => {
       where: {
         id: "proposal-1",
         deletedAt: null,
-        status: { not: "final" },
+        status: "draft",
       },
       data: {
         contentJson: {
@@ -315,7 +317,7 @@ describe("ProposalGenerationService", () => {
       where: {
         id: "proposal-1",
         deletedAt: null,
-        status: { not: "final" },
+        status: "draft",
       },
       data: {
         contentJson: {
@@ -357,7 +359,23 @@ describe("ProposalGenerationService", () => {
     expect(publish).toHaveBeenNthCalledWith(3, "proposal-1", { done: true });
   });
 
-  it("does not overwrite a finalized or soft-deleted proposal when CAS write loses", async () => {
+  it("skips duplicate jobs for proposals that are no longer draft", async () => {
+    proposalFindFirst.mockResolvedValueOnce({ status: "draft_ready" });
+
+    await service.generate(job);
+
+    expect(getTemplate).not.toHaveBeenCalled();
+    expect(userFindUnique).not.toHaveBeenCalled();
+    expect(ragflowRetrieve).not.toHaveBeenCalled();
+    expect(llmComplete).not.toHaveBeenCalled();
+    expect(proposalUpdateMany).not.toHaveBeenCalled();
+    expect(publish).toHaveBeenCalledWith("proposal-1", {
+      done: true,
+      errorMessage: "Proposal is no longer eligible for generation result",
+    });
+  });
+
+  it("does not overwrite a finalized, non-draft, or soft-deleted proposal when CAS write loses", async () => {
     getTemplate.mockReturnValue(
       template([
         {
