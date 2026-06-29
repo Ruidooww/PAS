@@ -1,0 +1,23 @@
+- id: ipguard-encryption-policy
+  query: "In IP-Guard, how should document encryption policies be configured, and what encryption modes are available?"
+  expected_doc_names:
+    - "<replace_me>"
+  expected_pages_loose:
+    - "<replace_me>"
+  min_top_k_hit: 1
+
+- id: default-software-wps
+  query: "In the default software library, which authorized software category contains WPS, and how are controlled applications classified?"
+  expected_doc_names:
+    - "<replace_me>"
+  expected_pages_loose:
+    - "<replace_me>"
+  min_top_k_hit: 1
+
+- id: department-policy-rollout
+  query: "In the Web console, what steps create and distribute a document encryption policy for a department?"
+  expected_doc_names:
+    - "<replace_me>"
+  expected_pages_loose:
+    - "<replace_me>"
+  min_top_k_hit: 1

@@ -1,0 +1,23 @@
+- name: baseline
+  rerank_model: gte-rerank-v2@bailian@Tongyi-Qianwen
+  page_size: 30
+  top_k: 1024
+  similarity_threshold: 0.1
+  vector_similarity_weight: 0.3
+  eval_top_k: 5
+
+- name: rerank-30
+  rerank_model: gte-rerank-v2@bailian@Tongyi-Qianwen
+  page_size: 30
+  top_k: 1024
+  similarity_threshold: 0.1
+  vector_similarity_weight: 0.3
+  eval_top_k: 5
+
+- name: rerank-50
+  rerank_model: gte-rerank-v2@bailian@Tongyi-Qianwen
+  page_size: 50
+  top_k: 1024
+  similarity_threshold: 0.1
+  vector_similarity_weight: 0.3
+  eval_top_k: 5

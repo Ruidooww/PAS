@@ -20,6 +20,7 @@ dist/
 coverage/
 apps/e2e/test-results/
 apps/api/test-results/
+apps/gate/results/
 *.tsbuildinfo
 
 # Source material binaries (kept local for now)
