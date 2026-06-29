@@ -149,6 +149,7 @@ body:
         - label: "`pnpm lint`"
         - label: "`pnpm typecheck`"
         - label: "`pnpm test`"
+        - label: "`pnpm guard` after #97 is completed"
         - label: Issue-specific smoke / manual verification
         - label: CI checks after PR creation
 

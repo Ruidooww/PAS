@@ -47,6 +47,7 @@ Closes #
 - [ ] `pnpm lint`
 - [ ] `pnpm typecheck`
 - [ ] `pnpm test`
+- [ ] `pnpm guard` after #97 is completed
 - [ ] Issue-specific smoke / manual verification
 - [ ] Required CI checks passed
 
