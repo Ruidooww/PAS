@@ -1,0 +1,137 @@
+name: PAS Decision Record
+description: Architecture or governance decision record for PAS. Not an executable Codex task.
+title: "[PAS Decision] "
+labels: ["pas-decision"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form to record architecture or governance decisions. This is not a Codex implementation task by itself.
+
+  - type: dropdown
+    id: decision-type
+    attributes:
+      label: Decision Type
+      description: Choose the primary kind of decision.
+      options:
+        - Phase boundary
+        - Governance rule
+        - Provider selection or integration approach
+        - D2 client boundary
+        - RAGFlow / FastGPT / OpenAI access pattern
+        - Infrastructure / CI policy
+        - Non-goal / explicitly deferred work
+        - Other architecture decision
+    validations:
+      required: true
+
+  - type: textarea
+    id: decision-topic
+    attributes:
+      label: Decision Topic
+      description: Name the decision being recorded.
+      placeholder: Short, concrete topic.
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Explain the current situation, constraints, and why a decision is needed.
+    validations:
+      required: true
+
+  - type: textarea
+    id: options-considered
+    attributes:
+      label: Alternatives Considered
+      description: List the meaningful options that were considered.
+      placeholder: |
+        - Option A: ...
+        - Option B: ...
+        - Option C: ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: decision
+    attributes:
+      label: Decision
+      description: State the chosen direction.
+    validations:
+      required: true
+
+  - type: textarea
+    id: rationale
+    attributes:
+      label: Rationale
+      description: Explain why this decision is preferred over the alternatives.
+    validations:
+      required: true
+
+  - type: textarea
+    id: consequences
+    attributes:
+      label: Consequences
+      description: Describe the expected tradeoffs, constraints, and follow-on effects of this decision.
+    validations:
+      required: true
+
+  - type: textarea
+    id: phase-impact
+    attributes:
+      label: Phase Impact
+      description: Explain how this decision affects V1, V1.5 / V2-prep, V2, V3, or V4 boundaries.
+      placeholder: Which phase can act on this decision, and which later-phase work remains deferred?
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementation-impact
+    attributes:
+      label: Implementation Impact
+      description: Describe expected future implementation effects without turning this decision into an executable task.
+      placeholder: Future tasks may need to update...
+    validations:
+      required: true
+
+  - type: textarea
+    id: provider-boundary-impact
+    attributes:
+      label: Provider Boundary Impact
+      description: Explain whether this decision changes provider boundary expectations.
+      value: |
+        Current boundary awareness includes both `apps/api/src/clients/*` and `packages/clients`.
+        Service layer should remain provider-neutral and avoid direct concrete provider coupling.
+    validations:
+      required: true
+
+  - type: textarea
+    id: non-goals
+    attributes:
+      label: Non-Goals
+      description: List related work that this decision explicitly does not approve.
+      placeholder: |
+        - This does not authorize PluginManager implementation.
+        - This does not authorize AgentRuntime or WorkflowEngine implementation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: follow-up-tasks
+    attributes:
+      label: Follow-Up Tasks
+      description: List future executable tasks that should be opened separately.
+      placeholder: |
+        - #...
+        - Create a PAS Task issue for...
+
+  - type: textarea
+    id: related
+    attributes:
+      label: Related Issues / PRs
+      description: Link related GitHub issues, PRs, ADRs, specs, and docs.
+      placeholder: |
+        - #...
+        - ADR-...
