@@ -2,6 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 
 import type { SessionClaims } from "../../auth/types";
 import { RAGFLOW_CLIENT, type RagflowClient } from "../../clients/ragflow";
+import { runtimeConfig } from "../../config/runtime";
 import { qaKbId } from "../../qa/qa-kb-id";
 import { AclService } from "../acl.service";
 
@@ -24,7 +25,7 @@ export class InternalQaService {
     const retrievedChunks = await this.ragflowClient.retrieve({
       kbId,
       query,
-      topK: 3,
+      topK: runtimeConfig.qa.retrievalTopK,
       docIdWhitelist: visibleDocIds,
     });
     const allowedDocIds = new Set(visibleDocIds);

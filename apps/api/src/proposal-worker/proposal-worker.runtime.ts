@@ -2,11 +2,9 @@ import { Inject, Injectable, OnModuleDestroy, OnModuleInit } from "@nestjs/commo
 import { ConfigService } from "@nestjs/config";
 import { Worker } from "bullmq";
 
+import { runtimeConfig } from "../config/runtime";
 import { ProposalGenerationService } from "./proposal-generation.service";
-import {
-  PROPOSAL_QUEUE_NAME,
-  PROPOSAL_WORKER_CONCURRENCY,
-} from "./proposal-worker.constants";
+import { PROPOSAL_QUEUE_NAME } from "./proposal-worker.constants";
 import type { ProposalGenerationJob } from "./proposal-worker.types";
 import { bullmqRedisOptions } from "./redis-connection";
 
@@ -31,7 +29,7 @@ export class ProposalWorkerRuntime implements OnModuleInit, OnModuleDestroy {
         connection: bullmqRedisOptions(
           this.config.getOrThrow<string>("REDIS_URL"),
         ),
-        concurrency: PROPOSAL_WORKER_CONCURRENCY,
+        concurrency: runtimeConfig.proposal.workerConcurrency,
       },
     );
     this.worker.on("error", (error) => {

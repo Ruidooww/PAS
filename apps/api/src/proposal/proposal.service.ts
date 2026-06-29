@@ -9,6 +9,7 @@ import type { ChatMessage } from "@pas/shared";
 
 import type { SessionClaims } from "../auth/types";
 import { LLM_CLIENT, type LlmClient } from "../clients/llm";
+import { runtimeConfig } from "../config/runtime";
 import { PrismaService } from "../prisma/prisma.service";
 import { PROPOSAL_PROMPT } from "./proposal.prompt";
 import {
@@ -86,7 +87,10 @@ export class ProposalService {
     let rawOutput = "";
 
     for (let attempt = 0; attempt < 2; attempt += 1) {
-      rawOutput = await this.llmClient.complete({ messages, temperature: 0 });
+      rawOutput = await this.llmClient.complete({
+        messages,
+        temperature: runtimeConfig.llm.requirementExtract.temperature,
+      });
       const requirement = parseLlmRequirement(rawOutput);
       if (requirement) {
         return requirementSchema.parse({

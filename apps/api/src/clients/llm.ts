@@ -3,6 +3,8 @@ import { ConfigService } from "@nestjs/config";
 import type { ChatMessage } from "@pas/shared";
 import { z } from "zod";
 
+import { runtimeConfig } from "../config/runtime";
+
 export const LLM_CLIENT = Symbol("LLM_CLIENT");
 
 export interface LlmClient {
@@ -33,7 +35,7 @@ export class LlmClientImpl implements LlmClient {
       body: JSON.stringify({
         model: this.config.getOrThrow<string>("LLM_MODEL"),
         messages: params.messages,
-        temperature: params.temperature ?? 0.2,
+        temperature: params.temperature ?? runtimeConfig.llm.defaultTemperature,
       }),
     });
 
@@ -60,7 +62,7 @@ export class LlmClientImpl implements LlmClient {
       body: JSON.stringify({
         model: this.config.getOrThrow<string>("LLM_MODEL"),
         messages: params.messages,
-        temperature: params.temperature ?? 0.2,
+        temperature: params.temperature ?? runtimeConfig.llm.defaultTemperature,
         stream: true,
       }),
     });
