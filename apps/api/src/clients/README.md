@@ -14,7 +14,7 @@
 ## RAGFlow client 关键事实
 
 - 走 **REST**，不走 MCP。MCP 路径见 [exp-001 决策反转](../../../docs/experiments/exp-001-ragflow-mcp-fastgpt.md) — 留作 v2 候选。
-- `retrieve` 默认参数硬编码在 `RETRIEVAL_DEFAULTS`（来源：exp-001 实证可用）：
+- `retrieve` 默认参数的唯一真源是 `runtimeConfig.ragflow.retrieval`；`RETRIEVAL_DEFAULTS` 继续作为兼容导出（来源：exp-001 实证可用）：
   - `pageSize = 30`
   - `topK = 1024`
   - `similarityThreshold = 0.1`

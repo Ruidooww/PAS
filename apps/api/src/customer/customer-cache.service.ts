@@ -2,8 +2,9 @@ import { Inject, Injectable, OnModuleDestroy } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import IORedis from "ioredis";
 
+import { runtimeConfig } from "../config/runtime";
+
 const KEY_PREFIX = "customer:";
-const DEFAULT_TTL_SECONDS = 300;
 
 @Injectable()
 export class CustomerCacheService implements OnModuleDestroy {
@@ -24,7 +25,11 @@ export class CustomerCacheService implements OnModuleDestroy {
     }
   }
 
-  async set<T>(key: string, value: T, ttlSeconds: number = DEFAULT_TTL_SECONDS): Promise<void> {
+  async set<T>(
+    key: string,
+    value: T,
+    ttlSeconds: number = runtimeConfig.cache.crmTtlSeconds,
+  ): Promise<void> {
     await this.redis().set(this.namespaced(key), JSON.stringify(value), "EX", ttlSeconds);
   }
 

@@ -1,6 +1,10 @@
 import eslint from "@eslint/js";
+import { createRequire } from "node:module";
 import globals from "globals";
 import tseslint from "typescript-eslint";
+
+const require = createRequire(import.meta.url);
+const noInlinePrompt = require("./tools/eslint-rules/no-inline-prompt.js");
 
 export default tseslint.config(
   {
@@ -30,6 +34,19 @@ export default tseslint.config(
     files: ["**/*.d.ts"],
     rules: {
       "@typescript-eslint/triple-slash-reference": "off",
+    },
+  },
+  {
+    files: ["apps/api/src/**/*.ts"],
+    plugins: {
+      local: {
+        rules: {
+          "no-inline-prompt": noInlinePrompt,
+        },
+      },
+    },
+    rules: {
+      "local/no-inline-prompt": "error",
     },
   },
 );

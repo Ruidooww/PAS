@@ -12,7 +12,8 @@
     "lint": "pnpm --filter @pas/shared build && pnpm --filter @pas/clients build && pnpm -r lint",
     "smoke": "pnpm --filter api exec vitest run --config vitest.smoke.config.ts",
     "typecheck": "pnpm --filter @pas/shared build && pnpm --filter @pas/clients build && pnpm -r typecheck",
-    "test": "pnpm --filter @pas/shared build && pnpm --filter @pas/clients build && pnpm --filter @pas/shared test && pnpm --filter @pas/clients test && pnpm --filter api test && pnpm --filter web test"
+    "test": "pnpm test:eslint-rules && pnpm --filter @pas/shared build && pnpm --filter @pas/clients build && pnpm --filter @pas/shared test && pnpm --filter @pas/clients test && pnpm --filter api test && pnpm --filter web test",
+    "test:eslint-rules": "node tools/eslint-rules/no-inline-prompt.test.js"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",

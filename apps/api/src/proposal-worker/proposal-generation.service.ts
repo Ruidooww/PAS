@@ -6,15 +6,11 @@ import type { ChatMessage, Chunk } from "@pas/shared";
 import type { SessionClaims } from "../auth/types";
 import { LLM_CLIENT, type LlmClient } from "../clients/llm";
 import { RAGFLOW_CLIENT, type RagflowClient } from "../clients/ragflow";
+import { runtimeConfig } from "../config/runtime";
 import { AclService } from "../internal/acl.service";
 import { PrismaService } from "../prisma/prisma.service";
 import type { ProposalTemplate } from "../proposal/proposal-template.schema";
 import { TemplateService } from "../proposal/proposal-template.service";
-import {
-  PROPOSAL_CHAPTER_RETRIES,
-  PROPOSAL_LLM_TEMPERATURE,
-  PROPOSAL_RETRIEVAL_TOP_K,
-} from "./proposal-worker.constants";
 import { ProposalProgressService } from "./proposal-progress.service";
 import { PROPOSAL_SECTION_PROMPT } from "./proposal-section.prompt";
 import type {
@@ -113,7 +109,7 @@ export class ProposalGenerationService {
   ): Promise<GeneratedProposalSection> {
     let lastError: unknown;
 
-    for (let attempt = 0; attempt <= PROPOSAL_CHAPTER_RETRIES; attempt += 1) {
+    for (let attempt = 0; attempt <= runtimeConfig.proposal.chapterRetries; attempt += 1) {
       try {
         const chunks = await this.retrieveVisibleChunks(
           section,
@@ -122,7 +118,7 @@ export class ProposalGenerationService {
         );
         const body = await this.llmClient.complete({
           messages: this.buildMessages(section, requirementJson, chunks),
-          temperature: PROPOSAL_LLM_TEMPERATURE,
+          temperature: runtimeConfig.llm.proposalSection.temperature,
         });
         return {
           id: section.id,
@@ -149,7 +145,7 @@ export class ProposalGenerationService {
         requirementJson,
       )}`.trim(),
       kbId: this.config.getOrThrow<string>("PAS_KB_ID"),
-      topK: PROPOSAL_RETRIEVAL_TOP_K,
+      topK: runtimeConfig.proposal.retrievalTopK,
       docIdWhitelist: visibleDocIds,
     });
     const allowedDocIds = new Set(visibleDocIds);

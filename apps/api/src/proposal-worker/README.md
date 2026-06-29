@@ -2,7 +2,8 @@
 
 The API process hosts the BullMQ worker for queue `proposal-generation`. The
 runtime is disabled when `NODE_ENV=test`; development and production use
-`REDIS_URL`, with concurrency fixed at `2`.
+`REDIS_URL`. Concurrency and retry tuning live in
+`apps/api/src/config/runtime.ts`.
 
 ## Local start
 
@@ -44,8 +45,8 @@ worker overwrites `contentJson` only after all chapters have been attempted.
 
 - Queue name: `proposal-generation`
 - Progress channel: `proposal:<proposal-id>:progress`
-- Chapter failures retry three times, publish `errorMessage`, and do not stop
-  later chapters.
+- Chapter retry count is controlled by `runtimeConfig.proposal.chapterRetries`.
+  Failures publish `errorMessage` and do not stop later chapters.
 - Retrieval always receives the ACL document whitelist and filters returned
   chunks against it again.
 - Run the focused tests and coverage gate:

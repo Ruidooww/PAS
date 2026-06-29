@@ -8,6 +8,7 @@ import type { ChatMessage, Chunk } from "@pas/shared";
 import type { SessionClaims } from "../auth/types";
 import { LLM_CLIENT, type LlmClient } from "../clients/llm";
 import { RAGFLOW_CLIENT, type RagflowClient } from "../clients/ragflow";
+import { runtimeConfig } from "../config/runtime";
 import { AclService } from "../internal/acl.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { qaKbId } from "./qa-kb-id";
@@ -25,9 +26,7 @@ import type {
   QaStreamEvent,
 } from "./qa.types";
 
-const RETRIEVE_TOP_K = 3;
-const HISTORY_TURNS = 5;
-const HISTORY_MESSAGE_LIMIT = HISTORY_TURNS * 2;
+const HISTORY_MESSAGE_LIMIT = runtimeConfig.qa.historyTurns * 2;
 
 @Injectable()
 export class QaService {
@@ -87,7 +86,7 @@ export class QaService {
         : await this.ragflowClient.retrieve({
             kbId: qaKbId(),
             query: retrievalQuery,
-            topK: RETRIEVE_TOP_K,
+            topK: runtimeConfig.qa.retrievalTopK,
             docIdWhitelist: visibleDocIds,
           });
     this.logTimingSpan(sessionId, "ragflow_retrieval_completed", requestStartedAt);
@@ -98,7 +97,10 @@ export class QaService {
     let answer = "";
     let firstDeltaReceived = false;
     this.logTimingSpan(sessionId, "llm_request_started", requestStartedAt);
-    for await (const delta of this.llmClient.stream({ messages, temperature: 0.2 })) {
+    for await (const delta of this.llmClient.stream({
+      messages,
+      temperature: runtimeConfig.llm.qaStream.temperature,
+    })) {
       if (!delta) continue;
       if (!firstDeltaReceived) {
         firstDeltaReceived = true;

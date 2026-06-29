@@ -14,6 +14,8 @@ import type {
 } from "@pas/shared";
 import { z } from "zod";
 
+import { runtimeConfig } from "../config/runtime";
+
 export const RAGFLOW_CLIENT = Symbol("RAGFLOW_CLIENT");
 
 export interface RagflowClient {
@@ -30,13 +32,7 @@ export interface RagflowClient {
 }
 
 // exp-001 实证的检索默认参数。调参由 W1 gate harness 驱动，业务层不要覆盖。
-export const RETRIEVAL_DEFAULTS = Object.freeze({
-  pageSize: 30,
-  topK: 1024,
-  similarityThreshold: 0.1,
-  vectorSimilarityWeight: 0.3,
-  rerankId: "gte-rerank-v2@bailian@Tongyi-Qianwen",
-});
+export const RETRIEVAL_DEFAULTS = runtimeConfig.ragflow.retrieval;
 
 // RAGFlow HTTP API v1 retrieval response — 官方契约用 `id` + `content`。
 // 旧/内部字段名 `chunk_id` + `content_with_weight` 也接受作 fallback（兼容不同
