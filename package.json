@@ -9,11 +9,18 @@
     "e2e": "pnpm --filter @pas/shared build && pnpm --filter @pas/clients build && pnpm --filter @pas/e2e test",
     "gate:diff": "pnpm --filter @pas/gate exec tsx src/diff.ts",
     "gate:run": "pnpm --filter @pas/gate exec tsx src/run-suite.ts",
+    "guard": "node tools/guards/index.mjs",
+    "guard:imports": "pnpm guard:providers",
+    "guard:phase": "node tools/guards/phase-lock.mjs",
+    "guard:providers": "node tools/guards/provider-boundary.mjs",
+    "guard:service": "pnpm guard:services",
+    "guard:services": "node tools/guards/service-boundary.mjs",
     "lint": "pnpm --filter @pas/shared build && pnpm --filter @pas/clients build && pnpm -r lint",
     "smoke": "pnpm --filter api exec vitest run --config vitest.smoke.config.ts",
-    "typecheck": "pnpm --filter @pas/shared build && pnpm --filter @pas/clients build && pnpm -r typecheck",
-    "test": "pnpm test:eslint-rules && pnpm --filter @pas/shared build && pnpm --filter @pas/clients build && pnpm --filter @pas/shared test && pnpm --filter @pas/clients test && pnpm --filter api test && pnpm --filter web test",
-    "test:eslint-rules": "node tools/eslint-rules/no-inline-prompt.test.js"
+    "test": "pnpm test:eslint-rules && pnpm test:guards && pnpm --filter @pas/shared build && pnpm --filter @pas/clients build && pnpm --filter @pas/shared test && pnpm --filter @pas/clients test && pnpm --filter api test && pnpm --filter web test",
+    "test:eslint-rules": "node tools/eslint-rules/no-inline-prompt.test.js",
+    "test:guards": "node --test tools/guards/*.test.mjs",
+    "typecheck": "pnpm --filter @pas/shared build && pnpm --filter @pas/clients build && pnpm -r typecheck"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
