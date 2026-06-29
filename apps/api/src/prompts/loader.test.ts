@@ -12,7 +12,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const originalCwd = process.cwd();
 const tempDirs: string[] = [];
-const apiRoot = originalCwd.endsWith(`${String.raw`\apps\api`}`)
+const cwdParts = originalCwd.split(/[\\/]/);
+const apiRoot = cwdParts.slice(-2).join("/") === "apps/api"
   ? originalCwd
   : join(originalCwd, "apps", "api");
 
