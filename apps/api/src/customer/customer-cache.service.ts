@@ -10,13 +10,14 @@ const KEY_PREFIX = "customer:";
 export class CustomerCacheService implements OnModuleDestroy {
   private readonly redisUrl: string;
   private client?: IORedis;
+  private connectPromise?: Promise<void>;
 
   constructor(@Inject(ConfigService) config: ConfigService) {
     this.redisUrl = config.getOrThrow<string>("REDIS_URL");
   }
 
   async get<T>(key: string): Promise<T | null> {
-    const raw = await this.redis().get(this.namespaced(key));
+    const raw = await (await this.redis()).get(this.namespaced(key));
     if (!raw) return null;
     try {
       return JSON.parse(raw) as T;
@@ -30,24 +31,30 @@ export class CustomerCacheService implements OnModuleDestroy {
     value: T,
     ttlSeconds: number = runtimeConfig.cache.crmTtlSeconds,
   ): Promise<void> {
-    await this.redis().set(this.namespaced(key), JSON.stringify(value), "EX", ttlSeconds);
+    await (await this.redis()).set(this.namespaced(key), JSON.stringify(value), "EX", ttlSeconds);
   }
 
   async invalidate(key: string): Promise<void> {
-    await this.redis().del(this.namespaced(key));
+    await (await this.redis()).del(this.namespaced(key));
   }
 
   async onModuleDestroy(): Promise<void> {
     if (this.client) await this.client.quit();
   }
 
-  private redis(): IORedis {
-    this.client ??= new IORedis(this.redisUrl, {
-      enableReadyCheck: false,
-      lazyConnect: false,
+  private async redis(): Promise<IORedis> {
+    const client = this.client ??= new IORedis(this.redisUrl, {
+      enableReadyCheck: true,
+      lazyConnect: true,
       maxRetriesPerRequest: 1,
     });
-    return this.client;
+    if (client.status === "wait" || client.status === "end") {
+      this.connectPromise ??= client.connect().finally(() => {
+        this.connectPromise = undefined;
+      });
+      await this.connectPromise;
+    }
+    return client;
   }
 
   private namespaced(key: string): string {

@@ -130,14 +130,29 @@ describe("Auth mock IdP flow", () => {
 
   it("returns 400 and expires state when callback state is missing", async () => {
     const callback = await fetch(
-      `${baseUrl}/auth/callback?provider=mock&code=mock-user-1&state=forged`,
-      { redirect: "manual" },
+      `${baseUrl}/auth/callback?provider=mock&code=mock-user-1`,
+      {
+        headers: { cookie: `${OAUTH_STATE_COOKIE_NAME}=expected-state` },
+        redirect: "manual",
+      },
     );
 
     expect(callback.status).toBe(400);
     const setCookie = callback.headers.get("set-cookie") ?? "";
     expect(setCookie).toContain(`${OAUTH_STATE_COOKIE_NAME}=`);
     expect(setCookie).toContain("Max-Age=0");
+  });
+
+  it("returns 400 before exchange when the OAuth state cookie is missing", async () => {
+    const callback = await fetch(
+      `${baseUrl}/auth/callback?provider=mock&code=mock-user-1&state=received-state`,
+      { redirect: "manual" },
+    );
+
+    expect(callback.status).toBe(400);
+    await expect(callback.json()).resolves.toMatchObject({
+      message: "OAuth state cookie is missing",
+    });
   });
 
   it("returns 400 and expires state when callback state does not match the cookie", async () => {

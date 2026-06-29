@@ -33,6 +33,21 @@ export class ProposalGenerationService {
   ) {}
 
   async generate(job: ProposalGenerationJob): Promise<void> {
+    const proposal = await this.prisma.proposal.findFirst({
+      where: {
+        id: job.proposalId,
+        deletedAt: null,
+      },
+      select: { status: true },
+    });
+    if (proposal?.status !== "draft") {
+      await this.progress.publish(job.proposalId, {
+        done: true,
+        errorMessage: "Proposal is no longer eligible for generation result",
+      });
+      return;
+    }
+
     const template = this.templates.getTemplate(job.templateId);
     const user = await this.loadUser(job.userId);
     const visibleDocIds = await this.acl.computeVisibleDocIds(user);
@@ -71,7 +86,7 @@ export class ProposalGenerationService {
       where: {
         id: job.proposalId,
         deletedAt: null,
-        status: { not: "final" },
+        status: "draft",
       },
       data: {
         contentJson: {

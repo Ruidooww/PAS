@@ -73,6 +73,9 @@ export class AuthController {
     if (!code) throw new BadRequestException("code is required");
     const provider = parseIdpProvider(providerParam);
     const expectedState = readCookie(req, OAUTH_STATE_COOKIE_NAME);
+    if (expectedState === undefined) {
+      throw new BadRequestException("OAuth state cookie is missing");
+    }
     const { token } = await this.auth.completeCallback(provider, code, expectedState, state);
     const maxAge = this.config.get<number>("JWT_SESSION_TTL_SECONDS") ?? DEFAULT_SESSION_TTL_SECONDS;
     response.setHeader("Set-Cookie", [

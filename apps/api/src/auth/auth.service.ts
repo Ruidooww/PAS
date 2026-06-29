@@ -50,6 +50,7 @@ export class AuthService {
     const client = this.idpRegistry.getClient(provider);
     const token = await client.exchangeCode({ code });
     const profile = await client.getUserInfo({ accessToken: token.accessToken });
+    // IdP identity is provider + idpUserId; email may be absent for mock or enterprise users.
     const user = await this.users.upsertFromProfile(provider, profile);
     return { token: this.jwt.sign(user), user };
   }
