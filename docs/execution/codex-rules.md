@@ -31,38 +31,45 @@ Codex 不允许：
 - 修改 API、DB、schema、配置或 UI contract，除非 Issue 明确要求；
 - 留下临时 mock、debug output、TODO 或 dead code 作为交付替代。
 
-## Service / Plugin / Provider 调用纪律
+## Service / Client / Provider 调用纪律
 
 Service 层只允许做业务编排，不允许直接 import、实例化或调用具体 provider，包括：
 
 - RAGFlow；
 - FastGPT；
 - OpenAI；
+- LLM provider；
+- CRM provider；
 - embedding provider；
 - 具体 vector DB provider；
 - 本地模型 runtime。
 
-具体 provider 只能存在于 provider / plugin / adapter / client 边界之后。允许的位置包括：
+当前阶段的唯一外部能力薄封装层是 `apps/api/src/clients/*`。具体 provider 只能存在于 client interface / provider adapter / mock impl 边界之后。允许的位置包括：
 
-- plugin implementation class；
-- adapter implementation class；
+- provider adapter implementation；
 - client wrapper；
 - provider-specific infrastructure module；
 - test-only mock 或 test double。
 
-Service 层应依赖 interface 或 application-level port。Provider selection 应通过配置、依赖注入、manager 或 factory 边界完成，不能写死在业务编排中。
+Service 层应通过 NestJS DI 依赖 client interface 或 application-level port。Provider selection 应通过配置和 DI 注入完成，不能写死在业务编排中。
+
+当前 `V1.5 / V2-prep` 不得新增 `PluginManager`，不得新增完整 plugin runtime，也不得将现有 `ragflowClient` / `llmClient` / `crmClient` 迁移到 plugins。
 
 ## Phase Guard
 
 Codex 必须将每次请求与 `docs/execution/phase-boundaries.md` 对照。
 
-当 Issue 处于 `V1.5 / V2-prep` 时，Codex 可以准备 plugin boundary 和治理文档，但不得实现：
+当 Issue 处于 `V1.5 / V2-prep` 时，Codex 可以保护 D2 client interface + NestJS DI + provider adapter 边界，并补充治理文档，但不得实现：
 
+- `PluginManager`；
+- 完整 plugin runtime；
+- clients 目录重构；
 - V3 Agent Runtime；
 - Planner / Executor；
 - Tool Registry；
+- Plugin Registry；
 - Workflow Engine；
-- V4 Plugin Registry 或 Marketplace；
+- V4 Marketplace；
 - V4 Multi-Agent 平台行为；
 - V4 tenant isolation。
 
@@ -87,6 +94,8 @@ Change scope:
 
 Boundary Check:
 - governance-only change
+- D2 client interface + NestJS DI boundary preserved
+- PluginManager not introduced
 - no business code changes
 - no schema changes
 - no RAG / Agent / Workflow runtime implementation
