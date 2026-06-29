@@ -1,0 +1,171 @@
+name: PAS Task
+description: Executable PAS task with phase, scope, boundary, and validation requirements.
+title: "[PAS] "
+labels: ["pas-task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for executable PAS work. Keep the task constrained by phase, scope, provider boundaries, and required checks.
+
+        Before implementation, Codex must read:
+        - `docs/execution/current-phase.md`
+        - `docs/execution/phase-boundaries.md`
+        - `docs/execution/codex-rules.md`
+        - this Issue body and the latest applicable Issue comment
+
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Phase
+      description: Select the lowest PAS phase required by this task.
+      options:
+        - V1
+        - V1.5 / V2-prep
+        - V2
+        - V3
+        - V4
+    validations:
+      required: true
+
+  - type: dropdown
+    id: task-type
+    attributes:
+      label: Task Type
+      description: Choose the primary kind of executable work.
+      options:
+        - Governance / docs
+        - Boundary check / guard preparation
+        - API / backend
+        - Web / frontend
+        - Database / Prisma
+        - Provider adapter / client boundary
+        - Infrastructure / CI
+        - Test / verification
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Explain the background, related decisions, and why this task is needed now.
+      placeholder: Link related ADRs, specs, issues, PRs, or orchestrator comments.
+    validations:
+      required: true
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: State the concrete outcome this task must deliver.
+      placeholder: This task is done when...
+    validations:
+      required: true
+
+  - type: textarea
+    id: in-scope
+    attributes:
+      label: In-Scope Changes / Scope
+      description: List files, modules, behaviors, or docs that may be changed.
+      placeholder: |
+        - `.github/...`
+        - `docs/...`
+    validations:
+      required: true
+
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out-of-Scope Changes / Forbidden
+      description: List files, modules, and behaviors that must not be changed.
+      value: |
+        - Do not implement later-phase capabilities beyond this Issue.
+        - Do not modify unrelated files.
+        - Do not break existing tests.
+        - Do not delete completed V1 business capabilities.
+        - Do not modify API contracts, DB schema, runtime config, or business logic unless this Issue explicitly requires it.
+        - Do not add guard scripts unless this Issue explicitly requires it.
+        - Do not add PluginManager, AgentRuntime, WorkflowEngine, Marketplace, or multi-tenant platform logic unless this Issue explicitly requires it.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: affected-areas
+    attributes:
+      label: Affected Areas
+      description: Check every area this task is allowed to touch.
+      options:
+        - label: Governance docs / prompts / templates
+        - label: GitHub workflows or repository metadata
+        - label: "`apps/api/**`"
+        - label: "`apps/web/**`"
+        - label: "`packages/**`"
+        - label: "`prisma/**`"
+        - label: Infrastructure / deployment files
+        - label: Tests only
+        - label: Other area listed in scope
+
+  - type: textarea
+    id: provider-boundary-impact
+    attributes:
+      label: Provider Boundary Impact
+      description: Explain whether this task touches provider boundaries or service/provider coupling.
+      value: |
+        - Service layer must stay provider-neutral.
+        - Service layer must not directly hard-code RAGFlow, FastGPT, OpenAI, embedding providers, VectorDB providers, or other concrete AI/data providers.
+        - Current provider boundary awareness includes both `apps/api/src/clients/*` and `packages/clients`.
+    validations:
+      required: true
+
+  - type: textarea
+    id: phase-boundary-impact
+    attributes:
+      label: Phase Boundary Impact
+      description: Explain how this task stays within the selected phase and which later-phase items are explicitly deferred.
+      value: |
+        Current V1.5 / V2-prep work may protect D2 client interface + NestJS DI + provider adapter boundaries, but must not prematurely implement PluginManager, AgentRuntime, WorkflowEngine, Marketplace, or multi-tenant platform behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria / Definition of Done
+      description: List specific, verifiable completion criteria.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: required-checks
+    attributes:
+      label: Required Checks
+      description: Select the validation commands expected for the PR. Explain any skipped checks in the PR body.
+      options:
+        - label: "`git diff --check`"
+        - label: "`pnpm lint`"
+        - label: "`pnpm typecheck`"
+        - label: "`pnpm test`"
+        - label: Issue-specific smoke / manual verification
+        - label: CI checks after PR creation
+
+  - type: textarea
+    id: dependencies-blockers
+    attributes:
+      label: Dependencies / Blockers
+      description: List required preceding work, blocked services, missing credentials, or sequencing constraints.
+      placeholder: |
+        - Depends on #...
+        - Blocked by...
+
+  - type: textarea
+    id: related
+    attributes:
+      label: Related Issues / PRs
+      description: Link related GitHub issues, PRs, ADRs, specs, and dispatch files.
+      placeholder: |
+        - #...
+        - ADR-...
