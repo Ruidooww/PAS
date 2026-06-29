@@ -1,5 +1,13 @@
 import { z } from "zod";
 
+const booleanFromEnv = z.preprocess((value) => {
+  if (typeof value !== "string") return value;
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "true") return true;
+  if (normalized === "false") return false;
+  return value;
+}, z.boolean());
+
 export const envSchema = z
   .object({
     APP_BASE_URL: z.string().url(),
@@ -23,6 +31,8 @@ export const envSchema = z
     MINIO_ENDPOINT: z.string().url(),
     MINIO_SECRET_KEY: z.string().min(1),
     PAS_KB_ID: z.string().min(1),
+    PAS_KB_SYNC_CRON: z.string().min(1).default("0 * * * *"),
+    PAS_KB_SYNC_ENABLED: booleanFromEnv.default(true),
     PORT: z.coerce.number().int().positive().max(65_535).default(3001),
     RAGFLOW_API_KEY: z.string().min(1),
     RAGFLOW_BASE_URL: z.string().url(),

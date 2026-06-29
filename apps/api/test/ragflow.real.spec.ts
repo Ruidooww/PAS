@@ -281,7 +281,13 @@ describe("RagflowClientImpl other methods", () => {
         code: 0,
         data: {
           docs: [
-            { id: "d1", name: "手册.pdf", status: "ready" },
+            {
+              id: "d1",
+              name: "手册.pdf",
+              status: "ready",
+              size: 42,
+              updated_at: "2026-06-02T03:04:05.000Z",
+            },
             { id: "d2", name: "白皮书.pdf", run: "DONE" },
           ],
         },
@@ -294,7 +300,13 @@ describe("RagflowClientImpl other methods", () => {
     expect(captured[0]!.url).toContain("/api/v1/datasets/kb-abc/documents");
     expect(captured[0]!.method).toBe("GET");
     expect(docs).toEqual([
-      { id: "d1", name: "手册.pdf", status: "ready" },
+      {
+        id: "d1",
+        name: "手册.pdf",
+        status: "ready",
+        size: 42,
+        updatedAt: "2026-06-02T03:04:05.000Z",
+      },
       { id: "d2", name: "白皮书.pdf", status: "DONE" },
     ]);
   });

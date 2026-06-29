@@ -83,7 +83,11 @@ export interface KbDocument {
   name: string;
   product: string | null;
   aclScope: AclScope;
-  uploadedBy: string;
+  uploadedBy: string | null;
+  size: number | null;
+  ragflowUpdatedAt: string | null;
+  deletedAt: string | null;
+  syncedAt: string;
 }
 
 export interface AuditLog {
@@ -144,6 +148,8 @@ export interface RagflowDocument {
   id: string;
   name: string;
   status: string;
+  size?: number;
+  updatedAt?: string | null;
 }
 
 export interface RagflowDocumentMeta {

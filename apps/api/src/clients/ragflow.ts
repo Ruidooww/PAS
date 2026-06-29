@@ -78,6 +78,10 @@ const documentSchema = z.object({
   name: z.string(),
   status: z.string().optional(),
   run: z.string().optional(),
+  size: z.number().int().optional(),
+  updatedAt: z.string().nullable().optional(),
+  updated_at: z.string().nullable().optional(),
+  update_time: z.string().nullable().optional(),
 });
 
 const listDocsResponseSchema = z.object({
@@ -189,11 +193,21 @@ export class RagflowClientImpl implements RagflowClient {
         200,
       );
     }
-    return (parsed.data?.docs ?? []).map<RagflowDocument>((d) => ({
-      id: d.id,
-      name: d.name,
-      status: d.status ?? d.run ?? "unknown",
-    }));
+    return (parsed.data?.docs ?? []).map<RagflowDocument>((d) => {
+      const document: RagflowDocument = {
+        id: d.id,
+        name: d.name,
+        status: d.status ?? d.run ?? "unknown",
+      };
+      if (d.size !== undefined) {
+        document.size = d.size;
+      }
+      const updatedAt = d.updatedAt ?? d.updated_at ?? d.update_time;
+      if (updatedAt) {
+        document.updatedAt = updatedAt;
+      }
+      return document;
+    });
   }
 
   async uploadDoc(_kbId: string, _file: Buffer, _meta: RagflowDocumentMeta): Promise<string> {
