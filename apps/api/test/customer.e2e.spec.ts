@@ -110,6 +110,7 @@ describe("customer CRM API", () => {
   let auditLogCreate: ReturnType<typeof vi.fn>;
   let fieldAclFindMany: ReturnType<typeof vi.fn>;
   let aclAuditLogCreate: ReturnType<typeof vi.fn>;
+  let aclAuditLogCreateMany: ReturnType<typeof vi.fn>;
   let CrmClientError: CrmClientErrorCtor;
 
   beforeEach(async () => {
@@ -138,6 +139,7 @@ describe("customer CRM API", () => {
     auditLogCreate = vi.fn().mockResolvedValue({});
     fieldAclFindMany = vi.fn().mockResolvedValue([]);
     aclAuditLogCreate = vi.fn().mockResolvedValue({});
+    aclAuditLogCreateMany = vi.fn().mockResolvedValue({ count: 1 });
 
     ({ CrmClientError } = await import("@pas/clients/crm"));
     const { AppModule } = await import("../src/app.module");
@@ -168,6 +170,7 @@ describe("customer CRM API", () => {
         },
         aclAuditLog: {
           create: aclAuditLogCreate,
+          createMany: aclAuditLogCreateMany,
         },
         auditLog: {
           create: auditLogCreate,
@@ -272,15 +275,17 @@ describe("customer CRM API", () => {
     const body = (await response.json()) as Record<string, unknown>;
     expect(body).toMatchObject({ ref: "cust-acme", name: "Acme Manufacturing" });
     expect(body).not.toHaveProperty("scale");
-    expect(aclAuditLogCreate).toHaveBeenCalledWith({
-      data: {
-        userId: "user-1",
-        resourceType: "customer",
-        resourceId: "cust-acme",
-        fieldName: "scale",
-        action: "field_read_filter",
-        reason: "required_roles_denied",
-      },
+    expect(aclAuditLogCreateMany).toHaveBeenCalledWith({
+      data: [
+        {
+          userId: "user-1",
+          resourceType: "customer",
+          resourceId: "cust-acme",
+          fieldName: "scale",
+          action: "field_read_filter",
+          reason: "required_roles_denied",
+        },
+      ],
     });
   });
 

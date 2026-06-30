@@ -49,6 +49,7 @@ describe("InternalQaService ACL", () => {
 
     expect(retrieve).toHaveBeenCalledWith(
       expect.objectContaining({ kbId: "real-ragflow-dataset" }),
+      user,
     );
     expect(chat).toHaveBeenCalledWith(
       expect.objectContaining({ kbId: "real-ragflow-dataset" }),
@@ -70,6 +71,7 @@ describe("InternalQaService ACL", () => {
     expect(acl.computeVisibleDocIds).toHaveBeenCalledWith(user);
     expect(retrieve).toHaveBeenCalledWith(
       expect.objectContaining({ query: "acl question", docIdWhitelist: ["doc-visible"] }),
+      user,
     );
     expect(answer.sources).toEqual([{ documentId: "doc-visible", score: 0.9 }]);
   });

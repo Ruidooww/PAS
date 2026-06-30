@@ -1,5 +1,3 @@
-import { AsyncLocalStorage } from "node:async_hooks";
-
 // RAGFlow REST client.
 // 走 REST，不走 MCP — 见 exp-001 决策反转 (ADR-001 § 决策修订记录)：
 // FastGPT workflow + MCP 路径 MVP 不可用，PAS 自编排直连 RAGFlow REST。
@@ -24,40 +22,32 @@ export const RAGFLOW_CLIENT = Symbol("RAGFLOW_CLIENT");
 
 export type ContentSensitivity = "public" | "internal" | "customer" | "regulated";
 
-export interface RagflowAclUserClaims extends SessionClaims {
+export type RagflowAclUserClaims = Omit<SessionClaims, "role"> & {
+  role: SessionClaims["role"] | "compliance" | "system_service";
   employment_status?: string | null;
   employmentStatus?: string | null;
-}
-
-interface RagflowAclContext {
-  userClaims: RagflowAclUserClaims;
-}
+};
 
 interface FilterChunksOptions {
   strictMode?: boolean;
   defaultSensitivity?: ContentSensitivity;
 }
 
-const ragflowAclContext = new AsyncLocalStorage<RagflowAclContext>();
-
 export interface RagflowClient {
-  retrieve(params: {
-    query: string;
-    kbId: string;
-    topK?: number;
-    docIdWhitelist?: string[];
-  }): Promise<Chunk[]>;
+  retrieve(
+    params: {
+      query: string;
+      kbId: string;
+      topK?: number;
+      docIdWhitelist?: string[];
+      similarityThreshold?: number;
+    },
+    userClaims: RagflowAclUserClaims,
+  ): Promise<Chunk[]>;
   chat(params: { messages: ChatMessage[]; kbId: string }): AsyncIterable<string>;
   graphQuery(params: { entity: string; kbId: string; hops?: number }): Promise<GraphResult>;
   listDocs(kbId: string): Promise<RagflowDocument[]>;
   uploadDoc(kbId: string, file: Buffer, meta: RagflowDocumentMeta): Promise<string>;
-}
-
-export function runWithRagflowAclContext<T>(
-  userClaims: RagflowAclUserClaims,
-  fn: () => T,
-): T {
-  return ragflowAclContext.run({ userClaims }, fn);
 }
 
 export function filterChunksBySensitivity(
@@ -157,14 +147,15 @@ export class RagflowClientImpl implements RagflowClient {
     kbId: string;
     topK?: number;
     docIdWhitelist?: string[];
-  }): Promise<Chunk[]> {
+    similarityThreshold?: number;
+  }, userClaims: RagflowAclUserClaims): Promise<Chunk[]> {
     const body: Record<string, unknown> = {
       question: params.query,
       dataset_ids: [params.kbId],
       page: 1,
       page_size: params.topK ?? RETRIEVAL_DEFAULTS.pageSize,
       top_k: RETRIEVAL_DEFAULTS.topK,
-      similarity_threshold: RETRIEVAL_DEFAULTS.similarityThreshold,
+      similarity_threshold: params.similarityThreshold ?? RETRIEVAL_DEFAULTS.similarityThreshold,
       vector_similarity_weight: RETRIEVAL_DEFAULTS.vectorSimilarityWeight,
       rerank_id: RETRIEVAL_DEFAULTS.rerankId,
     };
@@ -201,7 +192,7 @@ export class RagflowClientImpl implements RagflowClient {
         highlight: c.highlight,
       },
     }));
-    return this.applyContentAcl(mapped);
+    return this.applyContentAcl(mapped, userClaims);
   }
 
   // eslint-disable-next-line require-yield
@@ -308,9 +299,11 @@ export class RagflowClientImpl implements RagflowClient {
     }
   }
 
-  private async applyContentAcl(chunks: Chunk[]): Promise<Chunk[]> {
-    const context = ragflowAclContext.getStore();
-    if (!context || !this.prisma || chunks.length === 0) return chunks;
+  private async applyContentAcl(
+    chunks: Chunk[],
+    userClaims: RagflowAclUserClaims,
+  ): Promise<Chunk[]> {
+    if (!this.prisma || chunks.length === 0) return chunks;
 
     const docIds = [...new Set(chunks.map((chunk) => chunk.documentId))];
     const docs = await this.prisma.kbDocument.findMany({
@@ -336,23 +329,21 @@ export class RagflowClientImpl implements RagflowClient {
         },
       };
     });
-    const allowed = filterChunksBySensitivity(annotated, context.userClaims);
+    const allowed = filterChunksBySensitivity(annotated, userClaims);
     const allowedIds = new Set(allowed.map((chunk) => chunk.id));
     const denied = annotated.filter((chunk) => !allowedIds.has(chunk.id));
-    await Promise.all(
-      denied.map((chunk) =>
-        this.prisma!.aclAuditLog.create({
-          data: {
-            userId: context.userClaims.uid,
-            resourceType: "kb_document",
-            resourceId: chunk.documentId,
-            chunkId: chunk.id,
-            action: "content_filter",
-            reason: `chunk_sensitivity_denied:${String(chunk.metadata.sensitivity)}`,
-          },
-        }),
-      ),
-    );
+    if (denied.length > 0) {
+      await this.prisma.aclAuditLog.createMany({
+        data: denied.map((chunk) => ({
+          userId: userClaims.uid,
+          resourceType: "kb_document",
+          resourceId: chunk.documentId,
+          chunkId: chunk.id,
+          action: "content_filter",
+          reason: `chunk_sensitivity_denied:${String(chunk.metadata.sensitivity)}`,
+        })),
+      });
+    }
     return allowed;
   }
 }
@@ -390,7 +381,12 @@ function chunkOverrideSensitivity(
   ) {
     return undefined;
   }
-  return normalizeSensitivity((chunkSensitivityMap as Record<string, unknown>)[chunkId]);
+  const value = (chunkSensitivityMap as Record<string, unknown>)[chunkId];
+  if (typeof value === "string") return normalizeSensitivity(value);
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return normalizeSensitivity((value as Record<string, unknown>).sensitivity);
+  }
+  return undefined;
 }
 
 function canReadSensitivity(
@@ -413,7 +409,10 @@ function isInactive(userClaims: RagflowAclUserClaims): boolean {
 
 @Injectable()
 export class RagflowClientMock implements RagflowClient {
-  async retrieve(params: Parameters<RagflowClient["retrieve"]>[0]): Promise<Chunk[]> {
+  async retrieve(
+    params: Parameters<RagflowClient["retrieve"]>[0],
+    _userClaims: Parameters<RagflowClient["retrieve"]>[1],
+  ): Promise<Chunk[]> {
     return [
       {
         id: "mock-chunk",

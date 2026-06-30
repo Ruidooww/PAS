@@ -85,6 +85,7 @@ describe("ACL audit API", () => {
         aclAuditLog: {
           findMany: aclAuditLogFindMany,
           create: vi.fn().mockResolvedValue({}),
+          createMany: vi.fn().mockResolvedValue({ count: 1 }),
         },
         auditLog: { create: vi.fn().mockResolvedValue({}) },
         onModuleInit: async () => undefined,

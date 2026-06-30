@@ -274,6 +274,7 @@ describe("internal QA SSE", () => {
     expect(queryRaw).toHaveBeenCalledOnce();
     expect(retrieve).toHaveBeenCalledWith(
       expect.objectContaining({ docIdWhitelist: ["doc-1"] }),
+      expect.objectContaining({ uid: "mock-user-1", role: "presales" }),
     );
     expect(parseSse(await response.text())).toEqual([
       { type: "session", sessionId: expect.any(String) },
@@ -306,6 +307,7 @@ describe("internal QA SSE", () => {
     expect(response.status).toBe(200);
     expect(retrieve).toHaveBeenCalledWith(
       expect.objectContaining({ docIdWhitelist: ["doc-1"] }),
+      expect.objectContaining({ uid: "mock-user-1", role: "presales" }),
     );
     expect(parseSse(await response.text())).toEqual([
       { type: "session", sessionId: expect.any(String) },
@@ -393,11 +395,13 @@ describe("internal QA SSE", () => {
       expect.objectContaining({
         query: expect.stringContaining("控制台加密策略怎么设置"),
       }),
+      expect.objectContaining({ uid: "mock-user-1", role: "presales" }),
     );
     expect(retrieve).toHaveBeenLastCalledWith(
       expect.objectContaining({
         query: expect.stringContaining("延申一下"),
       }),
+      expect.objectContaining({ uid: "mock-user-1", role: "presales" }),
     );
   });
 

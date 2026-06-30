@@ -47,7 +47,14 @@ export class FieldAclService {
     });
     const rowsByField = groupRowsByField(aclRows);
     const filtered: Partial<T> = {};
-    const auditWrites: Array<Promise<unknown>> = [];
+    const auditEntries: Array<{
+      userId: string;
+      resourceType: string;
+      resourceId: string;
+      fieldName: string;
+      action: string;
+      reason: string;
+    }> = [];
 
     for (const fieldName of fieldNames) {
       const rows = rowsByField.get(fieldName) ?? [];
@@ -56,21 +63,19 @@ export class FieldAclService {
         filtered[fieldName as keyof T] = fields[fieldName] as T[keyof T];
         continue;
       }
-      auditWrites.push(
-        this.prisma.aclAuditLog.create({
-          data: {
-            userId: userClaims.uid,
-            resourceType,
-            resourceId,
-            fieldName,
-            action: `field_${action}_filter`,
-            reason: denial,
-          },
-        }),
-      );
+      auditEntries.push({
+        userId: userClaims.uid,
+        resourceType,
+        resourceId,
+        fieldName,
+        action: `field_${action}_filter`,
+        reason: denial,
+      });
     }
 
-    await Promise.all(auditWrites);
+    if (auditEntries.length > 0) {
+      await this.prisma.aclAuditLog.createMany({ data: auditEntries });
+    }
     return filtered;
   }
 }

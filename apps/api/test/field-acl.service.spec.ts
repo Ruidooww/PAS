@@ -21,17 +21,17 @@ function user(overrides: Partial<SessionClaims> = {}): SessionClaims {
 
 function serviceWith(rows: unknown[]) {
   const fieldAclFindMany = vi.fn().mockResolvedValue(rows);
-  const aclAuditLogCreate = vi.fn().mockResolvedValue({});
+  const aclAuditLogCreateMany = vi.fn().mockResolvedValue({ count: 1 });
   const service = new FieldAclService({
     fieldAcl: { findMany: fieldAclFindMany },
-    aclAuditLog: { create: aclAuditLogCreate },
+    aclAuditLog: { createMany: aclAuditLogCreateMany },
   } as unknown as PrismaService);
-  return { service, fieldAclFindMany, aclAuditLogCreate };
+  return { service, fieldAclFindMany, aclAuditLogCreateMany };
 }
 
 describe("FieldAclService", () => {
   it("filters denied read fields and records an audit log without field values", async () => {
-    const { service, fieldAclFindMany, aclAuditLogCreate } = serviceWith([
+    const { service, fieldAclFindMany, aclAuditLogCreateMany } = serviceWith([
       {
         resourceType: "customer",
         resourceId: "cust-acme",
@@ -64,21 +64,25 @@ describe("FieldAclService", () => {
       },
       orderBy: [{ resourceId: "desc" }, { createdAt: "desc" }],
     });
-    expect(aclAuditLogCreate).toHaveBeenCalledWith({
-      data: {
-        userId: "user-1",
-        resourceType: "customer",
-        resourceId: "cust-acme",
-        fieldName: "email",
-        action: "field_read_filter",
-        reason: "required_roles_denied",
-      },
+    expect(aclAuditLogCreateMany).toHaveBeenCalledWith({
+      data: [
+        {
+          userId: "user-1",
+          resourceType: "customer",
+          resourceId: "cust-acme",
+          fieldName: "email",
+          action: "field_read_filter",
+          reason: "required_roles_denied",
+        },
+      ],
     });
-    expect(JSON.stringify(aclAuditLogCreate.mock.calls)).not.toContain("buyer@example.com");
+    expect(JSON.stringify(aclAuditLogCreateMany.mock.calls)).not.toContain(
+      "buyer@example.com",
+    );
   });
 
   it("silently removes denied write fields from the payload", async () => {
-    const { service, aclAuditLogCreate } = serviceWith([
+    const { service, aclAuditLogCreateMany } = serviceWith([
       {
         resourceType: "proposal",
         resourceId: "proposal-1",
@@ -97,12 +101,14 @@ describe("FieldAclService", () => {
     );
 
     expect(filtered).toEqual({ title: "Allowed title" });
-    expect(aclAuditLogCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        fieldName: "contentJson",
-        action: "field_write_filter",
-        reason: "required_roles_denied",
-      }),
+    expect(aclAuditLogCreateMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          fieldName: "contentJson",
+          action: "field_write_filter",
+          reason: "required_roles_denied",
+        }),
+      ],
     });
   });
 });

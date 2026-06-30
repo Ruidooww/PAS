@@ -84,6 +84,7 @@ describe("proposal version management", () => {
   let versionFindMany: ReturnType<typeof vi.fn>;
   let fieldAclFindMany: ReturnType<typeof vi.fn>;
   let aclAuditLogCreate: ReturnType<typeof vi.fn>;
+  let aclAuditLogCreateMany: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     vi.resetModules();
@@ -140,6 +141,7 @@ describe("proposal version management", () => {
     ]);
     fieldAclFindMany = vi.fn().mockResolvedValue([]);
     aclAuditLogCreate = vi.fn().mockResolvedValue({});
+    aclAuditLogCreateMany = vi.fn().mockResolvedValue({ count: 1 });
 
     const { AppModule } = await import("../src/app.module");
     const { PrismaService } = await import("../src/prisma/prisma.service");
@@ -171,6 +173,7 @@ describe("proposal version management", () => {
         },
         aclAuditLog: {
           create: aclAuditLogCreate,
+          createMany: aclAuditLogCreateMany,
         },
         $queryRaw: vi.fn().mockResolvedValue([]),
         $transaction: vi.fn(

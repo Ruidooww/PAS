@@ -53,12 +53,19 @@ describe("KgExtractService", () => {
       relations: 2,
     });
 
-    expect(ragflowRetrieve).toHaveBeenCalledWith({
-      kbId: "proposal-kb",
-      query: "IP-Guard finance proposal",
-      topK: 20,
-      docIdWhitelist: ["ragflow-doc-1"],
-    });
+    expect(ragflowRetrieve).toHaveBeenCalledWith(
+      {
+        kbId: "proposal-kb",
+        query: "IP-Guard finance proposal",
+        topK: 20,
+        docIdWhitelist: ["ragflow-doc-1"],
+      },
+      expect.objectContaining({
+        uid: "kg-extract-worker",
+        role: "system_service",
+        isExternal: false,
+      }),
+    );
     expect(llmComplete).toHaveBeenCalledWith({
       messages: [
         { role: "system", content: "Extract PAS KG JSON only." },

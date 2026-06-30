@@ -1,7 +1,24 @@
-import { ConfigService } from "@nestjs/config";
+﻿import { ConfigService } from "@nestjs/config";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { RagflowApiError, RagflowClientImpl, RETRIEVAL_DEFAULTS } from "../src/clients/ragflow";
+import {
+  RagflowApiError,
+  RagflowClientImpl,
+  type RagflowAclUserClaims,
+  RETRIEVAL_DEFAULTS,
+} from "../src/clients/ragflow";
+
+const userClaims: RagflowAclUserClaims = {
+  uid: "user-1",
+  tenantId: "tenant-default",
+  idpProvider: "mock",
+  idpUserId: "mock-user-1",
+  name: "Mock User",
+  email: "mock.presales@example.com",
+  role: "presales",
+  isExternal: false,
+  deptId: "dept-presales",
+};
 
 function makeConfig(overrides: Record<string, string> = {}): ConfigService {
   const values: Record<string, string> = {
@@ -64,7 +81,7 @@ describe("RagflowClientImpl.retrieve", () => {
     });
     const client = new RagflowClientImpl(makeConfig());
 
-    await client.retrieve({ query: "加密策略", kbId: "kb-abc" });
+    await client.retrieve({ query: "鍔犲瘑绛栫暐", kbId: "kb-abc" }, userClaims);
 
     expect(captured).toHaveLength(1);
     const req = captured[0]!;
@@ -73,7 +90,7 @@ describe("RagflowClientImpl.retrieve", () => {
     expect(req.headers["authorization"]).toBe("Bearer test-key");
     expect(req.headers["content-type"]).toBe("application/json");
     expect(req.body).toMatchObject({
-      question: "加密策略",
+      question: "鍔犲瘑绛栫暐",
       dataset_ids: ["kb-abc"],
       page_size: RETRIEVAL_DEFAULTS.pageSize,
       top_k: RETRIEVAL_DEFAULTS.topK,
@@ -81,7 +98,7 @@ describe("RagflowClientImpl.retrieve", () => {
       vector_similarity_weight: RETRIEVAL_DEFAULTS.vectorSimilarityWeight,
       rerank_id: RETRIEVAL_DEFAULTS.rerankId,
     });
-    // 不传白名单时不该出现 document_ids，避免误把 [] 当过滤条件
+    // 涓嶄紶鐧藉悕鍗曟椂涓嶈鍑虹幇 document_ids锛岄伩鍏嶈鎶?[] 褰撹繃婊ゆ潯浠?
     expect(req.body).not.toHaveProperty("document_ids");
     expect(req.body).not.toHaveProperty("doc_ids");
   });
@@ -94,18 +111,21 @@ describe("RagflowClientImpl.retrieve", () => {
     });
     const client = new RagflowClientImpl(makeConfig());
 
-    await client.retrieve({
-      query: "q",
-      kbId: "kb",
-      topK: 5,
-      docIdWhitelist: ["d1", "d2"],
-    });
+    await client.retrieve(
+      {
+        query: "q",
+        kbId: "kb",
+        topK: 5,
+        docIdWhitelist: ["d1", "d2"],
+      },
+      userClaims,
+    );
 
     expect(captured[0]!.body).toMatchObject({
       page_size: 5,
       document_ids: ["d1", "d2"],
     });
-    // 旧别名 doc_ids (MCP 包装层用的) 不该出现 — ACL 安全契约
+    // 鏃у埆鍚?doc_ids (MCP 鍖呰灞傜敤鐨? 涓嶈鍑虹幇 鈥?ACL 瀹夊叏濂戠害
     expect(captured[0]!.body).not.toHaveProperty("doc_ids");
   });
 
@@ -120,8 +140,8 @@ describe("RagflowClientImpl.retrieve", () => {
             {
               id: "c1",
               document_id: "d1",
-              document_keyword: "IP-guard手册.pdf",
-              content: "策略设置内容",
+              document_keyword: "IP-guard鎵嬪唽.pdf",
+              content: "绛栫暐璁剧疆鍐呭",
               similarity: 0.45,
               term_similarity: 0.4,
               vector_similarity: 0.5,
@@ -134,17 +154,17 @@ describe("RagflowClientImpl.retrieve", () => {
     });
     const client = new RagflowClientImpl(makeConfig());
 
-    const chunks = await client.retrieve({ query: "q", kbId: "kb-abc" });
+    const chunks = await client.retrieve({ query: "q", kbId: "kb-abc" }, userClaims);
 
     expect(chunks).toEqual([
       {
         id: "c1",
         documentId: "d1",
-        content: "策略设置内容",
+        content: "绛栫暐璁剧疆鍐呭",
         score: 0.45,
         metadata: {
           kbId: "kb-abc",
-          documentKeyword: "IP-guard手册.pdf",
+          documentKeyword: "IP-guard鎵嬪唽.pdf",
           termSimilarity: 0.4,
           vectorSimilarity: 0.5,
           positions: undefined,
@@ -166,7 +186,7 @@ describe("RagflowClientImpl.retrieve", () => {
             {
               chunk_id: "c2",
               document_id: "d2",
-              content_with_weight: "兼容旧字段名",
+              content_with_weight: "鍏煎鏃у瓧娈靛悕",
               similarity: 0.3,
             },
           ],
@@ -175,8 +195,8 @@ describe("RagflowClientImpl.retrieve", () => {
     });
     const client = new RagflowClientImpl(makeConfig());
 
-    const chunks = await client.retrieve({ query: "q", kbId: "kb" });
-    expect(chunks[0]).toMatchObject({ id: "c2", content: "兼容旧字段名", score: 0.3 });
+    const chunks = await client.retrieve({ query: "q", kbId: "kb" }, userClaims);
+    expect(chunks[0]).toMatchObject({ id: "c2", content: "鍏煎鏃у瓧娈靛悕", score: 0.3 });
   });
 
   it("rejects chunk missing both `id` and `chunk_id`", async () => {
@@ -189,7 +209,7 @@ describe("RagflowClientImpl.retrieve", () => {
       },
     });
     const client = new RagflowClientImpl(makeConfig());
-    await expect(client.retrieve({ query: "q", kbId: "kb" })).rejects.toThrow(/id/);
+    await expect(client.retrieve({ query: "q", kbId: "kb" }, userClaims)).rejects.toThrow(/id/);
   });
 
   it("preserves NaN score when similarity is missing (distinguishes from 0)", async () => {
@@ -202,7 +222,7 @@ describe("RagflowClientImpl.retrieve", () => {
       },
     });
     const client = new RagflowClientImpl(makeConfig());
-    const chunks = await client.retrieve({ query: "q", kbId: "kb" });
+    const chunks = await client.retrieve({ query: "q", kbId: "kb" }, userClaims);
     expect(Number.isNaN(chunks[0]!.score)).toBe(true);
   });
 
@@ -214,7 +234,7 @@ describe("RagflowClientImpl.retrieve", () => {
     });
     const client = new RagflowClientImpl(makeConfig());
 
-    await expect(client.retrieve({ query: "q", kbId: "kb" })).rejects.toMatchObject({
+    await expect(client.retrieve({ query: "q", kbId: "kb" }, userClaims)).rejects.toMatchObject({
       name: "RagflowApiError",
       status: 502,
       bodySnippet: expect.stringContaining("upstream timeout"),
@@ -231,7 +251,7 @@ describe("RagflowClientImpl.retrieve", () => {
     const client = new RagflowClientImpl(makeConfig());
 
     const err = await client
-      .retrieve({ query: "q", kbId: "kb" })
+      .retrieve({ query: "q", kbId: "kb" }, userClaims)
       .then(() => null)
       .catch((e) => e);
     expect(err).toBeInstanceOf(RagflowApiError);
@@ -246,7 +266,7 @@ describe("RagflowClientImpl.retrieve", () => {
     });
     const client = new RagflowClientImpl(makeConfig());
 
-    await expect(client.retrieve({ query: "q", kbId: "kb" })).rejects.toMatchObject({
+    await expect(client.retrieve({ query: "q", kbId: "kb" }, userClaims)).rejects.toMatchObject({
       name: "RagflowApiError",
       message: expect.stringContaining("code=102"),
     });
@@ -283,12 +303,12 @@ describe("RagflowClientImpl other methods", () => {
           docs: [
             {
               id: "d1",
-              name: "手册.pdf",
+              name: "鎵嬪唽.pdf",
               status: "ready",
               size: 42,
               updated_at: "2026-06-02T03:04:05.000Z",
             },
-            { id: "d2", name: "白皮书.pdf", run: "DONE" },
+            { id: "d2", name: "鐧界毊涔?pdf", run: "DONE" },
           ],
         },
       },
@@ -302,12 +322,12 @@ describe("RagflowClientImpl other methods", () => {
     expect(docs).toEqual([
       {
         id: "d1",
-        name: "手册.pdf",
+        name: "鎵嬪唽.pdf",
         status: "ready",
         size: 42,
         updatedAt: "2026-06-02T03:04:05.000Z",
       },
-      { id: "d2", name: "白皮书.pdf", status: "DONE" },
+      { id: "d2", name: "鐧界毊涔?pdf", status: "DONE" },
     ]);
   });
 
@@ -334,7 +354,7 @@ describe("RagflowClientImpl auth + URL", () => {
       json: { code: 0, data: { chunks: [] } },
     });
     const client = new RagflowClientImpl(makeConfig({ RAGFLOW_BASE_URL: "http://x:9380/" }));
-    await client.retrieve({ query: "q", kbId: "kb" });
+    await client.retrieve({ query: "q", kbId: "kb" }, userClaims);
     expect(captured[0]!.url).toBe("http://x:9380/api/v1/retrieval");
     expect(captured[0]!.url).not.toContain("//api");
   });

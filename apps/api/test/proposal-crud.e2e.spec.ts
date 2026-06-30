@@ -91,6 +91,7 @@ describe("proposal CRUD API", () => {
   let proposalUpdateMany: ReturnType<typeof vi.fn>;
   let fieldAclFindMany: ReturnType<typeof vi.fn>;
   let aclAuditLogCreate: ReturnType<typeof vi.fn>;
+  let aclAuditLogCreateMany: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     vi.resetModules();
@@ -122,6 +123,7 @@ describe("proposal CRUD API", () => {
     proposalUpdateMany = vi.fn().mockResolvedValue({ count: 1 });
     fieldAclFindMany = vi.fn().mockResolvedValue([]);
     aclAuditLogCreate = vi.fn().mockResolvedValue({});
+    aclAuditLogCreateMany = vi.fn().mockResolvedValue({ count: 1 });
 
     const { AppModule } = await import("../src/app.module");
     const { PrismaService } = await import("../src/prisma/prisma.service");
@@ -145,6 +147,7 @@ describe("proposal CRUD API", () => {
         },
         aclAuditLog: {
           create: aclAuditLogCreate,
+          createMany: aclAuditLogCreateMany,
         },
         $queryRaw: vi.fn().mockResolvedValue([]),
         $transaction: vi.fn(async (callback: (transaction: unknown) => Promise<unknown>) =>
@@ -157,7 +160,10 @@ describe("proposal CRUD API", () => {
             },
             proposalVersion: { create: vi.fn() },
             fieldAcl: { findMany: fieldAclFindMany },
-            aclAuditLog: { create: aclAuditLogCreate },
+            aclAuditLog: {
+              create: aclAuditLogCreate,
+              createMany: aclAuditLogCreateMany,
+            },
           }),
         ),
         auditLog: {
@@ -263,15 +269,17 @@ describe("proposal CRUD API", () => {
     const body = (await response.json()) as Record<string, unknown>;
     expect(body).toMatchObject({ id: "proposal-1", title: "Customer A Proposal" });
     expect(body).not.toHaveProperty("requirementJson");
-    expect(aclAuditLogCreate).toHaveBeenCalledWith({
-      data: {
-        userId: "user-1",
-        resourceType: "proposal",
-        resourceId: "proposal-1",
-        fieldName: "requirementJson",
-        action: "field_read_filter",
-        reason: "required_roles_denied",
-      },
+    expect(aclAuditLogCreateMany).toHaveBeenCalledWith({
+      data: [
+        {
+          userId: "user-1",
+          resourceType: "proposal",
+          resourceId: "proposal-1",
+          fieldName: "requirementJson",
+          action: "field_read_filter",
+          reason: "required_roles_denied",
+        },
+      ],
     });
   });
 
@@ -445,15 +453,17 @@ describe("proposal CRUD API", () => {
     const body = (await response.json()) as { contentJson: { sections: Array<{ body: string }> } };
     expect(body.contentJson.sections[0]?.body).toBe("Original background");
     expect(proposalUpdateMany).not.toHaveBeenCalled();
-    expect(aclAuditLogCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        userId: "user-1",
-        resourceType: "proposal",
-        resourceId: "proposal-1",
-        fieldName: "contentJson",
-        action: "field_write_filter",
-        reason: "required_roles_denied",
-      }),
+    expect(aclAuditLogCreateMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          userId: "user-1",
+          resourceType: "proposal",
+          resourceId: "proposal-1",
+          fieldName: "contentJson",
+          action: "field_write_filter",
+          reason: "required_roles_denied",
+        }),
+      ],
     });
   });
 
