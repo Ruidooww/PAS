@@ -89,6 +89,25 @@ Codex 不允许做以下事项：
 
 业务输入文档合并 ≠ 后续工程 Issue 解锁。每个工程 Issue 仍需独立的解锁条件（业务/合规/售前主管/合规分级确认），spec body 顶部必须列明本文档解锁哪些 Issue、不解锁哪些 Issue。
 
+### 签字代理（agent-signed）vs 真签字（human-signed）
+
+当业务方授权 Codex 代理扮演业务负责人 / 安全合规 / 资深售前 / 法务等角色完成 spec 签字时，spec 必须显式区分签字类型：
+
+- `[agent-signed]`：由 Codex 代理签字，仅作为草稿推进依据。
+- `[human-signed by <人名或角色>, <日期>]`：真业务方在 GitHub Issue 评论区独立签字。
+
+签字解锁分两阶段：
+
+- **阶段 A（agent-signed 完成）**：spec 可合并为草稿、可作为后续工程 Issue 的"准备实施"输入；**不解锁工程实施 PR**。
+- **阶段 B（human-signed 完成）**：才解锁工程实施 PR。
+
+要求：
+
+- 任何业务输入 spec body 顶部必须有「签字状态总览」小节，逐项列出签字方、签字类型、签字日期。
+- Codex 代理签字时必须显式声明哪些真实角色尚未接入，不得用"已确认"模糊表述。
+- 工程实施 Issue 的解锁条件检查必须显式区分 agent-signed 和 human-signed；只 agent-signed 不构成解锁。
+- 若 spec 内文出现"已确认"等表述但实际为 agent-signed，PR 必须在签字状态总览中显式回溯标注。
+
 ## 执行规则
 
 每个 PR 都必须说明当前阶段，并基于本文档做 Boundary Check。若 Issue 请求看起来跨入后续阶段，Codex 必须停止实现路径，在 Issue 或 PR 中说明边界冲突，不能静默越级实现。
