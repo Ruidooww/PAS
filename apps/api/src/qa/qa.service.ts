@@ -7,7 +7,11 @@ import type { ChatMessage, Chunk } from "@pas/shared";
 
 import type { SessionClaims } from "../auth/types";
 import { LLM_CLIENT, type LlmClient } from "../clients/llm";
-import { RAGFLOW_CLIENT, type RagflowClient } from "../clients/ragflow";
+import {
+  RAGFLOW_CLIENT,
+  type RagflowClient,
+  runWithRagflowAclContext,
+} from "../clients/ragflow";
 import { runtimeConfig } from "../config/runtime";
 import { AclService } from "../internal/acl.service";
 import { PrismaService } from "../prisma/prisma.service";
@@ -83,12 +87,14 @@ export class QaService {
     const retrievedChunks =
       visibleDocIds.length === 0
         ? []
-        : await this.ragflowClient.retrieve({
-            kbId: qaKbId(),
-            query: retrievalQuery,
-            topK: runtimeConfig.qa.retrievalTopK,
-            docIdWhitelist: visibleDocIds,
-          });
+        : await runWithRagflowAclContext(user, () =>
+            this.ragflowClient.retrieve({
+              kbId: qaKbId(),
+              query: retrievalQuery,
+              topK: runtimeConfig.qa.retrievalTopK,
+              docIdWhitelist: visibleDocIds,
+            }),
+          );
     this.logTimingSpan(sessionId, "ragflow_retrieval_completed", requestStartedAt);
     const allowedDocIds = new Set(visibleDocIds);
     const chunks = retrievedChunks.filter((chunk) => allowedDocIds.has(chunk.documentId));

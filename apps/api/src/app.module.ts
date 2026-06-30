@@ -12,6 +12,7 @@ import { PrismaModule } from "./prisma/prisma.module";
 import { PublicModule } from "./public/public.module";
 import { SanitizeInterceptor } from "./sanitize/sanitize.interceptor";
 import { SharedModule } from "./shared/shared.module";
+import { AclModule } from "./internal/acl/acl.module";
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { SharedModule } from "./shared/shared.module";
       validate: validateEnv,
     }),
     PrismaModule,
+    AclModule,
     AuditModule,
     AuthModule,
     CustomerModule,

@@ -82,6 +82,8 @@ describe("proposal version management", () => {
   let proposalUpdateMany: ReturnType<typeof vi.fn>;
   let versionCreate: ReturnType<typeof vi.fn>;
   let versionFindMany: ReturnType<typeof vi.fn>;
+  let fieldAclFindMany: ReturnType<typeof vi.fn>;
+  let aclAuditLogCreate: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     vi.resetModules();
@@ -136,6 +138,8 @@ describe("proposal version management", () => {
         createdAt: new Date("2026-06-25T01:00:00.000Z"),
       },
     ]);
+    fieldAclFindMany = vi.fn().mockResolvedValue([]);
+    aclAuditLogCreate = vi.fn().mockResolvedValue({});
 
     const { AppModule } = await import("../src/app.module");
     const { PrismaService } = await import("../src/prisma/prisma.service");
@@ -161,6 +165,12 @@ describe("proposal version management", () => {
         proposalVersion: {
           create: versionCreate,
           findMany: versionFindMany,
+        },
+        fieldAcl: {
+          findMany: fieldAclFindMany,
+        },
+        aclAuditLog: {
+          create: aclAuditLogCreate,
         },
         $queryRaw: vi.fn().mockResolvedValue([]),
         $transaction: vi.fn(

@@ -7,6 +7,7 @@ import type { CustomerSource, ProposalStatus } from "@pas/shared";
 import type { SessionClaims } from "../auth/types";
 import { CRM_CLIENT } from "../clients/crm";
 import { AclService } from "../internal/acl.service";
+import { FieldAclService } from "../internal/acl/field-acl.service";
 import { PrismaService } from "../prisma/prisma.service";
 import {
   CustomerCacheService,
@@ -34,22 +35,32 @@ export class CustomerService {
     @Inject(CustomerCacheService) private readonly cache: CustomerCacheService,
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(AclService) private readonly acl: AclService,
+    @Inject(FieldAclService) private readonly fieldAcl: FieldAclService,
     @Inject(ConfigService) config: ConfigService,
   ) {
     this.source = config.getOrThrow<string>("CRM_PROVIDER") === "pas" ? "pas" : "external";
   }
 
-  async list(query: CustomerListQuery): Promise<CustomerListResponse> {
+  async list(query: CustomerListQuery, user: SessionClaims): Promise<CustomerListResponse> {
     const cacheKey = customerListKey(query);
     try {
       const fresh = await this.crm.listCustomers(query);
       const items = fresh.map((customer) => new CustomerDto(customer, this.source));
-      const response: CustomerListResponse = { items, page: query.page };
+      const response: CustomerListResponse = {
+        items: await this.filterCustomerItems(items, user),
+        page: query.page,
+      };
       await this.cache.set(cacheKey, response);
       return response;
     } catch (error) {
       const cached = await this.fallbackToCache<CustomerListResponse>(cacheKey, error);
-      if (cached) return { ...cached, fromCache: true };
+      if (cached) {
+        return {
+          ...cached,
+          items: await this.filterCustomerItems(cached.items, user),
+          fromCache: true,
+        };
+      }
       throw error;
     }
   }
@@ -62,7 +73,9 @@ export class CustomerService {
     } catch (error) {
       if (this.isNotFound(error)) throw new NotFoundException(`Customer not found: ${ref}`);
       const cached = await this.fallbackToCache<CustomerDetailDto>(cacheKey, error);
-      if (cached) return cached;
+      if (cached) {
+        return this.filterCustomerDetail(ref, cached, user);
+      }
       throw error;
     }
 
@@ -90,7 +103,7 @@ export class CustomerService {
     const proposals = await this.visibleProposalsForCustomer(ref, user);
     const detail = new CustomerDetailDto(customer, this.source, mirror.syncedAt, proposals);
     await this.cache.set(cacheKey, detail);
-    return detail;
+    return this.filterCustomerDetail(ref, detail, user);
   }
 
   async listOpportunities(query: OpportunityListQuery): Promise<OpportunityListResponse> {
@@ -153,6 +166,35 @@ export class CustomerService {
       version: proposal.version,
       createdAt: proposal.createdAt.toISOString(),
     }));
+  }
+
+  private async filterCustomerItems(
+    items: CustomerDto[],
+    user: SessionClaims,
+  ): Promise<CustomerDto[]> {
+    return Promise.all(
+      items.map(async (item) =>
+        (await this.fieldAcl.filterFields(
+          "customer",
+          item.ref,
+          item as unknown as Record<string, unknown>,
+          user,
+        )) as unknown as CustomerDto,
+      ),
+    );
+  }
+
+  private async filterCustomerDetail(
+    ref: string,
+    detail: CustomerDetailDto,
+    user: SessionClaims,
+  ): Promise<CustomerDetailDto> {
+    return (await this.fieldAcl.filterFields(
+      "customer",
+      ref,
+      detail as unknown as Record<string, unknown>,
+      user,
+    )) as unknown as CustomerDetailDto;
   }
 
   private async fallbackToCache<T>(cacheKey: string, error: unknown): Promise<T | null> {

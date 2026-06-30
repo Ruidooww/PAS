@@ -136,24 +136,57 @@ model ProposalVersion {
 }
 
 model KbDocument {
-  id               String    @id @default(cuid())
-  ragflowDocId     String    @unique @map("ragflow_doc_id")
-  ragflowKbId      String    @map("ragflow_kb_id")
-  name             String
-  product          String?
-  aclScope         String    @default("internal") @map("acl_scope")
-  uploadedBy       String?   @map("uploaded_by")
-  size             Int?
-  ragflowUpdatedAt DateTime? @map("ragflow_updated_at")
-  deletedAt        DateTime? @map("deleted_at")
-  syncedAt         DateTime  @default(now()) @map("synced_at")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  uploader         User?     @relation("DocumentUploader", fields: [uploadedBy], references: [id], onDelete: Restrict)
+  id                  String    @id @default(cuid())
+  ragflowDocId        String    @unique @map("ragflow_doc_id")
+  ragflowKbId         String    @map("ragflow_kb_id")
+  name                String
+  product             String?
+  aclScope            String    @default("internal") @map("acl_scope")
+  sensitivity         String    @default("internal")
+  chunkSensitivityMap Json      @default("{}") @map("chunk_sensitivity_map")
+  uploadedBy          String?   @map("uploaded_by")
+  size                Int?
+  ragflowUpdatedAt    DateTime? @map("ragflow_updated_at")
+  deletedAt           DateTime? @map("deleted_at")
+  syncedAt            DateTime  @default(now()) @map("synced_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  uploader            User?     @relation("DocumentUploader", fields: [uploadedBy], references: [id], onDelete: Restrict)
 
   @@index([ragflowKbId])
   @@index([aclScope])
   @@index([uploadedBy])
   @@map("kb_documents")
+}
+
+model FieldAcl {
+  id            String   @id @default(cuid())
+  resourceType  String   @map("resource_type")
+  resourceId    String   @map("resource_id")
+  fieldName     String   @map("field_name")
+  requiredRoles String[] @default([]) @map("required_roles")
+  requiredAttrs Json     @default("{}") @map("required_attrs")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([resourceType, resourceId])
+  @@index([resourceType, fieldName])
+  @@map("field_acls")
+}
+
+model AclAuditLog {
+  id           String   @id @default(cuid())
+  userId       String?  @map("user_id")
+  resourceType String   @map("resource_type")
+  resourceId   String   @map("resource_id")
+  fieldName    String?  @map("field_name")
+  chunkId      String?  @map("chunk_id")
+  action       String
+  reason       String
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([resourceType, resourceId])
+  @@index([createdAt])
+  @@map("acl_audit_logs")
 }
 
 model KbSyncLog {

@@ -1,3 +1,5 @@
+import { AsyncLocalStorage } from "node:async_hooks";
+
 // RAGFlow REST client.
 // 走 REST，不走 MCP — 见 exp-001 决策反转 (ADR-001 § 决策修订记录)：
 // FastGPT workflow + MCP 路径 MVP 不可用，PAS 自编排直连 RAGFlow REST。
@@ -14,9 +16,29 @@ import type {
 } from "@pas/shared";
 import { z } from "zod";
 
+import type { SessionClaims } from "../auth/types";
 import { runtimeConfig } from "../config/runtime";
+import type { PrismaService } from "../prisma/prisma.service";
 
 export const RAGFLOW_CLIENT = Symbol("RAGFLOW_CLIENT");
+
+export type ContentSensitivity = "public" | "internal" | "customer" | "regulated";
+
+export interface RagflowAclUserClaims extends SessionClaims {
+  employment_status?: string | null;
+  employmentStatus?: string | null;
+}
+
+interface RagflowAclContext {
+  userClaims: RagflowAclUserClaims;
+}
+
+interface FilterChunksOptions {
+  strictMode?: boolean;
+  defaultSensitivity?: ContentSensitivity;
+}
+
+const ragflowAclContext = new AsyncLocalStorage<RagflowAclContext>();
 
 export interface RagflowClient {
   retrieve(params: {
@@ -29,6 +51,27 @@ export interface RagflowClient {
   graphQuery(params: { entity: string; kbId: string; hops?: number }): Promise<GraphResult>;
   listDocs(kbId: string): Promise<RagflowDocument[]>;
   uploadDoc(kbId: string, file: Buffer, meta: RagflowDocumentMeta): Promise<string>;
+}
+
+export function runWithRagflowAclContext<T>(
+  userClaims: RagflowAclUserClaims,
+  fn: () => T,
+): T {
+  return ragflowAclContext.run({ userClaims }, fn);
+}
+
+export function filterChunksBySensitivity(
+  chunks: Chunk[],
+  userClaims: RagflowAclUserClaims,
+  options: FilterChunksOptions = {},
+): Chunk[] {
+  const strictMode = options.strictMode ?? runtimeConfig.acl.contentFilter.strictMode;
+  const defaultSensitivity =
+    options.defaultSensitivity ?? runtimeConfig.acl.contentFilter.defaultSensitivity;
+  return chunks.filter((chunk) => {
+    const sensitivity = sensitivityFromChunk(chunk, defaultSensitivity, strictMode);
+    return sensitivity !== undefined && canReadSensitivity(sensitivity, userClaims);
+  });
 }
 
 // exp-001 实证的检索默认参数。调参由 W1 gate harness 驱动，业务层不要覆盖。
@@ -104,7 +147,10 @@ export class RagflowApiError extends Error {
 
 @Injectable()
 export class RagflowClientImpl implements RagflowClient {
-  constructor(private readonly config: ConfigService) {}
+  constructor(
+    private readonly config: ConfigService,
+    private readonly prisma?: Pick<PrismaService, "kbDocument" | "aclAuditLog">,
+  ) {}
 
   async retrieve(params: {
     query: string;
@@ -137,7 +183,7 @@ export class RagflowClientImpl implements RagflowClient {
       );
     }
     const chunks = parsed.data?.chunks ?? [];
-    return chunks.map<Chunk>((c) => ({
+    const mapped = chunks.map<Chunk>((c) => ({
       // 官方字段名优先 (`id` / `content`)，旧/MCP 包装别名作 fallback。
       id: (c.id ?? c.chunk_id) as string,
       documentId: c.document_id,
@@ -155,6 +201,7 @@ export class RagflowClientImpl implements RagflowClient {
         highlight: c.highlight,
       },
     }));
+    return this.applyContentAcl(mapped);
   }
 
   // eslint-disable-next-line require-yield
@@ -260,6 +307,108 @@ export class RagflowClientImpl implements RagflowClient {
       return undefined;
     }
   }
+
+  private async applyContentAcl(chunks: Chunk[]): Promise<Chunk[]> {
+    const context = ragflowAclContext.getStore();
+    if (!context || !this.prisma || chunks.length === 0) return chunks;
+
+    const docIds = [...new Set(chunks.map((chunk) => chunk.documentId))];
+    const docs = await this.prisma.kbDocument.findMany({
+      where: { ragflowDocId: { in: docIds }, deletedAt: null },
+      select: {
+        ragflowDocId: true,
+        sensitivity: true,
+        chunkSensitivityMap: true,
+      },
+    });
+    const docById = new Map(docs.map((doc) => [doc.ragflowDocId, doc]));
+    const annotated = chunks.map((chunk) => {
+      const doc = docById.get(chunk.documentId);
+      const sensitivity =
+        chunkOverrideSensitivity(doc?.chunkSensitivityMap, chunk.id) ??
+        normalizeSensitivity(doc?.sensitivity) ??
+        runtimeConfig.acl.contentFilter.defaultSensitivity;
+      return {
+        ...chunk,
+        metadata: {
+          ...chunk.metadata,
+          sensitivity,
+        },
+      };
+    });
+    const allowed = filterChunksBySensitivity(annotated, context.userClaims);
+    const allowedIds = new Set(allowed.map((chunk) => chunk.id));
+    const denied = annotated.filter((chunk) => !allowedIds.has(chunk.id));
+    await Promise.all(
+      denied.map((chunk) =>
+        this.prisma!.aclAuditLog.create({
+          data: {
+            userId: context.userClaims.uid,
+            resourceType: "kb_document",
+            resourceId: chunk.documentId,
+            chunkId: chunk.id,
+            action: "content_filter",
+            reason: `chunk_sensitivity_denied:${String(chunk.metadata.sensitivity)}`,
+          },
+        }),
+      ),
+    );
+    return allowed;
+  }
+}
+
+function sensitivityFromChunk(
+  chunk: Chunk,
+  defaultSensitivity: ContentSensitivity,
+  strictMode: boolean,
+): ContentSensitivity | undefined {
+  const sensitivity = normalizeSensitivity(chunk.metadata.sensitivity);
+  if (sensitivity) return sensitivity;
+  return strictMode ? defaultSensitivity : "public";
+}
+
+function normalizeSensitivity(value: unknown): ContentSensitivity | undefined {
+  if (
+    value === "public" ||
+    value === "internal" ||
+    value === "customer" ||
+    value === "regulated"
+  ) {
+    return value;
+  }
+  return undefined;
+}
+
+function chunkOverrideSensitivity(
+  chunkSensitivityMap: unknown,
+  chunkId: string,
+): ContentSensitivity | undefined {
+  if (
+    !chunkSensitivityMap ||
+    typeof chunkSensitivityMap !== "object" ||
+    Array.isArray(chunkSensitivityMap)
+  ) {
+    return undefined;
+  }
+  return normalizeSensitivity((chunkSensitivityMap as Record<string, unknown>)[chunkId]);
+}
+
+function canReadSensitivity(
+  sensitivity: ContentSensitivity,
+  userClaims: RagflowAclUserClaims,
+): boolean {
+  if (sensitivity === "public") return true;
+  if (isInactive(userClaims)) return false;
+  if (sensitivity === "regulated") {
+    const role = String(userClaims.role);
+    return role === "admin" || role === "compliance" || role === "system_service";
+  }
+  return !userClaims.isExternal && String(userClaims.role) !== "external";
+}
+
+function isInactive(userClaims: RagflowAclUserClaims): boolean {
+  const status = userClaims.employment_status ?? userClaims.employmentStatus ?? "active";
+  return status !== "active";
 }
 
 @Injectable()

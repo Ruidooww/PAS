@@ -10,6 +10,7 @@ import { Prisma as PrismaRuntime } from "@prisma/client";
 
 import type { SessionClaims } from "../auth/types";
 import { AclService } from "../internal/acl.service";
+import { FieldAclService } from "../internal/acl/field-acl.service";
 import { PrismaService } from "../prisma/prisma.service";
 import {
   normalizeProposalContent,
@@ -26,6 +27,7 @@ export class ProposalCrudService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(AclService) private readonly acl: AclService,
+    @Inject(FieldAclService) private readonly fieldAcl: FieldAclService,
     @Inject(ProposalOwnerService) private readonly owner: ProposalOwnerService,
   ) {}
 
@@ -47,7 +49,9 @@ export class ProposalCrudService {
     ]);
 
     return {
-      items: proposals.map(normalizeProposal),
+      items: await Promise.all(
+        proposals.map((proposal) => this.filterProposalRead(normalizeProposal(proposal), user)),
+      ),
       page: query.page,
       pageSize: PAGE_SIZE,
       total,
@@ -55,15 +59,18 @@ export class ProposalCrudService {
     };
   }
 
-  async detail(proposalId: string, userId: string) {
-    return normalizeProposal(await this.owner.findOwnedProposal(proposalId, userId));
+  async detail(proposalId: string, user: SessionClaims) {
+    return this.filterProposalRead(
+      normalizeProposal(await this.owner.findOwnedProposal(proposalId, user.uid)),
+      user,
+    );
   }
 
-  async patch(proposalId: string, patch: ProposalPatch, userId: string) {
+  async patch(proposalId: string, patch: ProposalPatch, user: SessionClaims) {
     return this.prisma.$transaction(async (transaction) => {
       const proposal = await this.owner.findOwnedProposal(
         proposalId,
-        userId,
+        user.uid,
         transaction,
       );
       if (!proposal.contentJson) {
@@ -76,6 +83,16 @@ export class ProposalCrudService {
       );
       if (!contentJson) {
         throw new NotFoundException(`Proposal section not found: ${patch.section.id}`);
+      }
+      const allowedWrite = await this.fieldAcl.filterFields(
+        "proposal",
+        proposalId,
+        { contentJson },
+        user,
+        "write",
+      );
+      if (!("contentJson" in allowedWrite)) {
+        return this.filterProposalRead(normalizeProposal(proposal), user);
       }
 
       const data: Prisma.ProposalUpdateManyMutationInput =
@@ -96,7 +113,7 @@ export class ProposalCrudService {
         where: { id: proposalId },
       });
       if (!updated) throw proposalConflict();
-      return normalizeProposal(updated);
+      return this.filterProposalRead(normalizeProposal(updated), user);
     });
   }
 
@@ -169,6 +186,15 @@ export class ProposalCrudService {
     });
     return { id: proposalId, deleted: true };
   }
+
+  private filterProposalRead(proposal: NormalizedProposal, user: SessionClaims) {
+    return this.fieldAcl.filterFields(
+      "proposal",
+      proposal.id,
+      proposal as unknown as Record<string, unknown>,
+      user,
+    );
+  }
 }
 
 function normalizeProposal(proposal: Proposal) {
@@ -177,6 +203,8 @@ function normalizeProposal(proposal: Proposal) {
     contentJson: normalizeProposalContent(proposal.contentJson),
   };
 }
+
+type NormalizedProposal = ReturnType<typeof normalizeProposal>;
 
 function normalizeProposalVersion(version: ProposalVersion) {
   return {

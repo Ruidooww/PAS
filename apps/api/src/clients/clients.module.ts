@@ -10,16 +10,17 @@ import {
 } from "./crm";
 import { LLM_CLIENT, LlmClientImpl, LlmClientMock } from "./llm";
 import { RAGFLOW_CLIENT, RagflowClientImpl, RagflowClientMock } from "./ragflow";
+import { PrismaService } from "../prisma/prisma.service";
 
 @Module({
   providers: [
     {
       provide: RAGFLOW_CLIENT,
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) =>
+      inject: [ConfigService, PrismaService],
+      useFactory: (config: ConfigService, prisma: PrismaService) =>
         config.getOrThrow<string>("RAGFLOW_CLIENT_MODE") === "mock"
           ? new RagflowClientMock()
-          : new RagflowClientImpl(config),
+          : new RagflowClientImpl(config, prisma),
     },
     {
       provide: LLM_CLIENT,

@@ -1,7 +1,11 @@
 import { Inject, Injectable } from "@nestjs/common";
 
 import type { SessionClaims } from "../../auth/types";
-import { RAGFLOW_CLIENT, type RagflowClient } from "../../clients/ragflow";
+import {
+  RAGFLOW_CLIENT,
+  type RagflowClient,
+  runWithRagflowAclContext,
+} from "../../clients/ragflow";
 import { runtimeConfig } from "../../config/runtime";
 import { qaKbId } from "../../qa/qa-kb-id";
 import { AclService } from "../acl.service";
@@ -22,12 +26,14 @@ export class InternalQaService {
     const visibleDocIds = await this.acl.computeVisibleDocIds(user);
     if (visibleDocIds.length === 0) return { answer: "", sources: [] };
     const kbId = qaKbId();
-    const retrievedChunks = await this.ragflowClient.retrieve({
-      kbId,
-      query,
-      topK: runtimeConfig.qa.retrievalTopK,
-      docIdWhitelist: visibleDocIds,
-    });
+    const retrievedChunks = await runWithRagflowAclContext(user, () =>
+      this.ragflowClient.retrieve({
+        kbId,
+        query,
+        topK: runtimeConfig.qa.retrievalTopK,
+        docIdWhitelist: visibleDocIds,
+      }),
+    );
     const allowedDocIds = new Set(visibleDocIds);
     const chunks = retrievedChunks.filter((chunk) => allowedDocIds.has(chunk.documentId));
     const answerTokens: string[] = [];
