@@ -1,6 +1,20 @@
 import type { ConfigService } from "@nestjs/config";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import type { RagflowAclUserClaims } from "./ragflow";
+
+const userClaims: RagflowAclUserClaims = {
+  uid: "user-1",
+  tenantId: "tenant-default",
+  idpProvider: "mock",
+  idpUserId: "mock-user-1",
+  name: "Mock User",
+  email: "mock.presales@example.com",
+  role: "presales",
+  isExternal: false,
+  deptId: "dept-presales",
+};
+
 function makeConfig(): ConfigService {
   const values: Record<string, string> = {
     RAGFLOW_BASE_URL: "http://localhost:9380",
@@ -40,7 +54,10 @@ describe("RagflowClientImpl runtime tuning", () => {
     );
     const { RagflowClientImpl } = await import("./ragflow");
 
-    await new RagflowClientImpl(makeConfig()).retrieve({ query: "q", kbId: "kb" });
+    await new RagflowClientImpl(makeConfig()).retrieve(
+      { query: "q", kbId: "kb" },
+      userClaims,
+    );
 
     expect(capturedBodies[0]).toMatchObject({
       page_size: 30,

@@ -89,6 +89,9 @@ describe("proposal CRUD API", () => {
   let proposalCount: ReturnType<typeof vi.fn>;
   let proposalUpdate: ReturnType<typeof vi.fn>;
   let proposalUpdateMany: ReturnType<typeof vi.fn>;
+  let fieldAclFindMany: ReturnType<typeof vi.fn>;
+  let aclAuditLogCreate: ReturnType<typeof vi.fn>;
+  let aclAuditLogCreateMany: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
     vi.resetModules();
@@ -118,6 +121,9 @@ describe("proposal CRUD API", () => {
         Promise.resolve(proposal({ ...data })),
     );
     proposalUpdateMany = vi.fn().mockResolvedValue({ count: 1 });
+    fieldAclFindMany = vi.fn().mockResolvedValue([]);
+    aclAuditLogCreate = vi.fn().mockResolvedValue({});
+    aclAuditLogCreateMany = vi.fn().mockResolvedValue({ count: 1 });
 
     const { AppModule } = await import("../src/app.module");
     const { PrismaService } = await import("../src/prisma/prisma.service");
@@ -136,6 +142,13 @@ describe("proposal CRUD API", () => {
           create: vi.fn(),
           findMany: vi.fn(),
         },
+        fieldAcl: {
+          findMany: fieldAclFindMany,
+        },
+        aclAuditLog: {
+          create: aclAuditLogCreate,
+          createMany: aclAuditLogCreateMany,
+        },
         $queryRaw: vi.fn().mockResolvedValue([]),
         $transaction: vi.fn(async (callback: (transaction: unknown) => Promise<unknown>) =>
           callback({
@@ -146,6 +159,11 @@ describe("proposal CRUD API", () => {
               updateMany: proposalUpdateMany,
             },
             proposalVersion: { create: vi.fn() },
+            fieldAcl: { findMany: fieldAclFindMany },
+            aclAuditLog: {
+              create: aclAuditLogCreate,
+              createMany: aclAuditLogCreateMany,
+            },
           }),
         ),
         auditLog: {
@@ -232,6 +250,37 @@ describe("proposal CRUD API", () => {
         refs: ["doc-2"],
       },
     ]);
+  });
+
+  it("filters denied proposal detail fields and writes ACL audit", async () => {
+    fieldAclFindMany.mockResolvedValueOnce([
+      {
+        resourceType: "proposal",
+        resourceId: "proposal-1",
+        fieldName: "requirementJson",
+        requiredRoles: ["admin"],
+        requiredAttrs: {},
+      },
+    ]);
+
+    const response = await request("/api/internal/proposals/proposal-1");
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as Record<string, unknown>;
+    expect(body).toMatchObject({ id: "proposal-1", title: "Customer A Proposal" });
+    expect(body).not.toHaveProperty("requirementJson");
+    expect(aclAuditLogCreateMany).toHaveBeenCalledWith({
+      data: [
+        {
+          userId: "user-1",
+          resourceType: "proposal",
+          resourceId: "proposal-1",
+          fieldName: "requirementJson",
+          action: "field_read_filter",
+          reason: "required_roles_denied",
+        },
+      ],
+    });
   });
 
   it("trims whitespace-padded section ids and keeps PATCH addressable", async () => {
@@ -377,6 +426,44 @@ describe("proposal CRUD API", () => {
           ],
         },
       },
+    });
+  });
+
+  it("silently strips denied proposal content updates", async () => {
+    fieldAclFindMany
+      .mockResolvedValueOnce([
+        {
+          resourceType: "proposal",
+          resourceId: "proposal-1",
+          fieldName: "contentJson",
+          requiredRoles: ["admin"],
+          requiredAttrs: {},
+        },
+      ])
+      .mockResolvedValueOnce([]);
+
+    const response = await request("/api/internal/proposals/proposal-1", {
+      method: "PATCH",
+      body: JSON.stringify({
+        section: { id: "section-1", body: "Denied background" },
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { contentJson: { sections: Array<{ body: string }> } };
+    expect(body.contentJson.sections[0]?.body).toBe("Original background");
+    expect(proposalUpdateMany).not.toHaveBeenCalled();
+    expect(aclAuditLogCreateMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          userId: "user-1",
+          resourceType: "proposal",
+          resourceId: "proposal-1",
+          fieldName: "contentJson",
+          action: "field_write_filter",
+          reason: "required_roles_denied",
+        }),
+      ],
     });
   });
 

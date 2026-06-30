@@ -39,6 +39,8 @@ describe("validateEnv", () => {
       PAS_KG_EXTRACT_ATTEMPTS: 3,
       PAS_KG_EXTRACT_LLM_TEMPERATURE: 0,
       PAS_KG_EXTRACT_WORKER_CONCURRENCY: 1,
+      PAS_ACL_CONTENT_FILTER_DEFAULT_SENSITIVITY: "internal",
+      PAS_ACL_CONTENT_FILTER_STRICT_MODE: true,
       PAS_KB_SYNC_CRON: "0 * * * *",
       PAS_KB_SYNC_ENABLED: true,
     });
@@ -69,6 +71,19 @@ describe("validateEnv", () => {
     ).toMatchObject({
       PAS_KB_SYNC_CRON: "*/15 * * * *",
       PAS_KB_SYNC_ENABLED: false,
+    });
+  });
+
+  it("parses ACL content filter overrides", () => {
+    expect(
+      validateEnv({
+        ...completeEnv,
+        PAS_ACL_CONTENT_FILTER_DEFAULT_SENSITIVITY: "public",
+        PAS_ACL_CONTENT_FILTER_STRICT_MODE: "false",
+      }),
+    ).toMatchObject({
+      PAS_ACL_CONTENT_FILTER_DEFAULT_SENSITIVITY: "public",
+      PAS_ACL_CONTENT_FILTER_STRICT_MODE: false,
     });
   });
 

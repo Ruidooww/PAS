@@ -188,12 +188,19 @@ describe("ProposalGenerationService", () => {
         deptId: "dept-presales",
       }),
     );
-    expect(ragflowRetrieve).toHaveBeenCalledWith({
-      query: expect.stringContaining("IP-Guard document encryption"),
-      kbId: "proposal-kb",
-      topK: 5,
-      docIdWhitelist: ["allowed-doc"],
-    });
+    expect(ragflowRetrieve).toHaveBeenCalledWith(
+      {
+        query: expect.stringContaining("IP-Guard document encryption"),
+        kbId: "proposal-kb",
+        topK: 5,
+        docIdWhitelist: ["allowed-doc"],
+      },
+      expect.objectContaining({
+        uid: "user-1",
+        role: "presales",
+        deptId: "dept-presales",
+      }),
+    );
     const completion = llmComplete.mock.calls[0]?.[0];
     expect(completion.messages[1].content).toContain("[1] Allowed capability");
     expect(completion.messages[1].content).not.toContain("Private capability");

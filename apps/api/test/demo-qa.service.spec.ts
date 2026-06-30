@@ -27,6 +27,11 @@ describe("DemoQaService", () => {
 
     expect(retrieve).toHaveBeenCalledWith(
       expect.objectContaining({ kbId: "real-ragflow-dataset" }),
+      expect.objectContaining({
+        uid: "demo-qa",
+        role: "system_service",
+        isExternal: false,
+      }),
     );
     expect(chat).toHaveBeenCalledWith(
       expect.objectContaining({ kbId: "real-ragflow-dataset" }),

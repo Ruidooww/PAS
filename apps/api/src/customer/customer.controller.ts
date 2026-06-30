@@ -24,7 +24,7 @@ export class CustomerController {
   constructor(@Inject(CustomerService) private readonly customers: CustomerService) {}
 
   @Get("customers")
-  list(@Query() query: Record<string, unknown>) {
+  list(@Query() query: Record<string, unknown>, @Req() request: AuthenticatedRequest) {
     const parsed = customerListQuerySchema.safeParse(query);
     if (!parsed.success) {
       throw new BadRequestException({
@@ -32,7 +32,7 @@ export class CustomerController {
         issues: parsed.error.issues,
       });
     }
-    return this.customers.list(parsed.data);
+    return this.customers.list(parsed.data, request.user!);
   }
 
   @Get("customers/:ref")

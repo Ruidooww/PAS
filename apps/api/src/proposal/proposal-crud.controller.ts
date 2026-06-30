@@ -44,7 +44,7 @@ export class ProposalCrudController {
 
   @Get(":id")
   detail(@Param("id") proposalId: string, @Req() request: AuthenticatedRequest) {
-    return this.proposals.detail(proposalId, request.user!.uid);
+    return this.proposals.detail(proposalId, request.user!);
   }
 
   @Patch(":id")
@@ -60,7 +60,7 @@ export class ProposalCrudController {
         issues: parsed.error.issues,
       });
     }
-    return this.proposals.patch(proposalId, parsed.data, request.user!.uid);
+    return this.proposals.patch(proposalId, parsed.data, request.user!);
   }
 
   @Post(":id/finalize")

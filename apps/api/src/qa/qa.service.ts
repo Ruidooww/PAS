@@ -83,12 +83,15 @@ export class QaService {
     const retrievedChunks =
       visibleDocIds.length === 0
         ? []
-        : await this.ragflowClient.retrieve({
-            kbId: qaKbId(),
-            query: retrievalQuery,
-            topK: runtimeConfig.qa.retrievalTopK,
-            docIdWhitelist: visibleDocIds,
-          });
+        : await this.ragflowClient.retrieve(
+            {
+              kbId: qaKbId(),
+              query: retrievalQuery,
+              topK: runtimeConfig.qa.retrievalTopK,
+              docIdWhitelist: visibleDocIds,
+            },
+            user,
+          );
     this.logTimingSpan(sessionId, "ragflow_retrieval_completed", requestStartedAt);
     const allowedDocIds = new Set(visibleDocIds);
     const chunks = retrievedChunks.filter((chunk) => allowedDocIds.has(chunk.documentId));

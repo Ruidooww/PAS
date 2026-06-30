@@ -33,6 +33,12 @@ export const envSchema = z
     MINIO_ENDPOINT: z.string().url(),
     MINIO_SECRET_KEY: z.string().min(1),
     PAS_KB_ID: z.string().min(1),
+    PAS_ACL_CONTENT_FILTER_DEFAULT_SENSITIVITY: z
+      .enum(["public", "internal", "customer", "regulated"])
+      .default(runtimeConfig.acl.contentFilter.defaultSensitivity),
+    PAS_ACL_CONTENT_FILTER_STRICT_MODE: booleanFromEnv.default(
+      runtimeConfig.acl.contentFilter.strictMode,
+    ),
     PAS_KG_EXTRACT_ATTEMPTS: z.coerce
       .number()
       .int()

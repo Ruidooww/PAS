@@ -108,6 +108,9 @@ describe("customer CRM API", () => {
   let proposalFindMany: ReturnType<typeof vi.fn>;
   let computeVisibleProposalIds: ReturnType<typeof vi.fn>;
   let auditLogCreate: ReturnType<typeof vi.fn>;
+  let fieldAclFindMany: ReturnType<typeof vi.fn>;
+  let aclAuditLogCreate: ReturnType<typeof vi.fn>;
+  let aclAuditLogCreateMany: ReturnType<typeof vi.fn>;
   let CrmClientError: CrmClientErrorCtor;
 
   beforeEach(async () => {
@@ -134,6 +137,9 @@ describe("customer CRM API", () => {
     proposalFindMany = vi.fn().mockResolvedValue([proposal()]);
     computeVisibleProposalIds = vi.fn().mockResolvedValue(["proposal-1"]);
     auditLogCreate = vi.fn().mockResolvedValue({});
+    fieldAclFindMany = vi.fn().mockResolvedValue([]);
+    aclAuditLogCreate = vi.fn().mockResolvedValue({});
+    aclAuditLogCreateMany = vi.fn().mockResolvedValue({ count: 1 });
 
     ({ CrmClientError } = await import("@pas/clients/crm"));
     const { AppModule } = await import("../src/app.module");
@@ -158,6 +164,13 @@ describe("customer CRM API", () => {
         },
         proposal: {
           findMany: proposalFindMany,
+        },
+        fieldAcl: {
+          findMany: fieldAclFindMany,
+        },
+        aclAuditLog: {
+          create: aclAuditLogCreate,
+          createMany: aclAuditLogCreateMany,
         },
         auditLog: {
           create: auditLogCreate,
@@ -242,6 +255,37 @@ describe("customer CRM API", () => {
         version: true,
         createdAt: true,
       },
+    });
+  });
+
+  it("filters denied customer detail fields and writes ACL audit", async () => {
+    fieldAclFindMany.mockResolvedValueOnce([
+      {
+        resourceType: "customer",
+        resourceId: "cust-acme",
+        fieldName: "scale",
+        requiredRoles: ["admin"],
+        requiredAttrs: {},
+      },
+    ]);
+
+    const response = await request("/api/internal/customers/cust-acme");
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as Record<string, unknown>;
+    expect(body).toMatchObject({ ref: "cust-acme", name: "Acme Manufacturing" });
+    expect(body).not.toHaveProperty("scale");
+    expect(aclAuditLogCreateMany).toHaveBeenCalledWith({
+      data: [
+        {
+          userId: "user-1",
+          resourceType: "customer",
+          resourceId: "cust-acme",
+          fieldName: "scale",
+          action: "field_read_filter",
+          reason: "required_roles_denied",
+        },
+      ],
     });
   });
 

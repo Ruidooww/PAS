@@ -22,12 +22,15 @@ export class InternalQaService {
     const visibleDocIds = await this.acl.computeVisibleDocIds(user);
     if (visibleDocIds.length === 0) return { answer: "", sources: [] };
     const kbId = qaKbId();
-    const retrievedChunks = await this.ragflowClient.retrieve({
-      kbId,
-      query,
-      topK: runtimeConfig.qa.retrievalTopK,
-      docIdWhitelist: visibleDocIds,
-    });
+    const retrievedChunks = await this.ragflowClient.retrieve(
+      {
+        kbId,
+        query,
+        topK: runtimeConfig.qa.retrievalTopK,
+        docIdWhitelist: visibleDocIds,
+      },
+      user,
+    );
     const allowedDocIds = new Set(visibleDocIds);
     const chunks = retrievedChunks.filter((chunk) => allowedDocIds.has(chunk.documentId));
     const answerTokens: string[] = [];

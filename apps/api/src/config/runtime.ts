@@ -20,6 +20,12 @@ const runtimeSchema = z.object({
     retrievalTopK: z.number().int().positive(),
     historyTurns: z.number().int().nonnegative(),
   }),
+  acl: z.object({
+    contentFilter: z.object({
+      strictMode: z.boolean(),
+      defaultSensitivity: z.enum(["public", "internal", "customer", "regulated"]),
+    }),
+  }),
   kg: z.object({
     extract: z.object({
       workerConcurrency: z.number().int().positive(),
@@ -71,6 +77,12 @@ const defaults = {
   qa: {
     retrievalTopK: 3,
     historyTurns: 5,
+  },
+  acl: {
+    contentFilter: {
+      strictMode: true,
+      defaultSensitivity: "internal",
+    },
   },
   kg: {
     extract: {
@@ -134,6 +146,12 @@ const envBindings = [
   ["PAS_LLM_DEFAULT_TEMPERATURE", ["llm", "defaultTemperature"], "number"],
   ["PAS_QA_RETRIEVAL_TOP_K", ["qa", "retrievalTopK"], "number"],
   ["PAS_QA_HISTORY_TURNS", ["qa", "historyTurns"], "number"],
+  ["PAS_ACL_CONTENT_FILTER_STRICT_MODE", ["acl", "contentFilter", "strictMode"], "boolean"],
+  [
+    "PAS_ACL_CONTENT_FILTER_DEFAULT_SENSITIVITY",
+    ["acl", "contentFilter", "defaultSensitivity"],
+    "string",
+  ],
   [
     "PAS_KG_EXTRACT_WORKER_CONCURRENCY",
     ["kg", "extract", "workerConcurrency"],
@@ -191,6 +209,9 @@ function cloneRuntimeInput(value: RuntimeInput): RuntimeInput {
       defaultTemperature: value.llm.defaultTemperature,
     },
     qa: { ...value.qa },
+    acl: {
+      contentFilter: { ...value.acl.contentFilter },
+    },
     kg: {
       extract: { ...value.kg.extract },
     },

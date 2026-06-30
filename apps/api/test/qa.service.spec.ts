@@ -182,6 +182,7 @@ describe("QaService", () => {
 
     expect(retrieve).toHaveBeenCalledWith(
       expect.objectContaining({ kbId: "real-ragflow-dataset" }),
+      user,
     );
   });
 
@@ -208,12 +209,15 @@ describe("QaService", () => {
       service.answer({ query: "控制台加密策略怎么设置", sessionId: "session-1" }, user),
     );
 
-    expect(retrieve).toHaveBeenCalledWith({
-      kbId: "e0-mock-kb",
-      query: "控制台加密策略怎么设置",
-      topK: 3,
-      docIdWhitelist: ["doc-1", "doc-2"],
-    });
+    expect(retrieve).toHaveBeenCalledWith(
+      {
+        kbId: "e0-mock-kb",
+        query: "控制台加密策略怎么设置",
+        topK: 3,
+        docIdWhitelist: ["doc-1", "doc-2"],
+      },
+      user,
+    );
     expect(acl.computeVisibleDocIds).toHaveBeenCalledWith(user);
     expect(prisma.conversation.upsert).toHaveBeenCalledWith({
       where: { sessionId_userId: { sessionId: "session-1", userId: "user-1" } },
@@ -283,11 +287,13 @@ describe("QaService", () => {
       expect.objectContaining({
         query: expect.stringContaining("控制台加密策略怎么设置"),
       }),
+      user,
     );
     expect(retrieve).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.stringContaining("延申一下"),
       }),
+      user,
     );
   });
 
@@ -336,6 +342,7 @@ describe("QaService", () => {
 
     expect(retrieve).toHaveBeenCalledWith(
       expect.objectContaining({ docIdWhitelist: ["doc-1"] }),
+      user,
     );
   });
 

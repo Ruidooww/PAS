@@ -4,7 +4,11 @@ import type { Chunk } from "@pas/shared";
 import { z } from "zod";
 
 import { LLM_CLIENT, type LlmClient } from "../../clients/llm";
-import { RAGFLOW_CLIENT, type RagflowClient } from "../../clients/ragflow";
+import {
+  RAGFLOW_CLIENT,
+  type RagflowAclUserClaims,
+  type RagflowClient,
+} from "../../clients/ragflow";
 import { runtimeConfig } from "../../config/runtime";
 import { PrismaService } from "../../prisma/prisma.service";
 import { KG_EXTRACT_PROMPT } from "./kg-extract.prompt";
@@ -18,6 +22,18 @@ const RELATION_TYPES = [
   "INDUSTRY_HAS_CUSTOMER",
   "PRODUCT_COMPETES",
 ] as const;
+
+const kgExtractUserClaims: RagflowAclUserClaims = {
+  uid: "kg-extract-worker",
+  tenantId: "tenant-default",
+  idpProvider: "mock",
+  idpUserId: "kg-extract-worker",
+  name: "KG Extract Worker",
+  email: "kg-extract-worker@pas.local",
+  role: "system_service",
+  isExternal: false,
+  deptId: null,
+};
 
 const nullableString = z.string().trim().min(1).nullable().optional();
 const metadataSchema = z.record(z.unknown()).catch({});
@@ -108,12 +124,15 @@ export class KgExtractService {
       throw new NotFoundException(`KbDocument ${kbDocId} was not found`);
     }
 
-    const chunks = await this.ragflow.retrieve({
-      kbId: document.ragflowKbId,
-      query: document.name,
-      topK: 20,
-      docIdWhitelist: [document.ragflowDocId],
-    });
+    const chunks = await this.ragflow.retrieve(
+      {
+        kbId: document.ragflowKbId,
+        query: document.name,
+        topK: 20,
+        docIdWhitelist: [document.ragflowDocId],
+      },
+      kgExtractUserClaims,
+    );
     const completion = await this.llm.complete({
       messages: [
         { role: "system", content: this.prompt },

@@ -63,6 +63,7 @@ export class ProposalGenerationService {
               section,
               job.requirementJson,
               visibleDocIds,
+              user,
             );
       } catch (error) {
         errorMessage = errorMessageOf(error);
@@ -121,6 +122,7 @@ export class ProposalGenerationService {
     section: ProposalTemplate["sections"][number],
     requirementJson: Prisma.JsonValue,
     visibleDocIds: string[],
+    user: SessionClaims,
   ): Promise<GeneratedProposalSection> {
     let lastError: unknown;
 
@@ -130,6 +132,7 @@ export class ProposalGenerationService {
           section,
           requirementJson,
           visibleDocIds,
+          user,
         );
         const body = await this.llmClient.complete({
           messages: this.buildMessages(section, requirementJson, chunks),
@@ -153,16 +156,20 @@ export class ProposalGenerationService {
     section: ProposalTemplate["sections"][number],
     requirementJson: Prisma.JsonValue,
     visibleDocIds: string[],
+    user: SessionClaims,
   ): Promise<Chunk[]> {
     if (visibleDocIds.length === 0) return [];
-    const chunks = await this.ragflowClient.retrieve({
-      query: `${renderTemplate(section.retrievalIntent, requirementJson)} ${requirementKeywords(
-        requirementJson,
-      )}`.trim(),
-      kbId: this.config.getOrThrow<string>("PAS_KB_ID"),
-      topK: runtimeConfig.proposal.retrievalTopK,
-      docIdWhitelist: visibleDocIds,
-    });
+    const chunks = await this.ragflowClient.retrieve(
+      {
+        query: `${renderTemplate(section.retrievalIntent, requirementJson)} ${requirementKeywords(
+          requirementJson,
+        )}`.trim(),
+        kbId: this.config.getOrThrow<string>("PAS_KB_ID"),
+        topK: runtimeConfig.proposal.retrievalTopK,
+        docIdWhitelist: visibleDocIds,
+      },
+      user,
+    );
     const allowedDocIds = new Set(visibleDocIds);
     return chunks.filter((chunk) => allowedDocIds.has(chunk.documentId));
   }
