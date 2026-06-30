@@ -50,7 +50,7 @@ issue = 当前可执行或待确认的工作项
 | `E5` 内测上线 | E2E smoke、生产部署、反馈看板 |
 | `M6` AI 能力 | `llmClient`、prompt 外置、runtime config、provider boundary guard |
 | `M7` 知识库早期 V2 | `#108` 已合入 `M7.1 KG base`，包含 4 类实体、关系表、抽取 worker、internal KG API 与测试 |
-| `M9` 业务输入 / 工程实施 | `#78/#102` 已合入 M9 权限矩阵 spec；`#88` 已完成 3 类 `[human-signed]` 与 5 trace PASS；`#109` 已 open 且 CI green，待 S1 fail-open + N1/N2 fix 后合并并关闭 `#88` |
+| `M9` 业务输入 / 工程实施 | `#78/#102` 已合入 M9 权限矩阵 spec；`#88` 已完成 3 类 `[human-signed]` 与 5 trace PASS；`#109` 已 squash 合入 main (`9673cbc`)，`#88` 已关闭；M9.1 B+ scope（4 roles × 4 resources × read/write + 内容级 ACL + audit）落地 |
 | `M15` 业务输入 | `#77/#101` 已合入客情 8 维 spec；工程实施仍需独立 human-signed 路线确认 |
 | 治理层 | `#95-#107` 已合入执行文档、PR/issue 模板、guard、agent-signed 规则 |
 
@@ -64,7 +64,7 @@ issue = 当前可执行或待确认的工作项
 | `#78/#102/#107` | `M9` 业务输入与签字规则适配，保留 |
 | `#83/#108` | 已合入的 V2 早期 runtime，归入 `M7`，冻结扩张，待 `2.2` 消化 |
 | `#84-#87` | `M14` 后续 backlog，不属于 2.0 清账阶段直接施工 |
-| `#88/#109` | `#88 M9.1` 已解锁并已有工程 PR `#109` open；当前动作是完成 fix commit、合并 `#109`、再关闭 `#88` |
+| `#88/#109` | `#109` 已 squash 合入 main (`9673cbc`)，`#88` 已关闭；M9.1 B+ scope 实施完成 |
 | `#89/#90` | `M9.2/M9.3` 后置，依赖 `#88` 稳定 |
 | `#91/#92` | `M15` 后续工程，继续 blocked，等待 human-signed 路线确认 |
 | `#94` | 旧总纲草案，与当前边界冲突，应 supersede |
@@ -153,19 +153,19 @@ issue = 当前可执行或待确认的工作项
 ### 当前状态
 
 - `#78/#102` M9 权限矩阵 spec 已合入。
-- `#88` 已完成 3 类 `[human-signed]` 与 5 trace PASS。
-- `#109` 已 open，base `main`，head `codex/issue-88-m9-1-acl-fields-content`，CI green。
-- 当前待办是补 S1 fail-open + N1/N2 fix，合并 `#109` 后关闭 `#88`。
+- `#88` 已完成 3 类 `[human-signed]` 与 5 trace PASS，并已关闭。
+- `#109` 已 squash 合入 main (`9673cbc`)，包含初始 B+ scope 实施 + Followup fix (S1+N1+N2 commit `e212bab`)。
+- 2.1 阶段主要工程完成；剩余 followup（N3 demo-qa 收紧 / S2 list N+1 批量化）归入 2.2 消化阶段统一处理，不再独立拆 issue。
 
 ### 任务拆解
 
-| 子任务 | 内容 |
-|---|---|
-| `2.1-A` | 复核 `#109` final diff，确认只做 M9.1，不解锁 `#89/#90` |
-| `2.1-B` | 补 S1 fail-open fix，避免权限判断失败时默认放行 |
-| `2.1-C` | 补 N1/N2 fix，确保负向/边界场景进入验证 |
-| `2.1-D` | 复跑 guard / lint / typecheck / test / e2e / CI |
-| `2.1-E` | 合并 `#109` 后关闭 `#88`，并清理 `blocked` / milestone / linked issue 状态 |
+| 子任务 | 内容 | 状态 |
+|---|---|---|
+| `2.1-A` | 复核 `#109` final diff，确认只做 M9.1，不解锁 `#89/#90` | ✅ 已完成 |
+| `2.1-B` | 补 S1 fail-open fix（删除 ALS，retrieve(params, userClaims) 必填） | ✅ commit `e212bab` |
+| `2.1-C` | 补 N1（chunkSensitivityMap 双形态）/ N2（audit createMany）fix | ✅ commit `e212bab` |
+| `2.1-D` | 复跑 guard / lint / typecheck / test / e2e / CI | ✅ 全绿 |
+| `2.1-E` | 合并 `#109` 后关闭 `#88`，并清理 `blocked` / milestone / linked issue 状态 | ✅ 已完成 |
 
 ### 不做
 
@@ -480,20 +480,20 @@ issue = 当前可执行或待确认的工作项
 | `#85` | 重标到 `2.4 M14 PPT`，blocked by `#79` |
 | `#86` | 重标到 `2.4 M14` 后段，blocked by `#84` |
 | `#87` | 后移，不进入近期施工 |
-| `#88/#109` | `#109` 已 open；待 S1 fail-open + N1/N2 fix commit 合并后关闭 `#88`，并清理过时 `blocked` / milestone 状态 |
+| `#88/#109` | `#109` 已 squash 合入 main (`9673cbc`)，`#88` 已关闭；剩余 N3（demo-qa `system_service` role 收紧）和 S2（list N+1 ACL query 批量化）作为 followup |
 | `#89/#90` | 保留但后置，blocked by `#88` |
 | `#91/#92` | 保留但继续 blocked，blocked by M15 human-signed 路线确认 |
 
 ## 17. 近期执行顺序
 
 ```text
-1. 新建 / 更新 2.0 路线对齐 meta issue
-2. 关闭或 supersede #94
-3. 在本总任务书内补齐 M1-M15 模块台账
-4. 清账 #79-#92 的 milestone / blocked / meta 归属
-5. 合并 PR #109 fix commit 后关闭 #88
-6. 执行 2.2 M7 知识库产品化
-7. 再进入 2.3 M1 工作台与 2.4 M14
+1. ✅ 新建 / 更新 2.0 路线对齐 meta issue（本任务书 PR #110 合入承担）
+2. ✅ 关闭或 supersede #94（已 closed 并加 supersede 评论指向本任务书）
+3. ✅ 在本总任务书内补齐 M1-M15 模块台账（§3 + §5-§15）
+4. ⏳ 清账 #79-#92 的 milestone / blocked / meta 归属（待执行）
+5. ✅ 合并 PR #109 fix commit 后关闭 #88（commit `9673cbc`，含 followup `e212bab`）
+6. ⏳ 执行 2.2 M7 知识库产品化（含 #108 消化、N3/S2 followup）
+7. ⏳ 再进入 2.3 M1 工作台与 2.4 M14
 ```
 
 近期不执行：
