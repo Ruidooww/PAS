@@ -6,21 +6,44 @@
 
 本文档不做工程实现，不修改 API、数据库 schema、前端页面、后端 runtime、guard、provider integration、ACL 字段、ABAC engine、OPA policy evaluator、项目组隔离 runtime、外部分享、水印、权限 middleware、AgentRuntime、WorkflowEngine、PluginManager 或多租户平台能力。
 
+## 1.0 签字状态总览（agent-signed）
+
+| 签字方 | 签字类型 | 签字日期 | 备注 |
+|---|---|---|---|
+| 业务负责人 | `[agent-signed]` | 2026-06-30 | 业务方授权 Codex 代理签字，真业务方未独立签字 |
+| 安全合规负责人 | `[agent-signed]` | 2026-06-30 | 业务方授权 Codex 代理签字，真业务方未独立签字 |
+| 售前主管 | `[agent-signed]` | 2026-06-30 | 业务方授权 Codex 代理签字，真业务方未独立签字 |
+| 管理员 / 运维负责人 | `[agent-signed]` | 2026-06-30 | 可选确认，由 Codex 代理签字占位 |
+
+> **代理签字声明**：本 spec 4 项确认状态当前为 `[agent-signed]`，由业务方授权 Codex 代理扮演相应角色完成草稿签字。真业务负责人 / 安全合规 / 售前主管 / 管理员尚未在 GitHub Issue #78 评论区独立 `[human-signed]`。
+>
+> 按 `docs/execution/current-phase.md`「签字代理 vs 真签字」规则：
+>
+> - 当前 agent-signed 状态：spec 可合并为草稿，作为 M9 后续工程 Issue 的"准备实施"输入。
+> - **M9.1 文档级 ACL 工程实施 PR（#88）必须等真业务方 `[human-signed]` 后才解锁**。
+> - #89 / #90 与外部分享 / 水印 / 导出 runtime 即使 human-signed 也不在本 spec 解锁范围内。
+
 ## 1.1 本文档解锁范围
 
 为避免本 spec 合并被默认当作 M9 全栈解锁信号，明确解锁边界如下：
 
-- ✅ **解锁 #88 M9.1 文档级 ACL 工程实施**，仅限以下子集：
-  - §3 角色清单中 `is_external` 内 / 外分流相关的最小角色集（售前、售前主管、外部访客、系统服务账号）；
-  - §4 资源类型中 KB 文档、客户档案、方案、模板 / PPT 资源四类的 read / write / share 行；
-  - §5 矩阵中可由"同项目组 + 角色匹配"静态判定的"条件允许"格子；
-  - §6 User Attributes 中 `user.role` / `user.is_external` / `user.project_group` / `user.employment_status` 四个属性；
-  - §6 Resource Attributes 中 `resource.type` / `resource.sensitivity` / `resource.owner_dept` / `resource.project_group` 四个属性。
-- ❌ **不解锁 #89 M9.2 ABAC engine**：完整 ABAC 属性集、context-aware 决策、policy DSL、OPA evaluator 均需按 `docs/execution/phase-boundaries.md` V2 阶段独立解锁条件确认后再写工程 spec。
-- ❌ **不解锁 #90 M9.3 项目组隔离 runtime**：项目组生命周期、跨组共享流程、加入 / 离开 / 合并 / 解散均需 V3 独立解锁。
-- ❌ **不解锁外部分享 / 水印 / 导出 runtime**：§8 仅作为业务边界备忘，工程实施需独立 Issue + 独立业务确认。
+### 草稿准备阶段（agent-signed 完成即可触发）
 
-后续 Issue 解锁仍需独立的业务负责人 / 安全合规 / 售前主管签字。**本 spec 合并 ≠ 后续工程 Issue 自动解锁。**
+- ✅ **M9.1 文档级 ACL 工程草稿准备**：可基于本 spec §3 / §4 / §5 / §6 中标注的最小子集起草工程 Issue 任务拆解、字段表、API 草案，**但不得在工程实施 PR 中静默合并**。
+- ❌ #89 M9.2 ABAC engine、#90 M9.3 项目组隔离 runtime、外部分享 / 水印 / 导出 runtime 草稿也不在本 spec 解锁范围内。
+
+### 工程实施阶段（必须 human-signed 后才解锁）
+
+- 🔒 **M9.1 工程实施 PR（#88）** 解锁条件：
+  - 业务负责人 `[human-signed]`；
+  - 安全合规负责人 `[human-signed]`；
+  - 售前主管 `[human-signed]`；
+  - 至少 5 个 Trace 场景由 human review 通过。
+- 🔒 #89 / #90 解锁需按 `docs/execution/phase-boundaries.md` V2 / V3 阶段独立确认。
+
+### 引用范围约束
+
+工程实施 PR 必须显式声明本 PR 只引用 §3 / §4 / §5 / §6 中已 human-signed 通过的子集。超出部分由 Codex 报告边界冲突，不得静默实现。
 
 ## 2. 当前确认状态
 
