@@ -64,6 +64,31 @@ Codex 不允许做以下事项：
 - 提前实现 V4 平台化、多租户隔离、Plugin Marketplace 或 Workflow Engine；
 - 将 governance-only Issue 扩展成业务代码、schema、真实 RAG、Agent、Workflow 或 provider runtime 实现。
 
+## 业务输入文档准入规则
+
+业务输入文档（`docs/spec/*.md` 形态）会被用作后续工程 Issue 的解锁依据。为防止"高质量业务 spec 静默扩张路线图范围"，准入受以下规则约束：
+
+### 受控范围
+
+以下模块及其子任务的业务输入文档必须先经业务方显式签字确认"该模块进入当前路线"，Codex 才能写 spec：
+
+- 任务书 §6.1 明确砍掉的模块：M3 会议、M4 合同与财务、M8 多渠道、M10 Agent 编排、M11 经营驾驶舱、M12 渠道管理、M15 客情系统、客服 Agent；
+- 远期模块的高阶能力：M7 知识图谱、M9.2 ABAC engine、M9.3 项目组隔离 runtime、M14.2 PPT 引擎、M14.3 规则 DSL、M14.4 Outcome Learning / LoRA。
+
+### 签字确认要求
+
+业务方在对应 GitHub Issue 评论区给出明确签字（例如「确认该模块进入 V1.5 / V2 路线」），并在 Issue body 顶部加 `phase:` 标签后，Codex 才能起草业务输入文档。
+
+未签字时 Codex 必须：
+
+- 不主动起草业务输入文档；
+- 不把已有 spec 推进到后续阶段；
+- 在 Issue 中显式说明"等待业务方路线确认"。
+
+### Spec 不等于解锁
+
+业务输入文档合并 ≠ 后续工程 Issue 解锁。每个工程 Issue 仍需独立的解锁条件（业务/合规/售前主管/合规分级确认），spec body 顶部必须列明本文档解锁哪些 Issue、不解锁哪些 Issue。
+
 ## 执行规则
 
 每个 PR 都必须说明当前阶段，并基于本文档做 Boundary Check。若 Issue 请求看起来跨入后续阶段，Codex 必须停止实现路径，在 Issue 或 PR 中说明边界冲突，不能静默越级实现。

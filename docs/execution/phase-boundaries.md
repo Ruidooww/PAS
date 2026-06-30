@@ -124,6 +124,36 @@ V4 将 PAS 演进为受治理的平台层。
 - 不遵循 V2 / V3 contract 的临时平台功能；
 - 未经 Issue 明确声明和 PR 披露就静默改变 API、DB、schema 或配置 contract。
 
+## 未来想法 / 暂定不实施
+
+### 全栈插件化（PluginManager）
+
+**想法**：把所有 AI 能力（LLM / RAG / KB / Embedding / CRM）都统一到 `PluginManager` 之后，通过 config 选择 provider，支持运行时多 provider 共存与路由。
+
+**当前判断**：暂不实施。当前 D2 client interface + NestJS DI + provider adapter 已经满足"换 provider 不动业务层"的可替换性诉求。换 RAGFlow → FastGPT / Dify 的实际代价是新增一个 client 实现 + 改 DI 绑定一行，不需要 PluginManager。
+
+**何时重新评估**（任一满足才考虑落地）：
+
+- **多租户**：不同租户用不同 provider；
+- **同一能力运行时多 provider 共存路由**：A/B 测试、按 query 路由、混合调度（如 M6 OPT-M6-02 本地 + 云端调度）；
+- **不重启切换**：生产环境改 config 秒级生效；
+- **第三方贡献 provider**：marketplace-style 扩展。
+
+**临时折中（V2 Provider adapter hardening 已覆盖）**：
+
+- 强制 client interface 化，业务层只依赖 interface；
+- 每个 client 配 MockImpl，保证可无外部依赖测试；
+- DI 绑定走 config，启动时按 config 决定具体实现。
+
+**可能的演进切入点**：V3 引入 Agent + Tool Registry 时，Tool Registry 的注册机制可以顺势扩展为 PluginManager；LLM 混合调度需求出现时，先单点引入 `LLMRouter`，不要一次性全栈插件化。
+
+**禁止现在做**：
+
+- 新增 `PluginManager` 类型/接口；
+- 把现有 `ragflowClient` / `llmClient` / `crmClient` 包成 plugin；
+- 写 plugin lifecycle、动态注册、热加载；
+- 任何以"为未来插件化做准备"为由的业务代码重构。
+
 ## 边界判定规则
 
 当一个 Issue 同时出现多个阶段的术语时，Codex 只能实现该 Issue 明确要求的最低阶段内容。后续阶段术语可以作为 future scope 记录，但不能提前实现。
