@@ -37,6 +37,21 @@ enum IdpProvider {
   mock
 }
 
+enum KgEntityType {
+  product
+  proposal
+  customer
+  industry
+}
+
+enum KgRelationType {
+  PRODUCT_USES
+  CUSTOMER_BUYS
+  PROPOSAL_FOR_CUSTOMER
+  INDUSTRY_HAS_CUSTOMER
+  PRODUCT_COMPETES
+}
+
 model Tenant {
   id        String   @id @default(cuid())
   name      String   @unique
@@ -153,6 +168,70 @@ model KbSyncLog {
 
   @@index([ragflowKbId, runAt(sort: Desc)])
   @@map("kb_sync_logs")
+}
+
+model KgEntityProduct {
+  id       String   @id @default(cuid())
+  name     String   @unique
+  category String?
+  vendor   String?
+  aliases  String[] @default([])
+  metadata Json     @default("{}")
+
+  @@index([name])
+  @@map("kg_entity_products")
+}
+
+model KgEntityProposal {
+  id         String   @id @default(cuid())
+  title      String   @unique
+  customerId String?  @map("customer_id")
+  templateId String?  @map("template_id")
+  chapters   String[] @default([])
+
+  @@index([customerId])
+  @@map("kg_entity_proposals")
+}
+
+model KgEntityCustomer {
+  id       String  @id @default(cuid())
+  name     String  @unique
+  industry String?
+  scale    String?
+  crmId    String? @unique @map("crm_id")
+
+  @@index([industry])
+  @@map("kg_entity_customers")
+}
+
+model KgEntityIndustry {
+  id       String             @id @default(cuid())
+  name     String             @unique
+  code     String?            @unique
+  parentId String?            @map("parent_id")
+  parent   KgEntityIndustry?  @relation("KgIndustryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children KgEntityIndustry[] @relation("KgIndustryHierarchy")
+
+  @@index([parentId])
+  @@map("kg_entity_industries")
+}
+
+model KgRelation {
+  id             String         @id @default(cuid())
+  fromEntityType KgEntityType   @map("from_entity_type")
+  fromId         String         @map("from_id")
+  toEntityType   KgEntityType   @map("to_entity_type")
+  toId           String         @map("to_id")
+  relationType   KgRelationType @map("relation_type")
+  weight         Float          @default(1)
+  source         Json
+  createdAt      DateTime       @default(now()) @map("created_at")
+
+  @@unique([fromEntityType, fromId, toEntityType, toId, relationType], map: "kg_relations_unique_edge_type")
+  @@index([fromEntityType, fromId])
+  @@index([toEntityType, toId])
+  @@index([relationType])
+  @@map("kg_relations")
 }
 
 model AuditLog {

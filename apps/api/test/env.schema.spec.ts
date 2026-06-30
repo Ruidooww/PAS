@@ -36,8 +36,26 @@ describe("validateEnv", () => {
   it("accepts a complete E0 environment", () => {
     expect(validateEnv(completeEnv)).toMatchObject({
       ...completeEnv,
+      PAS_KG_EXTRACT_ATTEMPTS: 3,
+      PAS_KG_EXTRACT_LLM_TEMPERATURE: 0,
+      PAS_KG_EXTRACT_WORKER_CONCURRENCY: 1,
       PAS_KB_SYNC_CRON: "0 * * * *",
       PAS_KB_SYNC_ENABLED: true,
+    });
+  });
+
+  it("parses KG extraction overrides", () => {
+    expect(
+      validateEnv({
+        ...completeEnv,
+        PAS_KG_EXTRACT_ATTEMPTS: "5",
+        PAS_KG_EXTRACT_LLM_TEMPERATURE: "0.1",
+        PAS_KG_EXTRACT_WORKER_CONCURRENCY: "2",
+      }),
+    ).toMatchObject({
+      PAS_KG_EXTRACT_ATTEMPTS: 5,
+      PAS_KG_EXTRACT_LLM_TEMPERATURE: 0.1,
+      PAS_KG_EXTRACT_WORKER_CONCURRENCY: 2,
     });
   });
 

@@ -26,6 +26,7 @@ function useTempPrompts(content: string): void {
   const dir = mkdtempSync(join(tmpdir(), "pas-prompts-"));
   tempDirs.push(dir);
   mkdirSync(join(dir, "prompts"));
+  writeFileSync(join(dir, "prompts", "kg_extract.txt"), "KG extract\n", "utf8");
   writeFileSync(join(dir, "prompts", "qa_answer.txt"), content, "utf8");
   writeFileSync(join(dir, "prompts", "proposal_requirement.txt"), "Requirement\n", "utf8");
   writeFileSync(join(dir, "prompts", "proposal_section.txt"), "Section\n", "utf8");
@@ -49,6 +50,16 @@ describe("loadPrompt", () => {
     );
 
     expect(loadPrompt("qa_answer")).toBe(expected);
+  });
+
+  it("reads the KG extraction prompt byte-for-byte", async () => {
+    const { loadPrompt } = await importFreshLoader();
+    const expected = readFileSync(
+      join(apiRoot, "prompts", "kg_extract.txt"),
+      "utf8",
+    );
+
+    expect(loadPrompt("kg_extract")).toBe(expected);
   });
 
   it("replaces {{customer}} variables", async () => {

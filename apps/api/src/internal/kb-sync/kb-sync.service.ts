@@ -1,10 +1,11 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { Inject, Injectable, Logger, Optional } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import type { Prisma } from "@prisma/client";
 import type { RagflowDocument } from "@pas/shared";
 
 import { RAGFLOW_CLIENT, type RagflowClient } from "../../clients/ragflow";
 import { PrismaService } from "../../prisma/prisma.service";
+import { KgExtractQueue } from "../kg-sync/kg-extract.queue";
 
 export type KbSyncStatus = "success" | "failed";
 
@@ -56,10 +57,15 @@ interface NormalizedRagflowDocument {
 
 @Injectable()
 export class KbSyncService {
+  private readonly logger = new Logger(KbSyncService.name);
+
   constructor(
     @Inject(ConfigService) private readonly config: ConfigService,
     @Inject(RAGFLOW_CLIENT) private readonly ragflowClient: RagflowClient,
     @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Optional()
+    @Inject(KgExtractQueue)
+    private readonly kgExtractQueue?: Pick<KgExtractQueue, "enqueue">,
   ) {}
 
   async runOnce(options: KbSyncRunOptions = {}): Promise<KbSyncRunSummary> {
@@ -146,7 +152,7 @@ export class KbSyncService {
     for (const remoteDocument of remoteDocuments) {
       const existingDocument = existingByRagflowId.get(remoteDocument.id);
       if (!existingDocument) {
-        await this.prisma.kbDocument.create({
+        const created = await this.prisma.kbDocument.create({
           data: {
             ragflowDocId: remoteDocument.id,
             ragflowKbId: kbId,
@@ -156,6 +162,7 @@ export class KbSyncService {
             syncedAt: now,
           } satisfies Prisma.KbDocumentUncheckedCreateInput,
         });
+        await this.enqueueKgExtract(created.id);
         added += 1;
         continue;
       }
@@ -178,10 +185,11 @@ export class KbSyncService {
       }
       if (Object.keys(update).length > 0) {
         update.syncedAt = now;
-        await this.prisma.kbDocument.update({
+        const updatedDocument = await this.prisma.kbDocument.update({
           where: { id: existingDocument.id },
           data: update,
         });
+        await this.enqueueKgExtract(updatedDocument.id);
         updated += 1;
       }
     }
@@ -233,6 +241,19 @@ export class KbSyncService {
       if (normalized) unique.add(normalized);
     }
     return [...unique];
+  }
+
+  private async enqueueKgExtract(kbDocId: string): Promise<void> {
+    if (!this.kgExtractQueue) return;
+    try {
+      await this.kgExtractQueue.enqueue({ kbDocId });
+    } catch (err) {
+      this.logger.warn(
+        `KG extraction enqueue failed for ${kbDocId}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
   }
 }
 

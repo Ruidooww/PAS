@@ -20,6 +20,13 @@ const runtimeSchema = z.object({
     retrievalTopK: z.number().int().positive(),
     historyTurns: z.number().int().nonnegative(),
   }),
+  kg: z.object({
+    extract: z.object({
+      workerConcurrency: z.number().int().positive(),
+      attempts: z.number().int().positive(),
+      llmTemperature: z.number().min(0).max(2),
+    }),
+  }),
   proposal: z.object({
     retrievalTopK: z.number().int().positive(),
     workerConcurrency: z.number().int().positive(),
@@ -64,6 +71,13 @@ const defaults = {
   qa: {
     retrievalTopK: 3,
     historyTurns: 5,
+  },
+  kg: {
+    extract: {
+      workerConcurrency: 1,
+      attempts: 3,
+      llmTemperature: 0,
+    },
   },
   proposal: {
     retrievalTopK: 5,
@@ -120,6 +134,13 @@ const envBindings = [
   ["PAS_LLM_DEFAULT_TEMPERATURE", ["llm", "defaultTemperature"], "number"],
   ["PAS_QA_RETRIEVAL_TOP_K", ["qa", "retrievalTopK"], "number"],
   ["PAS_QA_HISTORY_TURNS", ["qa", "historyTurns"], "number"],
+  [
+    "PAS_KG_EXTRACT_WORKER_CONCURRENCY",
+    ["kg", "extract", "workerConcurrency"],
+    "number",
+  ],
+  ["PAS_KG_EXTRACT_ATTEMPTS", ["kg", "extract", "attempts"], "number"],
+  ["PAS_KG_EXTRACT_LLM_TEMPERATURE", ["kg", "extract", "llmTemperature"], "number"],
   ["PAS_PROPOSAL_RETRIEVAL_TOP_K", ["proposal", "retrievalTopK"], "number"],
   ["PAS_PROPOSAL_WORKER_CONCURRENCY", ["proposal", "workerConcurrency"], "number"],
   ["PAS_PROPOSAL_CHAPTER_RETRIES", ["proposal", "chapterRetries"], "number"],
@@ -170,6 +191,9 @@ function cloneRuntimeInput(value: RuntimeInput): RuntimeInput {
       defaultTemperature: value.llm.defaultTemperature,
     },
     qa: { ...value.qa },
+    kg: {
+      extract: { ...value.kg.extract },
+    },
     proposal: {
       ...value.proposal,
       queue: { ...value.proposal.queue },

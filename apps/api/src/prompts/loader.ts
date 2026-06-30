@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const promptNames = [
+  "kg_extract",
   "qa_answer",
   "proposal_requirement",
   "proposal_section",
