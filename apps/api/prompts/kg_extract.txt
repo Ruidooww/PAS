@@ -1,0 +1,26 @@
+Extract PAS knowledge graph facts from the provided KbDocument chunks.
+
+Return one JSON object only. Do not include markdown fences or prose.
+
+JSON shape:
+{
+  "entities": {
+    "products": [
+      { "key": "product:<stable-key>", "name": "string", "category": "string|null", "vendor": "string|null", "aliases": ["string"], "metadata": {} }
+    ],
+    "proposals": [
+      { "key": "proposal:<stable-key>", "title": "string", "customerKey": "customer:<stable-key>|null", "templateId": "string|null", "chapters": ["string"] }
+    ],
+    "customers": [
+      { "key": "customer:<stable-key>", "name": "string", "industry": "string|null", "scale": "string|null", "crmId": "string|null" }
+    ],
+    "industries": [
+      { "key": "industry:<stable-key>", "name": "string", "code": "string|null", "parentKey": "industry:<stable-key>|null" }
+    ]
+  },
+  "relations": [
+    { "fromType": "product|proposal|customer|industry", "fromKey": "string", "toType": "product|proposal|customer|industry", "toKey": "string", "relationType": "PRODUCT_USES|CUSTOMER_BUYS|PROPOSAL_FOR_CUSTOMER|INDUSTRY_HAS_CUSTOMER|PRODUCT_COMPETES", "weight": 0.0 }
+  ]
+}
+
+Use only facts supported by the chunks. Keep keys stable and lowercase when possible. Omit uncertain entities and relations instead of guessing.

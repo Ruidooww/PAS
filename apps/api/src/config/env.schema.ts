@@ -33,6 +33,21 @@ export const envSchema = z
     MINIO_ENDPOINT: z.string().url(),
     MINIO_SECRET_KEY: z.string().min(1),
     PAS_KB_ID: z.string().min(1),
+    PAS_KG_EXTRACT_ATTEMPTS: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(runtimeConfig.kg.extract.attempts),
+    PAS_KG_EXTRACT_LLM_TEMPERATURE: z.coerce
+      .number()
+      .min(0)
+      .max(2)
+      .default(runtimeConfig.kg.extract.llmTemperature),
+    PAS_KG_EXTRACT_WORKER_CONCURRENCY: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(runtimeConfig.kg.extract.workerConcurrency),
     PAS_KB_SYNC_CRON: z.string().min(1).default(runtimeConfig.kbSync.cron),
     PAS_KB_SYNC_ENABLED: booleanFromEnv.default(runtimeConfig.kbSync.enabled),
     PORT: z.coerce.number().int().positive().max(65_535).default(3001),
