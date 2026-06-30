@@ -6,6 +6,22 @@
 
 本文档不做工程实现，不修改 API、数据库 schema、前端页面、后端 runtime、guard、provider integration、ACL 字段、ABAC engine、OPA policy evaluator、项目组隔离 runtime、外部分享、水印、权限 middleware、AgentRuntime、WorkflowEngine、PluginManager 或多租户平台能力。
 
+## 1.1 本文档解锁范围
+
+为避免本 spec 合并被默认当作 M9 全栈解锁信号，明确解锁边界如下：
+
+- ✅ **解锁 #88 M9.1 文档级 ACL 工程实施**，仅限以下子集：
+  - §3 角色清单中 `is_external` 内 / 外分流相关的最小角色集（售前、售前主管、外部访客、系统服务账号）；
+  - §4 资源类型中 KB 文档、客户档案、方案、模板 / PPT 资源四类的 read / write / share 行；
+  - §5 矩阵中可由"同项目组 + 角色匹配"静态判定的"条件允许"格子；
+  - §6 User Attributes 中 `user.role` / `user.is_external` / `user.project_group` / `user.employment_status` 四个属性；
+  - §6 Resource Attributes 中 `resource.type` / `resource.sensitivity` / `resource.owner_dept` / `resource.project_group` 四个属性。
+- ❌ **不解锁 #89 M9.2 ABAC engine**：完整 ABAC 属性集、context-aware 决策、policy DSL、OPA evaluator 均需按 `docs/execution/phase-boundaries.md` V2 阶段独立解锁条件确认后再写工程 spec。
+- ❌ **不解锁 #90 M9.3 项目组隔离 runtime**：项目组生命周期、跨组共享流程、加入 / 离开 / 合并 / 解散均需 V3 独立解锁。
+- ❌ **不解锁外部分享 / 水印 / 导出 runtime**：§8 仅作为业务边界备忘，工程实施需独立 Issue + 独立业务确认。
+
+后续 Issue 解锁仍需独立的业务负责人 / 安全合规 / 售前主管签字。**本 spec 合并 ≠ 后续工程 Issue 自动解锁。**
+
 ## 2. 当前确认状态
 
 | 角色 | 确认内容 | 状态 |
