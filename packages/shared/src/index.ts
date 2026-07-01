@@ -151,6 +151,7 @@ export interface RagflowDocument {
   id: string;
   name: string;
   status: string;
+  product?: string | null;
   size?: number;
   chunkCount?: number;
   updatedAt?: string | null;
