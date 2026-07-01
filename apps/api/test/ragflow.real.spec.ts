@@ -43,8 +43,16 @@ interface CapturedRequest {
 }
 
 function captureFetch(response: { ok: boolean; status: number; json?: unknown; text?: string }) {
+  return captureFetchSequence([response]);
+}
+
+function captureFetchSequence(
+  responses: Array<{ ok: boolean; status: number; json?: unknown; text?: string }>,
+) {
   const captured: CapturedRequest[] = [];
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const response = responses[Math.min(captured.length, responses.length - 1)];
+    if (!response) throw new Error("No mocked response available");
     const url = typeof input === "string" ? input : input.toString();
     const headersIn = new Headers(init?.headers);
     const headers: Record<string, string> = {};
@@ -306,9 +314,15 @@ describe("RagflowClientImpl other methods", () => {
               name: "鎵嬪唽.pdf",
               status: "ready",
               size: 42,
+              chunk_count: 17,
               updated_at: "2026-06-02T03:04:05.000Z",
             },
-            { id: "d2", name: "鐧界毊涔?pdf", run: "DONE" },
+            {
+              id: "d2",
+              name: "鐧界毊涔?pdf",
+              run: "DONE",
+              update_time: Date.parse("2026-06-03T04:05:06.000Z"),
+            },
           ],
         },
       },
@@ -325,10 +339,53 @@ describe("RagflowClientImpl other methods", () => {
         name: "鎵嬪唽.pdf",
         status: "ready",
         size: 42,
+        chunkCount: 17,
         updatedAt: "2026-06-02T03:04:05.000Z",
       },
-      { id: "d2", name: "鐧界毊涔?pdf", status: "DONE" },
+      {
+        id: "d2",
+        name: "鐧界毊涔?pdf",
+        status: "DONE",
+        updatedAt: "2026-06-03T04:05:06.000Z",
+      },
     ]);
+  });
+
+  it("listDocs() pages through all RAGFlow documents when total exceeds page size", async () => {
+    const firstPageDocs = Array.from({ length: 100 }, (_, index) => ({
+      id: `d${index + 1}`,
+      name: `Doc ${index + 1}`,
+      run: "DONE",
+    }));
+    const { captured } = captureFetchSequence([
+      {
+        ok: true,
+        status: 200,
+        json: { code: 0, data: { total: 101, docs: firstPageDocs } },
+      },
+      {
+        ok: true,
+        status: 200,
+        json: {
+          code: 0,
+          data: {
+            total: 101,
+            docs: [{ id: "d101", name: "Doc 101", status: "ready", chunk_count: 3 }],
+          },
+        },
+      },
+    ]);
+    const client = new RagflowClientImpl(makeConfig());
+
+    const docs = await client.listDocs("kb-abc");
+
+    expect(docs).toHaveLength(101);
+    expect(docs[100]).toMatchObject({ id: "d101", name: "Doc 101", chunkCount: 3 });
+    expect(captured).toHaveLength(2);
+    expect(new URL(captured[0]!.url).searchParams.get("page")).toBe("1");
+    expect(new URL(captured[0]!.url).searchParams.get("page_size")).toBe("100");
+    expect(new URL(captured[1]!.url).searchParams.get("page")).toBe("2");
+    expect(new URL(captured[1]!.url).searchParams.get("page_size")).toBe("100");
   });
 
   it("graphQuery / uploadDoc throw 501", async () => {

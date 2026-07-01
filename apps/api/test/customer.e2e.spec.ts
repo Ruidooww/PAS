@@ -380,9 +380,9 @@ describe("customer CRM API", () => {
           ref: "opp-acme-expansion",
           stage: "qualified",
           amountEstimate: 300_000,
+          createdAt: "2026-06-27T08:00:00.000Z",
         }),
-        updatedAt: "2026-06-27T08:00:00.000Z",
-      } as Opportunity & { updatedAt: string },
+      },
     ]);
     proposalFindMany.mockResolvedValueOnce([
       proposal({

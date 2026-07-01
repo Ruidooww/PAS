@@ -46,6 +46,11 @@ describe("MockCrmClient", () => {
     const client = new MockCrmClient();
     const all = await client.listOpportunities({});
     expect(all).toHaveLength(10);
+    expect(all.filter((opp) => opp.createdAt)).toHaveLength(10);
+    expect(all.find((opp) => opp.ref === "opp-changjiang-full")?.createdAt)
+      .toMatch(/^2026-05-/);
+    expect(all.find((opp) => opp.ref === "opp-hongyan-mobile")?.createdAt)
+      .toMatch(/^2026-06-/);
     const byCustomer = await client.listOpportunities({ customerRef: "cust-acme" });
     expect(byCustomer.map((opp) => opp.ref)).toEqual(["opp-acme-dlp"]);
     const byStage = await client.listOpportunities({ stage: "evaluation" });

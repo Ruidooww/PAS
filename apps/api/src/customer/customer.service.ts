@@ -312,7 +312,10 @@ function countOpportunitiesByStage(
 function latestOpportunityUpdatedAt(opportunities: unknown[]): string | null {
   const timestamps = opportunities
     .map((opportunity) => {
-      const value = (opportunity as { updatedAt?: Date | string | null }).updatedAt;
+      const value =
+        (opportunity as { updatedAt?: Date | string | null; createdAt?: Date | string | null })
+          .updatedAt ??
+        (opportunity as { createdAt?: Date | string | null }).createdAt;
       if (!value) return null;
       const date = value instanceof Date ? value : new Date(value);
       return Number.isNaN(date.getTime()) ? null : date.toISOString();

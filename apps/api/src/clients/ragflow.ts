@@ -102,16 +102,21 @@ const retrievalResponseSchema = z.object({
     .optional(),
 });
 
+const ragflowDateSchema = z.union([z.string(), z.number()]).nullable().optional();
+
 const documentSchema = z.object({
   id: z.string(),
   name: z.string(),
   status: z.string().optional(),
   run: z.string().optional(),
   size: z.number().int().optional(),
-  updatedAt: z.string().nullable().optional(),
-  updated_at: z.string().nullable().optional(),
-  update_time: z.string().nullable().optional(),
+  chunk_count: z.number().int().nullable().optional(),
+  updatedAt: ragflowDateSchema,
+  updated_at: ragflowDateSchema,
+  update_time: ragflowDateSchema,
 });
+
+type RagflowDocumentPayload = z.infer<typeof documentSchema>;
 
 const listDocsResponseSchema = z.object({
   code: z.number(),
@@ -133,6 +138,51 @@ export class RagflowApiError extends Error {
     super(message);
     this.name = "RagflowApiError";
   }
+}
+
+function normalizeRagflowDate(value: string | number | null | undefined): string | undefined {
+  if (value === undefined || value === null || value === "") {
+    return undefined;
+  }
+  if (typeof value === "number") {
+    return unixTimestampToIso(value);
+  }
+
+  const trimmed = value.trim();
+  if (trimmed === "") {
+    return undefined;
+  }
+
+  if (/^\d+(\.\d+)?$/.test(trimmed)) {
+    return unixTimestampToIso(Number(trimmed));
+  }
+
+  return trimmed;
+}
+
+function unixTimestampToIso(value: number): string | undefined {
+  const millis = Math.abs(value) >= 1_000_000_000_000 ? value : value * 1000;
+  const date = new Date(millis);
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+}
+
+function toRagflowDocument(d: RagflowDocumentPayload): RagflowDocument {
+  const document: RagflowDocument = {
+    id: d.id,
+    name: d.name,
+    status: d.status ?? d.run ?? "unknown",
+  };
+  if (d.size !== undefined) {
+    document.size = d.size;
+  }
+  if (d.chunk_count !== undefined && d.chunk_count !== null) {
+    document.chunkCount = d.chunk_count;
+  }
+  const updatedAt = normalizeRagflowDate(d.updatedAt ?? d.updated_at ?? d.update_time);
+  if (updatedAt) {
+    document.updatedAt = updatedAt;
+  }
+  return document;
 }
 
 @Injectable()
@@ -216,32 +266,34 @@ export class RagflowClientImpl implements RagflowClient {
   }
 
   async listDocs(kbId: string): Promise<RagflowDocument[]> {
-    const url = new URL(this.resolveUrl(`/api/v1/datasets/${encodeURIComponent(kbId)}/documents`));
-    url.searchParams.set("page", "1");
-    url.searchParams.set("page_size", "100");
-    const json = await this.fetchJson(url.toString(), { method: "GET" });
-    const parsed = listDocsResponseSchema.parse(json);
-    if (parsed.code !== 0) {
-      throw new RagflowApiError(
-        `RAGFlow listDocs rejected (code=${parsed.code}): ${parsed.message ?? "unknown"}`,
-        200,
+    const pageSize = 100;
+    const documents: RagflowDocument[] = [];
+    let page = 1;
+    let total: number | undefined;
+
+    while (total === undefined || documents.length < total) {
+      const url = new URL(
+        this.resolveUrl(`/api/v1/datasets/${encodeURIComponent(kbId)}/documents`),
       );
+      url.searchParams.set("page", String(page));
+      url.searchParams.set("page_size", String(pageSize));
+      const json = await this.fetchJson(url.toString(), { method: "GET" });
+      const parsed = listDocsResponseSchema.parse(json);
+      if (parsed.code !== 0) {
+        throw new RagflowApiError(
+          `RAGFlow listDocs rejected (code=${parsed.code}): ${parsed.message ?? "unknown"}`,
+          200,
+        );
+      }
+
+      const docs = parsed.data?.docs ?? [];
+      documents.push(...docs.map(toRagflowDocument));
+      total = parsed.data?.total;
+      if (total === undefined || docs.length === 0) break;
+      page += 1;
     }
-    return (parsed.data?.docs ?? []).map<RagflowDocument>((d) => {
-      const document: RagflowDocument = {
-        id: d.id,
-        name: d.name,
-        status: d.status ?? d.run ?? "unknown",
-      };
-      if (d.size !== undefined) {
-        document.size = d.size;
-      }
-      const updatedAt = d.updatedAt ?? d.updated_at ?? d.update_time;
-      if (updatedAt) {
-        document.updatedAt = updatedAt;
-      }
-      return document;
-    });
+
+    return documents;
   }
 
   async uploadDoc(_kbId: string, _file: Buffer, _meta: RagflowDocumentMeta): Promise<string> {

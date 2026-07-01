@@ -11,6 +11,7 @@ type StoredDocument = {
   aclScope: string;
   uploadedBy: string | null;
   size: number | null;
+  chunkCount: number | null;
   ragflowUpdatedAt: Date | null;
   deletedAt: Date | null;
   syncedAt: Date;
@@ -33,6 +34,7 @@ function createDocument(overrides: Partial<StoredDocument>): StoredDocument {
     aclScope: overrides.aclScope ?? "internal",
     uploadedBy: overrides.uploadedBy ?? null,
     size: overrides.size ?? null,
+    chunkCount: overrides.chunkCount ?? null,
     ragflowUpdatedAt: overrides.ragflowUpdatedAt ?? null,
     deletedAt: overrides.deletedAt ?? null,
     syncedAt: overrides.syncedAt ?? new Date("2026-06-01T00:00:00.000Z"),
@@ -74,6 +76,7 @@ function createPrisma(seed: StoredDocument[] = []) {
           aclScope: data.aclScope ?? "internal",
           uploadedBy: data.uploadedBy ?? null,
           size: data.size ?? null,
+          chunkCount: data.chunkCount ?? null,
           ragflowUpdatedAt: data.ragflowUpdatedAt ?? null,
           deletedAt: data.deletedAt ?? null,
           syncedAt: data.syncedAt,
@@ -120,6 +123,7 @@ describe("KbSyncService", () => {
           name: "E0 Handbook",
           status: "ready",
           size: 42,
+          chunkCount: 17,
           updatedAt: "2026-06-02T03:04:05.000Z",
         },
       ]),
@@ -142,6 +146,7 @@ describe("KbSyncService", () => {
       aclScope: "internal",
       uploadedBy: null,
       size: 42,
+      chunkCount: 17,
       ragflowUpdatedAt: new Date("2026-06-02T03:04:05.000Z"),
       deletedAt: null,
     });
@@ -184,6 +189,7 @@ describe("KbSyncService", () => {
         ragflowDocId: "ragflow-doc-1",
         name: "Old Name",
         size: 1,
+        chunkCount: 2,
         ragflowUpdatedAt: new Date("2026-06-01T01:00:00.000Z"),
         syncedAt: oldSyncedAt,
       }),
@@ -195,6 +201,7 @@ describe("KbSyncService", () => {
           name: "New Name",
           status: "ready",
           size: 2,
+          chunkCount: 9,
           updatedAt: "2026-06-02T01:00:00.000Z",
         },
       ]),
@@ -214,6 +221,7 @@ describe("KbSyncService", () => {
     expect(document).toMatchObject({
       name: "New Name",
       size: 2,
+      chunkCount: 9,
       ragflowUpdatedAt: new Date("2026-06-02T01:00:00.000Z"),
       deletedAt: null,
     });
