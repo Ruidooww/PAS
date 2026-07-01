@@ -12,6 +12,7 @@ import {
   listOpportunities,
 } from "../../lib/crm/api-client";
 import type { CustomerDetail, CustomerPortrait, OpportunitySummary } from "../../lib/crm/types";
+import { formatMoney } from "../../lib/format";
 import styles from "./crm.module.css";
 
 export function CustomerDetailView({ customerRef }: { customerRef: string }) {
@@ -164,7 +165,7 @@ export function CustomerDetailView({ customerRef }: { customerRef: string }) {
                         </Link>
                       </td>
                       <td><span className={styles.tag}>{opp.stage}</span></td>
-                      <td>{opp.amountEstimate != null ? `¥${opp.amountEstimate.toLocaleString()}` : "—"}</td>
+                      <td>{formatMoney(opp.amountEstimate)}</td>
                       <td>{opp.ownerId ?? "—"}</td>
                     </tr>
                   ))}
@@ -265,10 +266,6 @@ function latestActivity(portrait: CustomerPortrait): { label: string; value: str
   return new Date(opportunityTime) > new Date(proposalTime)
     ? { label: "商机", value: opportunityTime }
     : { label: "方案", value: proposalTime };
-}
-
-function formatMoney(value: number): string {
-  return `¥${value.toLocaleString("zh-CN")}`;
 }
 
 function formatDate(value: string | null): string {

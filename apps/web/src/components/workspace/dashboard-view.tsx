@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { CrmApiError, listCustomers, listOpportunities } from "../../lib/crm/api-client";
 import type { CustomerSummary, OpportunitySummary } from "../../lib/crm/types";
+import { formatMoney } from "../../lib/format";
 import { ProposalApiError, listProposals } from "../../lib/proposal/api-client";
 import type { Proposal } from "../../lib/proposal/types";
 import { AppShell } from "../shell/app-shell";
@@ -252,10 +253,4 @@ function resolveCustomerName(customers: CustomerSummary[], customerRef: string):
 function isSameMonth(value: string, today: Date): boolean {
   const date = new Date(value);
   return date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth();
-}
-
-function formatMoney(value: number | null): string {
-  if (value == null) return "-";
-  if (value >= 10_000) return `¥ ${(value / 10_000).toLocaleString("zh-CN")} 万`;
-  return `¥ ${value.toLocaleString("zh-CN")}`;
 }

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { CrmApiError, listCustomers, listOpportunities } from "../../lib/crm/api-client";
 import type { CustomerSummary, OpportunitySummary } from "../../lib/crm/types";
+import { formatMoney } from "../../lib/format";
 import { KbDocumentsApiError, listKbDocuments } from "../../lib/kb-documents/api-client";
 import type { KbDocumentSummary } from "../../lib/kb-documents/types";
 import { ProposalApiError, listProposals } from "../../lib/proposal/api-client";
@@ -530,12 +531,6 @@ function isCurrentMonth(value: string): boolean {
   const date = new Date(value);
   const now = new Date();
   return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
-}
-
-function formatMoney(value: number | null): string {
-  if (value == null) return "-";
-  if (value >= 10_000) return `¥ ${(value / 10_000).toLocaleString("zh-CN")} 万`;
-  return `¥ ${value.toLocaleString("zh-CN")}`;
 }
 
 function formatNullableNumber(value: number | null): string {
