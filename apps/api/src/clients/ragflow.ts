@@ -108,9 +108,9 @@ const documentSchema = z.object({
   status: z.string().optional(),
   run: z.string().optional(),
   size: z.number().int().optional(),
-  updatedAt: z.string().nullable().optional(),
-  updated_at: z.string().nullable().optional(),
-  update_time: z.string().nullable().optional(),
+  updatedAt: z.union([z.string(), z.number()]).nullable().optional(),
+  updated_at: z.union([z.string(), z.number()]).nullable().optional(),
+  update_time: z.union([z.string(), z.number()]).nullable().optional(),
 });
 
 const listDocsResponseSchema = z.object({
@@ -237,8 +237,8 @@ export class RagflowClientImpl implements RagflowClient {
         document.size = d.size;
       }
       const updatedAt = d.updatedAt ?? d.updated_at ?? d.update_time;
-      if (updatedAt) {
-        document.updatedAt = updatedAt;
+      if (updatedAt !== undefined && updatedAt !== null) {
+        document.updatedAt = coerceIsoTimestamp(updatedAt);
       }
       return document;
     });
@@ -443,4 +443,11 @@ export class RagflowClientMock implements RagflowClient {
   async uploadDoc(_kbId: string, _file: Buffer, _meta: RagflowDocumentMeta): Promise<string> {
     return "mock-document";
   }
+}
+
+function coerceIsoTimestamp(value: string | number): string {
+  if (typeof value === "string") return value;
+  const ms = value < 1e12 ? value * 1000 : value;
+  const date = new Date(ms);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toISOString();
 }

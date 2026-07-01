@@ -331,6 +331,25 @@ describe("RagflowClientImpl other methods", () => {
     ]);
   });
 
+  it("listDocs() accepts update_time as unix ms/s number and normalizes to ISO string", async () => {
+    captureFetch({
+      ok: true,
+      status: 200,
+      json: {
+        code: 0,
+        data: {
+          docs: [
+            { id: "d-ms", name: "ms.pdf", status: "ready", update_time: 1_749_000_000_000 },
+            { id: "d-s", name: "s.pdf", status: "ready", update_time: 1_749_000_000 },
+          ],
+        },
+      },
+    });
+    const docs = await new RagflowClientImpl(makeConfig()).listDocs("kb-abc");
+    expect(docs[0]!.updatedAt).toBe(new Date(1_749_000_000_000).toISOString());
+    expect(docs[1]!.updatedAt).toBe(new Date(1_749_000_000_000).toISOString());
+  });
+
   it("graphQuery / uploadDoc throw 501", async () => {
     const client = new RagflowClientImpl(makeConfig());
     await expect(client.graphQuery({ entity: "x", kbId: "kb" })).rejects.toMatchObject({
