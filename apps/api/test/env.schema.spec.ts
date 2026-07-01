@@ -119,4 +119,39 @@ describe("validateEnv", () => {
       /IDP_MODE=mock/,
     );
   });
+
+  it("rejects placeholder LLM API keys in real mode", () => {
+    expect(() =>
+      validateEnv({
+        ...completeEnv,
+        LLM_CLIENT_MODE: "real",
+        LLM_API_KEY: "local-placeholder",
+      }),
+    ).toThrow(/LLM_API_KEY looks like a placeholder in real mode/);
+  });
+
+  it("rejects placeholder RAGFlow API keys in real mode", () => {
+    expect(() =>
+      validateEnv({
+        ...completeEnv,
+        RAGFLOW_CLIENT_MODE: "real",
+        RAGFLOW_API_KEY: "ragflow-placeholder",
+      }),
+    ).toThrow(/RAGFLOW_API_KEY looks like a placeholder in real mode/);
+  });
+
+  it("allows local placeholder keys when the matching clients run in mock mode", () => {
+    expect(
+      validateEnv({
+        ...completeEnv,
+        LLM_CLIENT_MODE: "mock",
+        LLM_API_KEY: "local-placeholder",
+        RAGFLOW_CLIENT_MODE: "mock",
+        RAGFLOW_API_KEY: "local-ragflow",
+      }),
+    ).toMatchObject({
+      LLM_CLIENT_MODE: "mock",
+      RAGFLOW_CLIENT_MODE: "mock",
+    });
+  });
 });
