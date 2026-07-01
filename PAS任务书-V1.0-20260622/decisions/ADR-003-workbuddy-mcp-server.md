@@ -5,7 +5,7 @@
 
 ## 背景
 
-用户公司是腾讯 **WorkBuddy**（`copilot.tencent.com/work`，桌面级 AI Agent 工作台，2026-03-09 全量上线）的代理商。WorkBuddy 支持通过 **MCP 协议 + 自定义 Connector** 接入第三方能力（已有企业微信、腾讯文档、TAPD 等官方连接器）。用户希望探索：PAS 建成后，能否把自己的能力包装成 MCP Server，被 WorkBuddy 的桌面 Agent 当作 Connector 调用。
+用户公司是腾讯 **WorkBuddy**（`copilot.tencent.com/work`，桌面级 AI Agent 工作台，2026-03-09 全量上线）的使用者。WorkBuddy 支持通过 **MCP 协议 + 自定义 Connector** 接入第三方能力（已有企业微信、腾讯文档、TAPD 等官方连接器）。用户希望探索：PAS 建成后，能否把自己的能力包装成 MCP Server，被 WorkBuddy 的桌面 Agent 当作 Connector 调用。
 
 **方向澄清（重要，不要与 ADR-001 混淆）**：ADR-001 的 D2 原则和三层能力栈里，PAS 是 **client**，RAGFlow/FastGPT/CRM 是被调用的 **server**（能力供应商）。本 ADR 讨论的方向**正好相反**——PAS 自己变成 **server**，WorkBuddy 是 **client / 编排方**。这与 ADR-001 v2 表格里"MCP server 暴露（PAS 当 server）— 让外部 agent 接入 PAS 能力"是同一件事的具体化，此前只是占位，本 ADR 是第一次展开设计。
 
@@ -89,3 +89,29 @@ MCP Server 是一层**薄 adapter**，复用 `apps/api/src` 里已有的 service
 - [ ] 确认 MCP 传输方式（远程 HTTP/SSE vs stdio）在 WorkBuddy 自定义 Connector 里的具体配置形态。
 - [ ] 确认 WorkBuddy 的 MCP 客户端是否支持长任务的"创建+轮询"两段式调用（决定 E3 `pas_proposal_start`/`status` 拆分方案是否可行）。
 - [ ] 以上确认后，再评估是否作为 v2 Issue 派给 Codex 实施（本 ADR 本身不产出 Issue）。
+
+## 调研更新（2026-07-01，公开文档二次调研）
+
+对上面三个开放问题查了 WorkBuddy 官方文档（`codebuddy.cn/docs/workbuddy/.../MCP-Guide` + `.../Connector`），结论：**两个问题有部分实锤，一个问题公开资料查不到，需要直接联系腾讯**。
+
+1. **传输方式 —— 有实锤，且推翻了本 ADR 最初的假设**。官方 MCP 配置示例是这样的（存于本机 `~/.workbuddy/mcp.json` 或项目级 `.workbuddy/mcp.json`）：
+   ```json
+   {
+     "mcpServers": {
+       "wecom": {
+         "command": "uvx",
+         "args": ["wecom-bot-mcp-server"],
+         "env": { "WECOM_WEBHOOK_URL": "your-webhook-url" }
+       }
+     }
+   }
+   ```
+   这是 **stdio 本地拉起模式**（跟 Claude Desktop / Claude Code 的 `mcpServers` 配置几乎一样），**不是**本 ADR 最初设想的"PAS 云端跑一个远程 MCP server，WorkBuddy 走网络连过来"。这意味着如果走"自定义 MCP"这条路径，落地形态更可能是：**PAS 发布一个本地可执行的 MCP CLI/npx 包，由每个销售在自己电脑上通过 WorkBuddy 拉起**，这个本地进程内部再去调 PAS 云端 API——而不是无本地依赖的纯远程 server。**这一条需要回填进"架构方向"一节，原图假设的"远程 Connector，走网络"很可能不成立，待确认。**
+
+2. **鉴权 —— 部分实锤，且发现有两条不同路径**：
+   - 本地 `mcp.json` 这条路径：鉴权就是 `env` 里塞死值（如上面例子的 webhook URL），**没有 per-user 身份概念**，是"谁的电脑上配的就是谁的凭证"——这反而天然解决了"按人区分"的问题，因为是每个销售在自己的 WorkBuddy 客户端里各自配置，不是一把全公司共享的服务端 key。
+   - "连接器管理"页面这条路径（企业微信/腾讯文档/TAPD 那种官方连接器）：提到了 "OAuth Access/Refresh Token 或手动 API 密钥" 的收集项，看起来是更**正式、走官方审核收录**的集成方式，而不是本地配置文件。这条路径的鉴权模型、是否支持第三方/如何申请上架，**公开文档没有展开，查不到**——这是三个问题里唯一一个建议**直接找腾讯（借用代理商关系）确认**的，而不是继续查文档。
+
+3. **长任务/轮询 —— 公开文档完全没提，但这本质是 MCP 协议通用问题，不是 WorkBuddy 独有的**。按 MCP 生态惯例，"先调一个 tool 建任务拿 id，Agent 自己决定要不要再调另一个 tool 查状态"是常见且成熟的模式，只要 WorkBuddy 的 Agent 循环支持"一次任务内连续调用多个 tool"（这是任何正经 MCP 客户端的标配能力）。**这一条风险降级**：不必单独去问腾讯，按这个假设先设计，真正实施时跑一次最小验证就知道。
+
+**结论**：三个开放问题里，两个（传输方式、通用鉴权模型）已经从公开文档拿到足够信息可以推进设计；长任务那条降级为低风险；唯一卡住、必须直接问腾讯的是"官方连接器收录/OAuth 审核流程"——如果决定走"正式连接器上架"而不是"本地 mcp.json 自定义"这条路径，才需要这一步。**如果走本地 mcp.json 路径，反而不需要等腾讯审核，PAS 现在就能设计一个本地 MCP CLI 包的原型。**
