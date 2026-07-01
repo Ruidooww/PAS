@@ -1,9 +1,11 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   Get,
   Inject,
   Param,
+  Post,
   Query,
   Req,
   UseGuards,
@@ -13,6 +15,7 @@ import { AuthGuard } from "../auth/auth.guard";
 import type { AuthenticatedRequest } from "../auth/types";
 import { InternalOnlyGuard } from "../internal/internal-only.guard";
 import {
+  createOpportunitySchema,
   customerListQuerySchema,
   opportunityListQuerySchema,
 } from "./customer.schema";
@@ -40,6 +43,11 @@ export class CustomerController {
     return this.customers.detail(ref, request.user!);
   }
 
+  @Get("customers/:ref/portrait")
+  portrait(@Param("ref") ref: string, @Req() request: AuthenticatedRequest) {
+    return this.customers.getCustomerPortrait(ref, request.user!);
+  }
+
   @Get("opportunities")
   listOpportunities(@Query() query: Record<string, unknown>) {
     const parsed = opportunityListQuerySchema.safeParse(query);
@@ -50,6 +58,21 @@ export class CustomerController {
       });
     }
     return this.customers.listOpportunities(parsed.data);
+  }
+
+  @Post("opportunities")
+  createOpportunity(
+    @Body() body: Record<string, unknown>,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    const parsed = createOpportunitySchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException({
+        message: "Invalid opportunity create payload",
+        issues: parsed.error.issues,
+      });
+    }
+    return this.customers.createOpportunity(parsed.data, request.user!);
   }
 
   @Get("opportunities/:ref")

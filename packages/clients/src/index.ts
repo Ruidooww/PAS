@@ -348,6 +348,7 @@ export interface CrmClient {
   listCustomers(params: CrmListCustomersParams): Promise<Customer[]>;
   getOpportunity(ref: string): Promise<Opportunity>;
   listOpportunities(params: CrmListOpportunitiesParams): Promise<Opportunity[]>;
+  upsertOpportunity(opportunity: Opportunity): Promise<Opportunity>;
 }
 
 export class CrmClientError extends Error {
@@ -433,6 +434,12 @@ export class ExternalCrmClient implements CrmClient {
     return value;
   }
 
+  upsertOpportunity(_opportunity: Opportunity): Promise<Opportunity> {
+    return Promise.reject(
+      new CrmClientError("External CRM write is not implemented", "external", 501),
+    );
+  }
+
   private async get(
     path: string,
     query: Record<string, string | number | undefined> = {},
@@ -468,6 +475,9 @@ export class PasCrmClient implements CrmClient {
   listOpportunities(_params: CrmListOpportunitiesParams): Promise<Opportunity[]> {
     return this.stageTwo();
   }
+  upsertOpportunity(_opportunity: Opportunity): Promise<Opportunity> {
+    return this.stageTwo();
+  }
   private stageTwo<T>(): Promise<T> {
     return Promise.reject(
       new CrmClientError("PAS-native CRM is reserved for phase two", "pas"),
@@ -481,39 +491,26 @@ export interface MockCrmClientOptions {
 }
 
 const defaultMockCustomers: Customer[] = [
-  {
-    ref: "cust-acme",
-    name: "Acme 制造",
-    industry: "制造业",
-    scale: 1200,
-    ownerId: "user-1",
-  },
-  {
-    ref: "cust-hyya",
-    name: "华义匀安演示客户",
-    industry: "信息安全",
-    scale: 500,
-    ownerId: "user-1",
-  },
+  { ref: "cust-acme", name: "Acme 制造", industry: "制造业", scale: 1200, ownerId: "user-1" },
+  { ref: "cust-hyya", name: "华义匀安演示客户", industry: "信息安全", scale: 500, ownerId: "user-1" },
+  { ref: "cust-changjiang", name: "长江精密制造集团", industry: "高端装备制造", scale: 3500, ownerId: "user-1" },
+  { ref: "cust-huaguang", name: "华光半导体设计", industry: "半导体设计", scale: 2200, ownerId: "user-1" },
+  { ref: "cust-xingchen", name: "星辰航空科技", industry: "航空航天", scale: 1800, ownerId: "user-1" },
+  { ref: "cust-yuanchuang", name: "元创医疗器械", industry: "医疗器械", scale: 1500, ownerId: "user-1" },
+  { ref: "cust-hongyan", name: "鸿雁汽车电子", industry: "汽车电子", scale: 5000, ownerId: "user-1" },
 ];
 
 const defaultMockOpportunities: Opportunity[] = [
-  {
-    ref: "opp-acme-dlp",
-    customerRef: "cust-acme",
-    title: "Acme 端点 DLP 一期",
-    stage: "discovery",
-    amountEstimate: 800_000,
-    ownerId: "user-1",
-  },
-  {
-    ref: "opp-hyya-pilot",
-    customerRef: "cust-hyya",
-    title: "华义匀安 PAS 试点",
-    stage: "evaluation",
-    amountEstimate: 200_000,
-    ownerId: "user-1",
-  },
+  { ref: "opp-acme-dlp", customerRef: "cust-acme", title: "Acme 端点 DLP 一期", stage: "discovery", amountEstimate: 800000, ownerId: "user-1" },
+  { ref: "opp-hyya-pilot", customerRef: "cust-hyya", title: "华义匀安 PAS 试点", stage: "evaluation", amountEstimate: 200000, ownerId: "user-1" },
+  { ref: "opp-changjiang-full", customerRef: "cust-changjiang", title: "长江精密 IP-Guard 全模块建设", stage: "closed_won", amountEstimate: 2800000, ownerId: "user-1" },
+  { ref: "opp-changjiang-expand", customerRef: "cust-changjiang", title: "长江精密二期扩容（研发部涉密图纸）", stage: "negotiation", amountEstimate: 800000, ownerId: "user-1" },
+  { ref: "opp-huaguang-encrypt", customerRef: "cust-huaguang", title: "华光半导体 芯片设计文档加密与外发管控", stage: "evaluation", amountEstimate: 1500000, ownerId: "user-1" },
+  { ref: "opp-xingchen-audit", customerRef: "cust-xingchen", title: "星辰航空 涉密审计合规（GB/T 22239-2019 三级）", stage: "discovery", amountEstimate: 2200000, ownerId: "user-1" },
+  { ref: "opp-yuanchuang-gxp", customerRef: "cust-yuanchuang", title: "元创医疗 GxP 电子记录与签名管控", stage: "evaluation", amountEstimate: 900000, ownerId: "user-1" },
+  { ref: "opp-yuanchuang-sensitive", customerRef: "cust-yuanchuang", title: "元创医疗 敏感数据识别扩展", stage: "discovery", amountEstimate: 400000, ownerId: "user-1" },
+  { ref: "opp-hongyan-endpoint", customerRef: "cust-hongyan", title: "鸿雁汽车电子 全终端 IP-Guard 管控", stage: "qualified", amountEstimate: 3500000, ownerId: "user-1" },
+  { ref: "opp-hongyan-mobile", customerRef: "cust-hongyan", title: "鸿雁汽车电子 移动设备安全接入", stage: "discovery", amountEstimate: 600000, ownerId: "user-1" },
 ];
 
 export class MockCrmClient implements CrmClient {
@@ -566,5 +563,10 @@ export class MockCrmClient implements CrmClient {
       if (params.stage && opportunity.stage !== params.stage) return false;
       return true;
     });
+  }
+
+  async upsertOpportunity(opportunity: Opportunity): Promise<Opportunity> {
+    this.opportunities.set(opportunity.ref, opportunity);
+    return opportunity;
   }
 }

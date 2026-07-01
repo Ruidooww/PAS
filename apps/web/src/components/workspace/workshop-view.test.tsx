@@ -2,7 +2,12 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-import { WORKSHOP_VIEW_IDS, WorkshopViewContent, type WorkshopViewConfig } from "./workshop-view";
+import {
+  WORKSHOP_VIEW_IDS,
+  WorkshopViewContent,
+  isDynamicView,
+  type WorkshopViewConfig,
+} from "./workshop-view";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn() }),
@@ -37,6 +42,10 @@ describe("WorkshopView", () => {
       "analytics",
       "tasks",
     ]);
+  });
+
+  it("loads knowledge as a dynamic view", () => {
+    expect(isDynamicView("knowledge")).toBe(true);
   });
 
   it("renders the generic workshop view contract", () => {

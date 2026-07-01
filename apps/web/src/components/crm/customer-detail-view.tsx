@@ -5,24 +5,35 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { AppShell } from "../shell/app-shell";
-import { CrmApiError, getCustomer, listOpportunities } from "../../lib/crm/api-client";
-import type { CustomerDetail, OpportunitySummary } from "../../lib/crm/types";
+import {
+  CrmApiError,
+  getCustomer,
+  getCustomerPortrait,
+  listOpportunities,
+} from "../../lib/crm/api-client";
+import type { CustomerDetail, CustomerPortrait, OpportunitySummary } from "../../lib/crm/types";
 import styles from "./crm.module.css";
 
 export function CustomerDetailView({ customerRef }: { customerRef: string }) {
   const router = useRouter();
   const [customer, setCustomer] = useState<CustomerDetail | null>(null);
+  const [portrait, setPortrait] = useState<CustomerPortrait | null>(null);
   const [opportunities, setOpportunities] = useState<OpportunitySummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
-    Promise.all([getCustomer(customerRef), listOpportunities({ customerRef })])
-      .then(([cust, oppRes]) => {
+    Promise.all([
+      getCustomer(customerRef),
+      listOpportunities({ customerRef }),
+      getCustomerPortrait(customerRef),
+    ])
+      .then(([cust, oppRes, portraitRes]) => {
         if (!active) return;
         setCustomer(cust);
         setOpportunities(oppRes.items);
+        setPortrait(portraitRes);
       })
       .catch((err: unknown) => {
         if (!active) return;
@@ -97,6 +108,8 @@ export function CustomerDetailView({ customerRef }: { customerRef: string }) {
         </>
       }
     >
+      {portrait && <CustomerPortraitCard portrait={portrait} />}
+
       <div className={styles.detailGrid}>
         <aside>
           <div className={styles.metaCard}>
@@ -200,4 +213,65 @@ export function CustomerDetailView({ customerRef }: { customerRef: string }) {
       </div>
     </AppShell>
   );
+}
+
+function CustomerPortraitCard({ portrait }: { portrait: CustomerPortrait }) {
+  const latest = latestActivity(portrait);
+  return (
+    <section className={styles.portraitCard}>
+      <div className={styles.portraitHeader}>
+        <div>
+          <h2>客户画像</h2>
+          <p>
+            {portrait.industry ?? "—"} ·{" "}
+            {portrait.scale != null ? `${portrait.scale.toLocaleString()} 人` : "—"} · Owner{" "}
+            {portrait.ownerId ?? "—"}
+          </p>
+        </div>
+      </div>
+      <div className={styles.portraitTiles}>
+        <article className={styles.portraitTile}>
+          <span>商机</span>
+          <strong>{portrait.opportunities.total}</strong>
+          <div className={styles.stageBadges}>
+            {Object.entries(portrait.opportunities.byStage).map(([stage, count]) => (
+              <em key={stage}>{stage}: {count}</em>
+            ))}
+          </div>
+          <p>{formatMoney(portrait.opportunities.totalAmountEstimate)}</p>
+        </article>
+        <article className={styles.portraitTile}>
+          <span>方案</span>
+          <strong>{portrait.proposals.total}</strong>
+          <p>{portrait.proposals.latestStatus ?? "暂无状态"}</p>
+          <p>{formatDate(portrait.proposals.latestUpdatedAt)}</p>
+        </article>
+        <article className={styles.portraitTile}>
+          <span>最新动态</span>
+          <strong>{latest.label}</strong>
+          <p>{formatDate(latest.value)}</p>
+        </article>
+      </div>
+    </section>
+  );
+}
+
+function latestActivity(portrait: CustomerPortrait): { label: string; value: string | null } {
+  const opportunityTime = portrait.opportunities.latestUpdatedAt;
+  const proposalTime = portrait.proposals.latestUpdatedAt;
+  if (!opportunityTime && !proposalTime) return { label: "暂无", value: null };
+  if (!opportunityTime) return { label: "方案", value: proposalTime };
+  if (!proposalTime) return { label: "商机", value: opportunityTime };
+  return new Date(opportunityTime) > new Date(proposalTime)
+    ? { label: "商机", value: opportunityTime }
+    : { label: "方案", value: proposalTime };
+}
+
+function formatMoney(value: number): string {
+  return `¥${value.toLocaleString("zh-CN")}`;
+}
+
+function formatDate(value: string | null): string {
+  if (!value) return "—";
+  return new Date(value).toLocaleString("zh-CN");
 }

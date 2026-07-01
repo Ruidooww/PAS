@@ -1,4 +1,12 @@
-import { Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { randomUUID } from "node:crypto";
+
+import {
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+  NotImplementedException,
+} from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import type { CrmClient } from "@pas/clients/crm";
 import { CrmClientError } from "@pas/clients/crm";
@@ -20,14 +28,20 @@ import {
   CustomerDetailDto,
   CustomerDto,
   type CustomerListResponse,
+  type CustomerPortraitDto,
   type CustomerProposalSummary,
   OpportunityDto,
   type OpportunityListResponse,
 } from "./customer.dto";
-import type { CustomerListQuery, OpportunityListQuery } from "./customer.schema";
+import type {
+  CreateOpportunityDto,
+  CustomerListQuery,
+  OpportunityListQuery,
+} from "./customer.schema";
 
 @Injectable()
 export class CustomerService {
+  private readonly crmProvider: string;
   private readonly source: CustomerSource;
 
   constructor(
@@ -38,7 +52,8 @@ export class CustomerService {
     @Inject(FieldAclService) private readonly fieldAcl: FieldAclService,
     @Inject(ConfigService) config: ConfigService,
   ) {
-    this.source = config.getOrThrow<string>("CRM_PROVIDER") === "pas" ? "pas" : "external";
+    this.crmProvider = config.getOrThrow<string>("CRM_PROVIDER");
+    this.source = this.crmProvider === "pas" ? "pas" : "external";
   }
 
   async list(query: CustomerListQuery, user: SessionClaims): Promise<CustomerListResponse> {
@@ -138,6 +153,70 @@ export class CustomerService {
     }
   }
 
+  async createOpportunity(
+    data: CreateOpportunityDto,
+    user: SessionClaims,
+  ): Promise<OpportunityDto> {
+    this.assertCanCreateOpportunity(user);
+    if (this.crmProvider !== "mock") {
+      throw new NotImplementedException("CRM opportunity writes are only implemented for mock CRM");
+    }
+    const opportunity = await this.crm.upsertOpportunity({
+      ref: `opp-${randomUUID().replace(/-/g, "")}`,
+      customerRef: data.customerRef,
+      title: data.title,
+      stage: data.stage,
+      amountEstimate: data.amountEstimate,
+      ownerId: user.uid,
+    });
+    return new OpportunityDto(opportunity);
+  }
+
+  async getCustomerPortrait(
+    ref: string,
+    user: SessionClaims,
+  ): Promise<CustomerPortraitDto> {
+    let customer;
+    try {
+      customer = await this.crm.getCustomer(ref);
+    } catch (error) {
+      if (this.isNotFound(error)) throw new NotFoundException(`Customer not found: ${ref}`);
+      throw error;
+    }
+
+    const [opportunities, proposals] = await Promise.all([
+      this.crm.listOpportunities({ customerRef: ref }),
+      this.visibleProposalsForCustomer(ref, user),
+    ]);
+    const portrait: CustomerPortraitDto = {
+      ref: customer.ref,
+      name: customer.name,
+      industry: customer.industry,
+      scale: customer.scale,
+      ownerId: customer.ownerId,
+      opportunities: {
+        total: opportunities.length,
+        byStage: countOpportunitiesByStage(opportunities),
+        latestUpdatedAt: latestOpportunityUpdatedAt(opportunities),
+        totalAmountEstimate: opportunities.reduce(
+          (sum, opportunity) => sum + (opportunity.amountEstimate ?? 0),
+          0,
+        ),
+      },
+      proposals: {
+        total: proposals.length,
+        latestStatus: proposals[0]?.status ?? null,
+        latestUpdatedAt: proposals[0]?.createdAt ?? null,
+      },
+    };
+    return (await this.fieldAcl.filterFields(
+      "customer",
+      ref,
+      portrait as unknown as Record<string, unknown>,
+      user,
+    )) as unknown as CustomerPortraitDto;
+  }
+
   private async visibleProposalsForCustomer(
     customerRef: string,
     user: SessionClaims,
@@ -210,4 +289,36 @@ export class CustomerService {
   private isNotFound(error: unknown): boolean {
     return error instanceof CrmClientError && error.status === 404;
   }
+
+  private assertCanCreateOpportunity(user: SessionClaims): void {
+    if (user.isExternal || user.role === "external") {
+      throw new ForbiddenException("External users cannot create opportunities");
+    }
+    if (user.role !== "admin" && user.role !== "presales") {
+      throw new ForbiddenException("Only admin and presales users can create opportunities");
+    }
+  }
+}
+
+function countOpportunitiesByStage(
+  opportunities: Array<{ stage: string }>,
+): Record<string, number> {
+  return opportunities.reduce<Record<string, number>>((acc, opportunity) => {
+    acc[opportunity.stage] = (acc[opportunity.stage] ?? 0) + 1;
+    return acc;
+  }, {});
+}
+
+function latestOpportunityUpdatedAt(opportunities: unknown[]): string | null {
+  const timestamps = opportunities
+    .map((opportunity) => {
+      const value = (opportunity as { updatedAt?: Date | string | null }).updatedAt;
+      if (!value) return null;
+      const date = value instanceof Date ? value : new Date(value);
+      return Number.isNaN(date.getTime()) ? null : date.toISOString();
+    })
+    .filter((value): value is string => value !== null)
+    .sort()
+    .reverse();
+  return timestamps[0] ?? null;
 }

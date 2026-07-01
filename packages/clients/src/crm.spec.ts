@@ -37,7 +37,7 @@ describe("MockCrmClient", () => {
     const byRef = await client.listCustomers({ q: "hyya" });
     expect(byRef.map((c) => c.ref)).toEqual(["cust-hyya"]);
     const byOwner = await client.listCustomers({ ownerId: "user-1" });
-    expect(byOwner).toHaveLength(2);
+    expect(byOwner).toHaveLength(7);
     const byOwnerMissing = await client.listCustomers({ ownerId: "user-2" });
     expect(byOwnerMissing).toEqual([]);
   });
@@ -45,11 +45,15 @@ describe("MockCrmClient", () => {
   it("filters opportunities by customerRef and stage", async () => {
     const client = new MockCrmClient();
     const all = await client.listOpportunities({});
-    expect(all).toHaveLength(2);
+    expect(all).toHaveLength(10);
     const byCustomer = await client.listOpportunities({ customerRef: "cust-acme" });
     expect(byCustomer.map((opp) => opp.ref)).toEqual(["opp-acme-dlp"]);
     const byStage = await client.listOpportunities({ stage: "evaluation" });
-    expect(byStage.map((opp) => opp.ref)).toEqual(["opp-hyya-pilot"]);
+    expect(byStage.map((opp) => opp.ref)).toEqual([
+      "opp-hyya-pilot",
+      "opp-huaguang-encrypt",
+      "opp-yuanchuang-gxp",
+    ]);
     await expect(client.getOpportunity("missing")).rejects.toMatchObject({
       status: 404,
     });
@@ -70,6 +74,29 @@ describe("MockCrmClient", () => {
     });
     expect((await client.listCustomers({})).map((c) => c.ref)).toEqual(["cust-x"]);
     expect(await client.listOpportunities({})).toEqual([]);
+  });
+
+  it("upserts mock opportunities so demos can create records", async () => {
+    const client = new MockCrmClient();
+
+    await expect(
+      client.upsertOpportunity({
+        ref: "opp-demo-created",
+        customerRef: "cust-acme",
+        title: "Acme 新增终端安全扩容",
+        stage: "qualified",
+        amountEstimate: 300_000,
+        ownerId: "user-1",
+      }),
+    ).resolves.toMatchObject({
+      ref: "opp-demo-created",
+      title: "Acme 新增终端安全扩容",
+    });
+
+    await expect(client.getOpportunity("opp-demo-created")).resolves.toMatchObject({
+      ref: "opp-demo-created",
+      stage: "qualified",
+    });
   });
 });
 
