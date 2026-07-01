@@ -52,6 +52,7 @@ interface NormalizedRagflowDocument {
   id: string;
   name: string;
   size: number | null;
+  chunkCount: number | null;
   ragflowUpdatedAt: Date | null;
 }
 
@@ -158,6 +159,7 @@ export class KbSyncService {
             ragflowKbId: kbId,
             name: remoteDocument.name,
             size: remoteDocument.size,
+            chunkCount: remoteDocument.chunkCount,
             ragflowUpdatedAt: remoteDocument.ragflowUpdatedAt,
             syncedAt: now,
           } satisfies Prisma.KbDocumentUncheckedCreateInput,
@@ -176,6 +178,9 @@ export class KbSyncService {
       }
       if (existingDocument.size !== remoteDocument.size) {
         update.size = remoteDocument.size;
+      }
+      if (existingDocument.chunkCount !== remoteDocument.chunkCount) {
+        update.chunkCount = remoteDocument.chunkCount;
       }
       if (!datesEqual(existingDocument.ragflowUpdatedAt, remoteDocument.ragflowUpdatedAt)) {
         update.ragflowUpdatedAt = remoteDocument.ragflowUpdatedAt;
@@ -262,6 +267,7 @@ function normalizeDocument(document: RagflowDocument): NormalizedRagflowDocument
     id: document.id,
     name: document.name,
     size: document.size ?? null,
+    chunkCount: document.chunkCount ?? null,
     ragflowUpdatedAt: parseOptionalDate(document.updatedAt),
   };
 }

@@ -10,6 +10,7 @@ export interface KbDocumentDto {
   product: string | null;
   aclScope: string;
   sensitivity: string;
+  chunkCount: number | null;
   size: number | null;
   ragflowUpdatedAt: string | null;
   syncedAt: string;
@@ -30,6 +31,7 @@ type KbDocumentRow = {
   product: string | null;
   aclScope: string;
   sensitivity: string;
+  chunkCount: number | null;
   size: number | null;
   ragflowUpdatedAt: Date | null;
   syncedAt: Date;
@@ -51,16 +53,18 @@ export class KbDocumentsController {
         product: true,
         aclScope: true,
         sensitivity: true,
+        chunkCount: true,
         size: true,
         ragflowUpdatedAt: true,
         syncedAt: true,
       },
     })) as KbDocumentRow[];
     const items = documents.map(toDto);
+    const totalChunks = documents.reduce((sum, document) => sum + (document.chunkCount ?? 0), 0);
     return {
       items,
       stats: {
-        totalChunks: null,
+        totalChunks: totalChunks > 0 ? totalChunks : null,
         totalDocs: items.length,
         byType: countByProduct(items),
       },
@@ -75,6 +79,7 @@ function toDto(document: KbDocumentRow): KbDocumentDto {
     product: document.product,
     aclScope: document.aclScope,
     sensitivity: document.sensitivity,
+    chunkCount: document.chunkCount,
     size: document.size,
     ragflowUpdatedAt: document.ragflowUpdatedAt?.toISOString() ?? null,
     syncedAt: document.syncedAt.toISOString(),

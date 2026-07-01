@@ -383,7 +383,9 @@ function isOpportunity(value: unknown): value is Opportunity {
     typeof record.title === "string" &&
     typeof record.stage === "string" &&
     (record.amountEstimate === null || typeof record.amountEstimate === "number") &&
-    (record.ownerId === null || typeof record.ownerId === "string")
+    (record.ownerId === null || typeof record.ownerId === "string") &&
+    (record.createdAt === undefined || typeof record.createdAt === "string") &&
+    (record.updatedAt === undefined || typeof record.updatedAt === "string")
   );
 }
 
@@ -501,16 +503,16 @@ const defaultMockCustomers: Customer[] = [
 ];
 
 const defaultMockOpportunities: Opportunity[] = [
-  { ref: "opp-acme-dlp", customerRef: "cust-acme", title: "Acme 端点 DLP 一期", stage: "discovery", amountEstimate: 800000, ownerId: "user-1" },
-  { ref: "opp-hyya-pilot", customerRef: "cust-hyya", title: "华义匀安 PAS 试点", stage: "evaluation", amountEstimate: 200000, ownerId: "user-1" },
-  { ref: "opp-changjiang-full", customerRef: "cust-changjiang", title: "长江精密 IP-Guard 全模块建设", stage: "closed_won", amountEstimate: 2800000, ownerId: "user-1" },
-  { ref: "opp-changjiang-expand", customerRef: "cust-changjiang", title: "长江精密二期扩容（研发部涉密图纸）", stage: "negotiation", amountEstimate: 800000, ownerId: "user-1" },
-  { ref: "opp-huaguang-encrypt", customerRef: "cust-huaguang", title: "华光半导体 芯片设计文档加密与外发管控", stage: "evaluation", amountEstimate: 1500000, ownerId: "user-1" },
-  { ref: "opp-xingchen-audit", customerRef: "cust-xingchen", title: "星辰航空 涉密审计合规（GB/T 22239-2019 三级）", stage: "discovery", amountEstimate: 2200000, ownerId: "user-1" },
-  { ref: "opp-yuanchuang-gxp", customerRef: "cust-yuanchuang", title: "元创医疗 GxP 电子记录与签名管控", stage: "evaluation", amountEstimate: 900000, ownerId: "user-1" },
-  { ref: "opp-yuanchuang-sensitive", customerRef: "cust-yuanchuang", title: "元创医疗 敏感数据识别扩展", stage: "discovery", amountEstimate: 400000, ownerId: "user-1" },
-  { ref: "opp-hongyan-endpoint", customerRef: "cust-hongyan", title: "鸿雁汽车电子 全终端 IP-Guard 管控", stage: "qualified", amountEstimate: 3500000, ownerId: "user-1" },
-  { ref: "opp-hongyan-mobile", customerRef: "cust-hongyan", title: "鸿雁汽车电子 移动设备安全接入", stage: "discovery", amountEstimate: 600000, ownerId: "user-1" },
+  { ref: "opp-acme-dlp", customerRef: "cust-acme", title: "Acme 端点 DLP 一期", stage: "discovery", amountEstimate: 800000, ownerId: "user-1", createdAt: "2026-06-24T09:00:00.000Z" },
+  { ref: "opp-hyya-pilot", customerRef: "cust-hyya", title: "华义匀安 PAS 试点", stage: "evaluation", amountEstimate: 200000, ownerId: "user-1", createdAt: "2026-06-16T09:30:00.000Z" },
+  { ref: "opp-changjiang-full", customerRef: "cust-changjiang", title: "长江精密 IP-Guard 全模块建设", stage: "closed_won", amountEstimate: 2800000, ownerId: "user-1", createdAt: "2026-05-14T10:00:00.000Z" },
+  { ref: "opp-changjiang-expand", customerRef: "cust-changjiang", title: "长江精密二期扩容（研发部涉密图纸）", stage: "negotiation", amountEstimate: 800000, ownerId: "user-1", createdAt: "2026-06-08T14:00:00.000Z" },
+  { ref: "opp-huaguang-encrypt", customerRef: "cust-huaguang", title: "华光半导体 芯片设计文档加密与外发管控", stage: "evaluation", amountEstimate: 1500000, ownerId: "user-1", createdAt: "2026-06-12T10:30:00.000Z" },
+  { ref: "opp-xingchen-audit", customerRef: "cust-xingchen", title: "星辰航空 涉密审计合规（GB/T 22239-2019 三级）", stage: "discovery", amountEstimate: 2200000, ownerId: "user-1", createdAt: "2026-06-25T15:20:00.000Z" },
+  { ref: "opp-yuanchuang-gxp", customerRef: "cust-yuanchuang", title: "元创医疗 GxP 电子记录与签名管控", stage: "evaluation", amountEstimate: 900000, ownerId: "user-1", createdAt: "2026-06-06T11:00:00.000Z" },
+  { ref: "opp-yuanchuang-sensitive", customerRef: "cust-yuanchuang", title: "元创医疗 敏感数据识别扩展", stage: "discovery", amountEstimate: 400000, ownerId: "user-1", createdAt: "2026-06-23T16:00:00.000Z" },
+  { ref: "opp-hongyan-endpoint", customerRef: "cust-hongyan", title: "鸿雁汽车电子 全终端 IP-Guard 管控", stage: "qualified", amountEstimate: 3500000, ownerId: "user-1", createdAt: "2026-06-18T09:45:00.000Z" },
+  { ref: "opp-hongyan-mobile", customerRef: "cust-hongyan", title: "鸿雁汽车电子 移动设备安全接入", stage: "discovery", amountEstimate: 600000, ownerId: "user-1", createdAt: "2026-06-27T13:30:00.000Z" },
 ];
 
 export class MockCrmClient implements CrmClient {

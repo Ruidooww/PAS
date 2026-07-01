@@ -102,15 +102,18 @@ const retrievalResponseSchema = z.object({
     .optional(),
 });
 
+const ragflowDateSchema = z.union([z.string(), z.number()]).nullable().optional();
+
 const documentSchema = z.object({
   id: z.string(),
   name: z.string(),
   status: z.string().optional(),
   run: z.string().optional(),
   size: z.number().int().optional(),
-  updatedAt: z.string().nullable().optional(),
-  updated_at: z.string().nullable().optional(),
-  update_time: z.string().nullable().optional(),
+  chunk_count: z.number().int().nullable().optional(),
+  updatedAt: ragflowDateSchema,
+  updated_at: ragflowDateSchema,
+  update_time: ragflowDateSchema,
 });
 
 const listDocsResponseSchema = z.object({
@@ -133,6 +136,32 @@ export class RagflowApiError extends Error {
     super(message);
     this.name = "RagflowApiError";
   }
+}
+
+function normalizeRagflowDate(value: string | number | null | undefined): string | undefined {
+  if (value === undefined || value === null || value === "") {
+    return undefined;
+  }
+  if (typeof value === "number") {
+    return unixTimestampToIso(value);
+  }
+
+  const trimmed = value.trim();
+  if (trimmed === "") {
+    return undefined;
+  }
+
+  if (/^\d+(\.\d+)?$/.test(trimmed)) {
+    return unixTimestampToIso(Number(trimmed));
+  }
+
+  return trimmed;
+}
+
+function unixTimestampToIso(value: number): string | undefined {
+  const millis = Math.abs(value) >= 1_000_000_000_000 ? value : value * 1000;
+  const date = new Date(millis);
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
 }
 
 @Injectable()
@@ -236,7 +265,10 @@ export class RagflowClientImpl implements RagflowClient {
       if (d.size !== undefined) {
         document.size = d.size;
       }
-      const updatedAt = d.updatedAt ?? d.updated_at ?? d.update_time;
+      if (d.chunk_count !== undefined && d.chunk_count !== null) {
+        document.chunkCount = d.chunk_count;
+      }
+      const updatedAt = normalizeRagflowDate(d.updatedAt ?? d.updated_at ?? d.update_time);
       if (updatedAt) {
         document.updatedAt = updatedAt;
       }

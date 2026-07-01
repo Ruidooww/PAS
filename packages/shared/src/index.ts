@@ -85,6 +85,7 @@ export interface KbDocument {
   aclScope: AclScope;
   uploadedBy: string | null;
   size: number | null;
+  chunkCount: number | null;
   ragflowUpdatedAt: string | null;
   deletedAt: string | null;
   syncedAt: string;
@@ -116,6 +117,8 @@ export interface Opportunity {
   stage: string;
   amountEstimate: number | null;
   ownerId: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Contract {
@@ -149,6 +152,7 @@ export interface RagflowDocument {
   name: string;
   status: string;
   size?: number;
+  chunkCount?: number;
   updatedAt?: string | null;
 }
 

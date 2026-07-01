@@ -306,9 +306,15 @@ describe("RagflowClientImpl other methods", () => {
               name: "鎵嬪唽.pdf",
               status: "ready",
               size: 42,
+              chunk_count: 17,
               updated_at: "2026-06-02T03:04:05.000Z",
             },
-            { id: "d2", name: "鐧界毊涔?pdf", run: "DONE" },
+            {
+              id: "d2",
+              name: "鐧界毊涔?pdf",
+              run: "DONE",
+              update_time: Date.parse("2026-06-03T04:05:06.000Z"),
+            },
           ],
         },
       },
@@ -325,9 +331,15 @@ describe("RagflowClientImpl other methods", () => {
         name: "鎵嬪唽.pdf",
         status: "ready",
         size: 42,
+        chunkCount: 17,
         updatedAt: "2026-06-02T03:04:05.000Z",
       },
-      { id: "d2", name: "鐧界毊涔?pdf", status: "DONE" },
+      {
+        id: "d2",
+        name: "鐧界毊涔?pdf",
+        status: "DONE",
+        updatedAt: "2026-06-03T04:05:06.000Z",
+      },
     ]);
   });
 

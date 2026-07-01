@@ -146,6 +146,7 @@ model KbDocument {
   chunkSensitivityMap Json      @default("{}") @map("chunk_sensitivity_map")
   uploadedBy          String?   @map("uploaded_by")
   size                Int?
+  chunkCount          Int?      @map("chunk_count")
   ragflowUpdatedAt    DateTime? @map("ragflow_updated_at")
   deletedAt           DateTime? @map("deleted_at")
   syncedAt            DateTime  @default(now()) @map("synced_at")

@@ -4,6 +4,7 @@ export interface KbDocumentSummary {
   product: string | null;
   aclScope: string;
   sensitivity: string;
+  chunkCount: number | null;
   size: number | null;
   ragflowUpdatedAt: string | null;
   syncedAt: string;
