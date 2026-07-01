@@ -1,90 +1,118 @@
 id: ip-guard-standard-v2
-name: IP-Guard 标准方案 v2
+name: IP-Guard 全模块方案 v2（基于产品测试用例）
 version: 2
 product: IP-Guard
+
 sections:
   - id: project-background
     title: 项目背景
-    retrievalIntent: 无需检索，基于 customer、industry 和 scale 填充客户项目背景
+    retrievalIntent: 无需检索，基于 customer 和 industry 填充客户项目背景与信息安全建设动因
     promptTemplate: |
-      面向客户说明 {{customer}} 所处的 {{industry}} 行业背景、组织规模 {{scale}}、信息安全建设目标与本项目价值。
-      仅使用已提供的客户信息，不补造经营数据、监管结论或未确认痛点。
+      面向客户说明 {{customer}} 所处的 {{industry}} 行业信息安全建设背景、当前主要威胁面（数据外泄 / 违规操作 / 设备失控 / 敏感文档追溯困难）与本项目的价值定位。
+      三段结构：行业趋势 → 客户现状挑战 → 项目预期价值。
+      仅使用已提供的客户信息，不补造经营数据；行业数据可基于常识描述但不引用具体统计数字。
     variables:
       - customer
       - industry
-      - scale
     fixed: true
 
   - id: requirement-analysis
     title: 需求分析
     retrievalIntent: 无需检索，基于 requirementJson 归纳客户需求
     promptTemplate: |
-      将 {{requirementJson}} 整理为客户现状、核心诉求、优先级、边界条件和待确认问题。
-      保留需求原意，避免扩展未确认的需求；缺少事实依据时写 [待补充]。
+      将 {{requirementJson}} 整理为三段：
+      1. 客户当前信息安全现状（已有措施 / 主要痛点）
+      2. 核心诉求（分类：终端管控 / 文档保护 / 行为审计 / 设备管控 / 网络管控 / 敏感识别）
+      3. 特殊约束（合规要求 / 运维能力 / 预算 / 上线节奏）
+      保留需求原意，避免扩展未确认的需求；若某类无需求写"本次不涉及"。
     variables:
       - requirementJson
     fixed: true
 
-  - id: compliance-boundary
-    title: 合规与数据边界
-    retrievalIntent: IP-Guard 合规审计、数据防泄漏、终端管控边界
+  - id: product-overview
+    title: 产品概述
+    retrievalIntent: IP-Guard 产品架构、组成、服务器/客户端/控制台三层设计
     promptTemplate: |
-      结合检索资料说明本方案覆盖的数据安全、终端管控、文档加密、审计留痕和外发管控边界。
-      不承诺未在资料中出现的法规认证、等保结论或客户已通过验收状态。
-    variables:
-      - requirementJson
-
-  - id: solution-overview
-    title: 方案概述
-    retrievalIntent: IP-Guard 产品架构、核心能力和典型部署模式
-    promptTemplate: |
-      基于检索到的 IP-Guard 产品架构资料，说明方案总体思路、组件关系、能力边界和与客户诉求的对应关系。
+      基于检索到的 IP-Guard 产品资料，说明：
+      1. 三层组成架构：服务器（策略下发+数据存储）、客户端（策略执行+日志上报）、控制台（策略配置+数据查看）
+      2. 支持的操作系统与平台覆盖范围
+      3. 产品能力全景：终端管控 / 文档加解密 / 行为审计 / 设备控制 / 网络防护 / 敏感内容识别 / 合规审计
       引用具体产品能力时标注知识来源；缺少依据时写 [待补充]。
-    variables:
-      - requirementJson
+    variables: []
 
   - id: module-catalog
-    title: 模块清单
-    retrievalIntent: IP-Guard 模块目录、终端安全、文档加密、外发管控、审计、资产管理
+    title: 功能模块清单
+    retrievalIntent: IP-Guard 全模块功能清单 测试用例章节 4.1 基本模块 4.2 文档操作日志 4.3 打印审计 4.4 设备管控 4.9 网页浏览 4.10 即时通讯 4.13 软硬件资产 4.14 远程维护 4.15 敏感内容识别 4.16 文档云备份 4.17 落地加密 4.18 慧眼审计 4.20 文档流转 4.21 软件中心
     promptTemplate: |
-      按客户需求输出 IP-Guard 模块清单，至少包含模块名称、适用诉求、关键能力、配置建议和依赖前提。
-      模块不得脱离 {{requirementJson.needs[]}} 任意扩展；未确认模块放入 [待确认]。
+      基于检索资料，输出 IP-Guard 全功能模块清单表格（Markdown 表格）：
+      | 模块编号 | 模块名称 | 核心能力 | 本项目是否启用 |
+      按照 4.1-4.21 章节顺序枚举所有功能模块，"本项目是否启用"列根据 {{requirementJson.needs[]}} 判断（未映射到 needs 的写"备选"）。
+      至少列出 15 个以上模块；模块编号严格引用测试用例章节号（如 4.1 / 4.15 / 4.17）。
+    variables:
+      - requirementJson.needs[]
+
+  - id: feature-module-design
+    title: 功能模块设计
+    retrievalIntent: IP-Guard {{need}} 功能说明、配置方式、策略设计、适用场景，参考测试用例章节
+    promptTemplate: |
+      对 {{requirementJson.needs[]}} 中的每项需求，输出对应功能模块设计段落，格式：
+      ### <模块名称>（对应测试用例 4.x.y）
+      - **能力描述**：<基于检索资料的能力说明>
+      - **配置建议**：<针对客户场景的策略配置要点>
+      - **对应客户需求**：<明确关联到 requirementJson 中的哪条需求>
+      - **知识来源**：<标注检索到的文档名或段落>
+      对每项需求分别检索并单独成段；缺少依据时写 [待补充]，不得编造功能。
     variables:
       - requirementJson.needs[]
 
   - id: deployment-architecture
     title: 部署架构
-    retrievalIntent: IP-Guard 部署架构 {{scale}} 终端规模适配
+    retrievalIntent: IP-Guard 部署架构 服务器配置 客户端部署 控制台安装 {{scale}} 终端规模 高可用 网络拓扑
     promptTemplate: |
-      基于检索资料和客户规模 {{scale}}，给出组件部署、网络位置、容量与高可用建议。
+      基于检索资料和客户规模 {{scale}} 终端，输出：
+      1. **组件部署图**：服务器 / 客户端 / 控制台三层组件位置（文字描述，不画图）
+      2. **硬件配置建议**：服务器规格（CPU / 内存 / 磁盘 / 网络）
+      3. **网络位置与端口**：服务器网络位置、客户端与服务器通信端口
+      4. **容量规划**：按 {{scale}} 终端规模推算日志存储 / 数据库容量
+      5. **高可用建议**：主备 / 集群方案（如客户规模需要）
       不得编造未在资料中出现的产品规格；缺少依据时写 [待补充]。
     variables:
       - scale
+
+  - id: acceptance-criteria
+    title: 验收标准
+    retrievalIntent: IP-Guard 测试用例 适用场景 测试步骤 验收要点 4.1 4.2 4.15 4.17 章节验收内容
+    promptTemplate: |
+      基于检索到的 IP-Guard 测试用例文档，对 {{requirementJson.needs[]}} 涉及的功能模块输出验收标准表格：
+      | 测试编号 | 测试项 | 适用场景 | 验收要点 | 期望结果 |
+      测试编号严格引用测试用例章节号（如 4.1.1 / 4.15.2 / 4.17.15）。
+      每个功能模块至少列 2-3 条核心验收项；缺少依据时写 [待补充]，不得虚构测试项。
+    variables:
+      - requirementJson.needs[]
 
   - id: implementation-plan
     title: 实施计划
     retrievalIntent: 无需检索，基于 requirementJson 微调标准实施阶段和交付边界
     promptTemplate: |
-      按调研确认、方案设计、环境准备、部署配置、试运行、验收交付的阶段输出实施计划。
-      根据 {{requirementJson}} 微调重点、前置条件、客户配合事项、交付物和风险缓解动作。
+      按以下阶段输出实施计划表格（Markdown 表格）：
+      | 阶段 | 主要工作 | 交付物 | 客户配合事项 | 预估周期 |
+      标准阶段：调研确认 → 方案设计 → 环境准备 → 部署配置 → 试运行 → 培训与验收 → 交付。
+      根据 {{requirementJson}} 微调：模块数量多则试运行周期延长；客户合规要求高则增加安全检测阶段。
+      不承诺未协商的具体日期，用"约 X 天/周"表述。
     variables:
       - requirementJson
     fixed: true
-
-  - id: acceptance-criteria
-    title: 验收标准
-    retrievalIntent: IP-Guard 验收项、终端管控验收、文档加密验收、审计验收
-    promptTemplate: |
-      输出可执行的验收标准，覆盖功能启用、策略命中、告警审计、报表导出、权限边界和异常回退。
-      每条验收标准应包含验证方式、通过标准和责任方；不写无法验证的泛化承诺。
-    variables:
-      - requirementJson
 
   - id: service-support
     title: 服务与支持
     retrievalIntent: 无需检索，使用标准服务与支持章节
     promptTemplate: |
-      说明标准的实施支持、问题响应、知识转移、运维建议和后续扩展建议。
-      不承诺未明确的服务等级、期限或商务条款。
+      说明标准服务与支持内容，包含：
+      1. **实施支持**：现场 / 远程实施支持范围
+      2. **问题响应**：SLA 分级（P0/P1/P2）与响应时效范围（不承诺具体小时数）
+      3. **知识转移**：培训计划（管理员 / 操作员 / 审计员分角色）
+      4. **运维建议**：日常巡检项、版本升级策略、数据备份建议
+      5. **合规配合**：等保 / GDPR / 数据分类分级支持范围
+      不承诺未明确的服务等级、期限或商务条款；商务条款留至商务方案章节。
     variables: []
     fixed: true
