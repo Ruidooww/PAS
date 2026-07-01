@@ -57,6 +57,26 @@ describe("AclService", () => {
     ]);
   });
 
+  it("limits visible documents to active documents in the requested RAGFlow KB", async () => {
+    const queryRaw = vi.fn().mockResolvedValue([{ ragflow_doc_id: "doc-current-kb" }]);
+    const service = new AclService({ $queryRaw: queryRaw } as unknown as PrismaService);
+
+    await expect(service.computeVisibleDocIds(user(), "proposal-kb")).resolves.toEqual([
+      "doc-current-kb",
+    ]);
+
+    const renderedSql = renderQueryRawCall(queryRaw.mock.calls[0]);
+    expect(renderedSql).toContain("deleted_at");
+    expect(renderedSql).toContain("ragflow_kb_id");
+    expect(renderedSql).toContain("proposal-kb");
+    expect(queryRaw.mock.calls[0]).toContainEqual([
+      "public",
+      "internal",
+      "role:presales",
+      "dept:dept-presales",
+    ]);
+  });
+
   it("returns undeleted proposals owned by the user or created in the same tenant department", async () => {
     const findMany = vi.fn().mockResolvedValue([
       { id: "proposal-own" },
@@ -125,3 +145,16 @@ describe("AclService", () => {
     });
   });
 });
+
+function renderQueryRawCall(call: unknown[] | undefined): string {
+  return (call ?? [])
+    .map((part) => {
+      if (Array.isArray(part)) return part.join("");
+      if (part && typeof part === "object" && "strings" in part) {
+        const sql = part as { strings?: string[]; values?: unknown[] };
+        return [...(sql.strings ?? []), ...(sql.values ?? [])].join("");
+      }
+      return String(part);
+    })
+    .join("");
+}

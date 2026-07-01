@@ -1,5 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 import type { SessionClaims } from "../auth/types";
 import { PrismaService } from "../prisma/prisma.service";
@@ -12,12 +12,18 @@ interface KbDocumentAclRow {
 export class AclService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
-  async computeVisibleDocIds(user: SessionClaims): Promise<string[]> {
+  async computeVisibleDocIds(user: SessionClaims, ragflowKbId?: string): Promise<string[]> {
     const scopes = this.computeVisibleScopes(user);
+    const kbFilter =
+      ragflowKbId === undefined
+        ? Prisma.empty
+        : Prisma.sql`AND "ragflow_kb_id" = ${ragflowKbId}`;
     const rows = await this.prisma.$queryRaw<KbDocumentAclRow[]>`
       SELECT "ragflow_doc_id"
       FROM "kb_documents"
-      WHERE "acl_scope" = ANY(${scopes}::text[])
+      WHERE "deleted_at" IS NULL
+        AND "acl_scope" = ANY(${scopes}::text[])
+        ${kbFilter}
       ORDER BY "created_at" ASC, "ragflow_doc_id" ASC
     `;
     return rows.map((row) => row.ragflow_doc_id);

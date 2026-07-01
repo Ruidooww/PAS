@@ -52,7 +52,8 @@ export class ProposalGenerationService {
 
     const template = this.templates.getTemplate(job.templateId);
     const user = await this.loadUser(job.userId);
-    const visibleDocIds = await this.acl.computeVisibleDocIds(user);
+    const kbId = this.config.getOrThrow<string>("PAS_KB_ID");
+    const visibleDocIds = await this.acl.computeVisibleDocIds(user, kbId);
     const sections: GeneratedProposalSection[] = [];
 
     for (const [index, section] of template.sections.entries()) {
@@ -67,6 +68,7 @@ export class ProposalGenerationService {
               visibleDocIds,
               user,
               job.proposalId,
+              kbId,
             );
       } catch (error) {
         errorMessage = errorMessageOf(error);
@@ -136,6 +138,7 @@ export class ProposalGenerationService {
     visibleDocIds: string[],
     user: SessionClaims,
     proposalId: string,
+    kbId: string,
   ): Promise<GeneratedProposalSection> {
     let lastError: unknown;
     const maxAttempts = runtimeConfig.proposal.chapterRetries + 1;
@@ -147,6 +150,7 @@ export class ProposalGenerationService {
           requirementJson,
           visibleDocIds,
           user,
+          kbId,
         );
         const body = await this.llmClient.complete({
           messages: this.buildMessages(section, requirementJson, chunks),
@@ -176,6 +180,7 @@ export class ProposalGenerationService {
     requirementJson: Prisma.JsonValue,
     visibleDocIds: string[],
     user: SessionClaims,
+    kbId: string,
   ): Promise<Chunk[]> {
     if (visibleDocIds.length === 0) return [];
     const chunks = await this.ragflowClient.retrieve(
@@ -183,7 +188,7 @@ export class ProposalGenerationService {
         query: `${renderTemplate(section.retrievalIntent, requirementJson)} ${requirementKeywords(
           requirementJson,
         )}`.trim(),
-        kbId: this.config.getOrThrow<string>("PAS_KB_ID"),
+        kbId,
         topK: runtimeConfig.proposal.retrievalTopK,
         docIdWhitelist: visibleDocIds,
       },

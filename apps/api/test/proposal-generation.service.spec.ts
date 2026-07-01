@@ -188,6 +188,7 @@ describe("ProposalGenerationService", () => {
         role: "presales",
         deptId: "dept-presales",
       }),
+      "proposal-kb",
     );
     expect(ragflowRetrieve).toHaveBeenCalledWith(
       {
