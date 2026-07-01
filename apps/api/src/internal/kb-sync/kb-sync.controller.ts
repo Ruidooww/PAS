@@ -1,4 +1,4 @@
-import { Controller, Inject, Post, UseGuards } from "@nestjs/common";
+import { Controller, HttpCode, Inject, Post, UseGuards } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 
 import { AuthGuard } from "../../auth/auth.guard";
@@ -23,6 +23,7 @@ export class KbSyncController {
   ) {}
 
   @Post("run")
+  @HttpCode(200)
   async run(): Promise<KbSyncRunResponse> {
     if (this.config.get<string>("RAGFLOW_CLIENT_MODE") === "mock") {
       return {

@@ -110,7 +110,7 @@ describe("internal KB sync run API", () => {
   it("allows admins to trigger a manual sync run", async () => {
     const response = await request(session({ uid: "admin-1", role: "admin" }));
 
-    expect(response.status).toBe(201);
+    expect(response.status).toBe(200);
     const body = (await response.json()) as { ranAt: string };
     expect(body).toMatchObject({
       syncedDocs: 5,
@@ -171,7 +171,7 @@ describe("internal KB sync run API in mock RAGFlow mode", () => {
       },
     });
 
-    expect(response.status).toBe(201);
+    expect(response.status).toBe(200);
     const body = (await response.json()) as { ranAt: string };
     expect(body).toMatchObject({
       syncedDocs: 0,

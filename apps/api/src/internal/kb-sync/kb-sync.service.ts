@@ -128,7 +128,6 @@ export class KbSyncService {
 
   private async syncKb(kbId: string): Promise<KbSyncRunResult> {
     const now = new Date();
-    // TODO(v2): page through RAGFlow documents when listDocs exposes pagination.
     const remoteDocuments = (await this.ragflowClient.listDocs(kbId)).map(normalizeDocument);
     const remoteDocumentIdList = remoteDocuments.map((document) => document.id);
     const remoteDocumentIds = new Set(remoteDocumentIdList);
