@@ -88,8 +88,20 @@ chmod 600 infra/.env.prod
 ## 5. 拉取镜像
 
 ```bash
-docker login --username=<ACR_USERNAME> registry.cn-hangzhou.aliyuncs.com
+curl -fsSL https://raw.githubusercontent.com/Ruidooww/PAS/main/install.sh -o install.sh
+bash install.sh --acr-username '<ACR_USERNAME>'
+```
+
+脚本会提示输入 ACR password，然后执行等价命令：
+
+```bash
 docker compose --env-file infra/.env.prod -f infra/docker-compose.prod.yml --profile migrate pull
+```
+
+如果服务器已经登录过 ACR，可以改用：
+
+```bash
+bash install.sh --skip-login
 ```
 
 本期默认从 ACR 拉取三个应用镜像：
