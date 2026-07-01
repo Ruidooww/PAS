@@ -1,4 +1,4 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { Inject, Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import type { Prisma } from "@prisma/client";
 import type { ChatMessage, Chunk } from "@pas/shared";
@@ -21,6 +21,8 @@ import type {
 
 @Injectable()
 export class ProposalGenerationService {
+  private readonly logger = new Logger(ProposalGenerationService.name);
+
   constructor(
     @Inject(RAGFLOW_CLIENT) private readonly ragflowClient: RagflowClient,
     @Inject(LLM_CLIENT) private readonly llmClient: LlmClient,
@@ -64,15 +66,25 @@ export class ProposalGenerationService {
               job.requirementJson,
               visibleDocIds,
               user,
+              job.proposalId,
             );
       } catch (error) {
         errorMessage = errorMessageOf(error);
+        this.logger.error(
+          `Section ${section.id} generation failed for proposal ${job.proposalId}: ${errorMessage}`,
+          errorStackOf(error),
+        );
         generated = {
           id: section.id,
           title: section.title,
           body: "",
           refs: [],
         };
+      }
+      if (!section.fixed && errorMessage === undefined) {
+        this.logger.log(
+          `Section ${section.id} generated for proposal ${job.proposalId}: body length ${generated.body.length}`,
+        );
       }
       sections.push(generated);
       await this.progress.publish(job.proposalId, {
@@ -123,8 +135,10 @@ export class ProposalGenerationService {
     requirementJson: Prisma.JsonValue,
     visibleDocIds: string[],
     user: SessionClaims,
+    proposalId: string,
   ): Promise<GeneratedProposalSection> {
     let lastError: unknown;
+    const maxAttempts = runtimeConfig.proposal.chapterRetries + 1;
 
     for (let attempt = 0; attempt <= runtimeConfig.proposal.chapterRetries; attempt += 1) {
       try {
@@ -146,6 +160,11 @@ export class ProposalGenerationService {
         };
       } catch (error) {
         lastError = error;
+        const attemptNumber = attempt + 1;
+        this.logger.error(
+          `Section ${section.id} attempt ${attemptNumber}/${maxAttempts} failed for proposal ${proposalId}: ${errorMessageOf(error)}`,
+          errorStackOf(error),
+        );
       }
     }
 
@@ -298,4 +317,8 @@ function numberValue(value: unknown): number | undefined {
 
 function errorMessageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function errorStackOf(error: unknown): string {
+  return error instanceof Error ? error.stack ?? error.message : String(error);
 }
