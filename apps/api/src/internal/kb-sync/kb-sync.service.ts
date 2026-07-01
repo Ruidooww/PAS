@@ -51,6 +51,7 @@ export interface KbSyncLogListResponse {
 interface NormalizedRagflowDocument {
   id: string;
   name: string;
+  product: string | null;
   size: number | null;
   chunkCount: number | null;
   ragflowUpdatedAt: Date | null;
@@ -157,6 +158,7 @@ export class KbSyncService {
             ragflowDocId: remoteDocument.id,
             ragflowKbId: kbId,
             name: remoteDocument.name,
+            product: remoteDocument.product,
             size: remoteDocument.size,
             chunkCount: remoteDocument.chunkCount,
             ragflowUpdatedAt: remoteDocument.ragflowUpdatedAt,
@@ -174,6 +176,9 @@ export class KbSyncService {
       }
       if (existingDocument.name !== remoteDocument.name) {
         update.name = remoteDocument.name;
+      }
+      if (existingDocument.product !== remoteDocument.product) {
+        update.product = remoteDocument.product;
       }
       if (existingDocument.size !== remoteDocument.size) {
         update.size = remoteDocument.size;
@@ -265,10 +270,29 @@ function normalizeDocument(document: RagflowDocument): NormalizedRagflowDocument
   return {
     id: document.id,
     name: document.name,
+    product: normalizeProduct(document.product) ?? inferProduct(document.name),
     size: document.size ?? null,
     chunkCount: document.chunkCount ?? null,
     ragflowUpdatedAt: parseOptionalDate(document.updatedAt),
   };
+}
+
+function normalizeProduct(value: string | null | undefined): string | null {
+  const normalized = value?.trim();
+  return normalized ? normalized : null;
+}
+
+function inferProduct(filename: string): string | null {
+  if (/ip[-_ ]?guard|加密|外发管控|终端管控|文档水印|屏幕水印/i.test(filename)) {
+    return "IP-Guard";
+  }
+  if (/dlp|数据防泄漏/i.test(filename)) {
+    return "DLP";
+  }
+  if (/审计|合规|等保/.test(filename)) {
+    return "合规审计";
+  }
+  return null;
 }
 
 function parseOptionalDate(value: string | null | undefined): Date | null {

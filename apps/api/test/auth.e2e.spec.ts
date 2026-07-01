@@ -84,7 +84,7 @@ describe("Auth mock IdP flow", () => {
     await app?.close();
   });
 
-  it("logs in with mock provider, validates OAuth state, sets a dev session cookie, and returns /api/me", async () => {
+  it("logs in with mock provider, validates OAuth state, sets a dev session cookie, and returns /", async () => {
     const login = await fetch(`${baseUrl}/auth/login?provider=mock`, {
       headers: { host: "evil.example" },
       redirect: "manual",
@@ -117,6 +117,7 @@ describe("Auth mock IdP flow", () => {
     expect(callbackSetCookie).toContain("SameSite=Lax");
     expect(callbackSetCookie).not.toContain("Secure");
     expect(callbackSetCookie).toContain("Max-Age=604800");
+    expect(callback.headers.get("location")).toBe("/");
 
     const cookie = `${SESSION_COOKIE_NAME}=${cookieValue(callbackSetCookie, SESSION_COOKIE_NAME)}`;
     const me = await fetch(`${baseUrl}/api/me`, { headers: { cookie } });
@@ -126,6 +127,28 @@ describe("Auth mock IdP flow", () => {
       name: "Mock 售前",
       email: "mock.presales@example.com",
     });
+  });
+
+  it("redirects the callback to the returnUrl carried in OAuth state", async () => {
+    const login = await fetch(
+      `${baseUrl}/auth/login?provider=mock&returnUrl=${encodeURIComponent("/customers/cust-acme")}`,
+      { redirect: "manual" },
+    );
+    expect(login.status).toBe(302);
+    const loginLocation = login.headers.get("location");
+    const loginSetCookie = login.headers.get("set-cookie") ?? "";
+    const state = new URL(loginLocation!).searchParams.get("state");
+    expect(state).toBeTruthy();
+    expect(cookieValue(loginSetCookie, OAUTH_STATE_COOKIE_NAME)).toBe(state);
+
+    const callbackLocation = new URL(loginLocation!);
+    const callback = await fetch(`${baseUrl}${callbackLocation.pathname}${callbackLocation.search}`, {
+      headers: { cookie: `${OAUTH_STATE_COOKIE_NAME}=${state}` },
+      redirect: "manual",
+    });
+
+    expect(callback.status).toBe(302);
+    expect(callback.headers.get("location")).toBe("/customers/cust-acme");
   });
 
   it("returns 400 and expires state when callback state is missing", async () => {

@@ -53,7 +53,7 @@ export class CustomerService {
     @Inject(ConfigService) config: ConfigService,
   ) {
     this.crmProvider = config.getOrThrow<string>("CRM_PROVIDER");
-    this.source = this.crmProvider === "pas" ? "pas" : "external";
+    this.source = customerSourceFromProvider(this.crmProvider);
   }
 
   async list(query: CustomerListQuery, user: SessionClaims): Promise<CustomerListResponse> {
@@ -298,6 +298,11 @@ export class CustomerService {
       throw new ForbiddenException("Only admin and presales users can create opportunities");
     }
   }
+}
+
+function customerSourceFromProvider(provider: string): CustomerSource {
+  if (provider === "external" || provider === "mock" || provider === "pas") return provider;
+  return "external";
 }
 
 function countOpportunitiesByStage(

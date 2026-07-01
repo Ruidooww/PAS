@@ -198,7 +198,7 @@ describe("customer CRM API", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       page: 1,
-      items: [{ ref: "cust-acme", name: "Acme Manufacturing", source: "external" }],
+      items: [{ ref: "cust-acme", name: "Acme Manufacturing", source: "mock" }],
     });
     expect(crm.listCustomers).toHaveBeenCalledWith({
       q: "acme",
@@ -213,6 +213,7 @@ describe("customer CRM API", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       ref: "cust-acme",
+      source: "mock",
       syncedAt: "2026-06-26T00:00:00.000Z",
       proposals: [
         {
@@ -228,13 +229,13 @@ describe("customer CRM API", () => {
       where: { ref: "cust-acme" },
       create: expect.objectContaining({
         ref: "cust-acme",
-        source: "external",
+        source: "mock",
         name: "Acme Manufacturing",
         ownerId: "user-1",
         syncedAt: expect.any(Date),
       }),
       update: expect.objectContaining({
-        source: "external",
+        source: "mock",
         name: "Acme Manufacturing",
         ownerId: "user-1",
         syncedAt: expect.any(Date),

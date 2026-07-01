@@ -109,6 +109,7 @@ const documentSchema = z.object({
   name: z.string(),
   status: z.string().optional(),
   run: z.string().optional(),
+  product: z.string().nullable().optional(),
   size: z.number().int().optional(),
   chunk_count: z.number().int().nullable().optional(),
   updatedAt: ragflowDateSchema,
@@ -174,6 +175,9 @@ function toRagflowDocument(d: RagflowDocumentPayload): RagflowDocument {
   };
   if (d.size !== undefined) {
     document.size = d.size;
+  }
+  if (d.product !== undefined) {
+    document.product = d.product;
   }
   if (d.chunk_count !== undefined && d.chunk_count !== null) {
     document.chunkCount = d.chunk_count;

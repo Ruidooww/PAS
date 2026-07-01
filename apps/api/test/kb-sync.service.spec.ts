@@ -162,6 +162,44 @@ describe("KbSyncService", () => {
     ]);
   });
 
+  it("infers product from filenames when RAGFlow metadata is missing", async () => {
+    const prisma = createPrisma();
+    const ragflowClient = {
+      listDocs: vi.fn().mockResolvedValue([
+        {
+          id: "ragflow-ip-guard",
+          name: "IP-Guard endpoint rollout.pdf",
+          status: "ready",
+        },
+        {
+          id: "ragflow-dlp",
+          name: "DLP data loss prevention guide.pdf",
+          status: "ready",
+        },
+        {
+          id: "ragflow-compliance",
+          name: "等保三级合规审计方案.pdf",
+          status: "ready",
+        },
+      ]),
+    };
+    const service = new KbSyncService(
+      createConfig({ PAS_KB_ID: "pas-kb" }) as never,
+      ragflowClient as never,
+      prisma as never,
+    );
+
+    await expect(service.runOnce()).resolves.toEqual({
+      runs: [{ kbId: "pas-kb", added: 3, deleted: 0, updated: 0, status: "success" }],
+    });
+
+    expect(prisma.documents.map((document) => [document.name, document.product])).toEqual([
+      ["IP-Guard endpoint rollout.pdf", "IP-Guard"],
+      ["DLP data loss prevention guide.pdf", "DLP"],
+      ["等保三级合规审计方案.pdf", "合规审计"],
+    ]);
+  });
+
   it("soft deletes PAS documents missing from RAGFlow", async () => {
     const prisma = createPrisma([createDocument({ id: "kbdoc-1", ragflowDocId: "missing-doc" })]);
     const ragflowClient = { listDocs: vi.fn().mockResolvedValue([]) };

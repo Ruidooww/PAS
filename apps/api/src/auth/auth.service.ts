@@ -25,8 +25,7 @@ export class AuthService {
     @Inject(AUTH_USER_STORE) private readonly users: AuthUserStore,
   ) {}
 
-  buildLoginUrl(provider: IdpProvider): LoginResult {
-    const state = randomUUID();
+  buildLoginUrl(provider: IdpProvider, state: string = randomUUID()): LoginResult {
     const client = this.idpRegistry.getClient(provider);
     return {
       state,

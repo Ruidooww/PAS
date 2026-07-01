@@ -59,8 +59,12 @@ export class KbDocumentsController {
         syncedAt: true,
       },
     })) as KbDocumentRow[];
-    const items = documents.map(toDto);
-    const totalChunks = documents.reduce((sum, document) => sum + (document.chunkCount ?? 0), 0);
+    const visibleDocuments = documents.filter((document) => !isBinaryBlobName(document.name));
+    const items = visibleDocuments.map(toDto);
+    const totalChunks = visibleDocuments.reduce(
+      (sum, document) => sum + (document.chunkCount ?? 0),
+      0,
+    );
     return {
       items,
       stats: {
@@ -70,6 +74,10 @@ export class KbDocumentsController {
       },
     };
   }
+}
+
+function isBinaryBlobName(name: string): boolean {
+  return /^[a-f0-9]{16,}\.(jpg|png|jpeg|gif|webp|bmp)$/i.test(name);
 }
 
 function toDto(document: KbDocumentRow): KbDocumentDto {

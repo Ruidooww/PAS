@@ -10,7 +10,7 @@ export type AclScope =
   | `role:${UserRole}`
   | `dept:${string}`;
 
-export const CUSTOMER_SOURCES = ["external", "pas"] as const;
+export const CUSTOMER_SOURCES = ["external", "mock", "pas"] as const;
 export type CustomerSource = (typeof CUSTOMER_SOURCES)[number];
 
 export const FEEDBACK_RATINGS = ["up", "down"] as const;
@@ -151,6 +151,7 @@ export interface RagflowDocument {
   id: string;
   name: string;
   status: string;
+  product?: string | null;
   size?: number;
   chunkCount?: number;
   updatedAt?: string | null;

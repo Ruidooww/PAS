@@ -1,4 +1,4 @@
-export type CustomerSource = "mock" | "external";
+export type CustomerSource = "external" | "mock" | "pas";
 export type ProposalStatus = "draft" | "generating" | "review" | "final";
 
 export interface CustomerSummary {
