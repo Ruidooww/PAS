@@ -1,5 +1,5 @@
-import { type INestApplication } from "@nestjs/common";
-import { Test } from "@nestjs/testing";
+import { Logger, type INestApplication } from "@nestjs/common";
+import { Test, type TestingModule } from "@nestjs/testing";
 import { of } from "rxjs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -36,6 +36,12 @@ const completeEnv = {
   WECOM_CORP_ID: "ww_test",
   WECOM_REDIRECT_URI: "http://localhost:3001/auth/callback?provider=wecom",
 };
+
+function stubCompleteEnv(overrides: Partial<typeof completeEnv> = {}) {
+  for (const [key, value] of Object.entries({ ...completeEnv, ...overrides })) {
+    vi.stubEnv(key, value);
+  }
+}
 
 function session(overrides: Partial<SessionClaims> = {}): SessionClaims {
   return {
@@ -89,9 +95,7 @@ describe("proposal generation worker API", () => {
     proposalFindFirst.mockReset();
     queueEnqueue.mockReset();
     progressStream.mockReset();
-    for (const [key, value] of Object.entries(completeEnv)) {
-      vi.stubEnv(key, value);
-    }
+    stubCompleteEnv();
 
     const { AppModule } = await import("../src/app.module");
     const { PrismaService } = await import("../src/prisma/prisma.service");
@@ -264,3 +268,212 @@ describe("proposal generation worker API", () => {
     return `${SESSION_COOKIE_NAME}=${jwt.sign(claims)}`;
   }
 });
+
+describe("proposal generation worker service e2e", () => {
+  let moduleRef: TestingModule;
+  let service: { generate(job: typeof generationJob): Promise<void> };
+  const proposalFindFirst = vi.fn();
+  const proposalUpdateMany = vi.fn();
+  const userFindUnique = vi.fn();
+  const queryRaw = vi.fn();
+  const ragflowRetrieve = vi.fn();
+  const llmComplete = vi.fn();
+  const publish = vi.fn();
+
+  beforeEach(async () => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    stubCompleteEnv();
+    proposalFindFirst.mockResolvedValue({ status: "draft" });
+    proposalUpdateMany.mockResolvedValue({ count: 1 });
+    userFindUnique.mockResolvedValue(generationUserRow);
+    queryRaw.mockResolvedValue([{ ragflow_doc_id: "doc-visible" }]);
+    ragflowRetrieve.mockResolvedValue([
+      {
+        id: "chunk-visible",
+        documentId: "doc-visible",
+        content: "IP-Guard supports transparent encryption, outbound controls, and audit evidence.",
+        score: 0.98,
+        metadata: { docName: "ip-guard.pdf", page: 3 },
+      },
+    ]);
+    llmComplete.mockResolvedValue(longGeneratedBody("Generated section"));
+    publish.mockResolvedValue(undefined);
+
+    const { AppModule } = await import("../src/app.module");
+    const { LLM_CLIENT } = await import("../src/clients/llm");
+    const { RAGFLOW_CLIENT } = await import("../src/clients/ragflow");
+    const { PrismaService } = await import("../src/prisma/prisma.service");
+    const { ProposalGenerationService } = await import(
+      "../src/proposal-worker/proposal-generation.service"
+    );
+    const { ProposalProgressService } = await import(
+      "../src/proposal-worker/proposal-progress.service"
+    );
+    moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(PrismaService)
+      .useValue({
+        $queryRaw: queryRaw,
+        proposal: {
+          findFirst: proposalFindFirst,
+          updateMany: proposalUpdateMany,
+        },
+        user: {
+          findUnique: userFindUnique,
+        },
+        auditLog: {
+          create: vi.fn().mockResolvedValue({}),
+        },
+        onModuleInit: async () => undefined,
+        onModuleDestroy: async () => undefined,
+      })
+      .overrideProvider(RAGFLOW_CLIENT)
+      .useValue({ retrieve: ragflowRetrieve })
+      .overrideProvider(LLM_CLIENT)
+      .useValue({ complete: llmComplete })
+      .overrideProvider(ProposalProgressService)
+      .useValue({ publish })
+      .compile();
+    service = moduleRef.get(ProposalGenerationService);
+  });
+
+  afterEach(async () => {
+    vi.unstubAllEnvs();
+    await moduleRef?.close();
+  });
+
+  it("generates the v2 template with dynamic section bodies and fixed section content", async () => {
+    await service.generate(generationJob);
+
+    const sections = persistedSections();
+    const dynamicSections = sections.filter((section) => dynamicSectionIds.has(section.id));
+    expect(dynamicSections).toHaveLength(5);
+    expect(dynamicSections.every((section) => section.body.length > 0)).toBe(true);
+    expect(sections.find((section) => section.id === "project-background")?.body).toContain(
+      "长江精密制造集团",
+    );
+    expect(proposalUpdateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: generationJob.proposalId,
+          deletedAt: null,
+          status: "draft",
+        },
+        data: expect.objectContaining({ status: "draft_ready" }),
+      }),
+    );
+    expect(ragflowRetrieve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kbId: "proposal-kb",
+        docIdWhitelist: ["doc-visible"],
+      }),
+      expect.objectContaining({ uid: generationJob.userId }),
+    );
+  });
+
+  it("persists empty dynamic sections and logs when LLM completion fails", async () => {
+    const errorLog = vi.spyOn(Logger.prototype, "error").mockImplementation(() => undefined);
+    llmComplete.mockRejectedValue(new Error("LLM unavailable"));
+
+    try {
+      await service.generate(generationJob);
+
+      const sections = persistedSections();
+      const dynamicSections = sections.filter((section) => dynamicSectionIds.has(section.id));
+      expect(dynamicSections.every((section) => section.body.length === 0)).toBe(true);
+      expect(proposalUpdateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: "draft_ready" }),
+        }),
+      );
+      expect(errorLog).toHaveBeenCalledWith(
+        expect.stringContaining("generation failed for proposal proposal-1"),
+        expect.stringContaining("LLM unavailable"),
+      );
+      expect(publish).toHaveBeenCalledWith(
+        generationJob.proposalId,
+        expect.objectContaining({ chapter: "product-overview", errorMessage: "LLM unavailable" }),
+      );
+    } finally {
+      errorLog.mockRestore();
+    }
+  });
+
+  it("persists empty dynamic sections and logs when RAGFlow retrieval fails", async () => {
+    const errorLog = vi.spyOn(Logger.prototype, "error").mockImplementation(() => undefined);
+    ragflowRetrieve.mockRejectedValue(new Error("RAGFlow unavailable"));
+
+    try {
+      await service.generate(generationJob);
+
+      const sections = persistedSections();
+      const dynamicSections = sections.filter((section) => dynamicSectionIds.has(section.id));
+      expect(dynamicSections.every((section) => section.body.length === 0)).toBe(true);
+      expect(llmComplete).not.toHaveBeenCalled();
+      expect(errorLog).toHaveBeenCalledWith(
+        expect.stringContaining("generation failed for proposal proposal-1"),
+        expect.stringContaining("RAGFlow unavailable"),
+      );
+      expect(publish).toHaveBeenCalledWith(
+        generationJob.proposalId,
+        expect.objectContaining({
+          chapter: "product-overview",
+          errorMessage: "RAGFlow unavailable",
+        }),
+      );
+    } finally {
+      errorLog.mockRestore();
+    }
+  });
+
+  function persistedSections(): GeneratedSection[] {
+    const data = proposalUpdateMany.mock.calls.at(-1)?.[0]?.data.contentJson as
+      | { sections: GeneratedSection[] }
+      | undefined;
+    return data?.sections ?? [];
+  }
+});
+
+const generationJob = {
+  proposalId: "proposal-1",
+  requirementJson: {
+    customer: "长江精密制造集团",
+    industry: "制造业",
+    scale: "3500 人 / 4000 终端",
+    needs: ["终端文档加密", "外发管控", "屏幕水印 / 行为审计"],
+    constraints: ["私有化部署", "涉密图纸保护", "符合等保三级"],
+  },
+  templateId: "ip-guard-standard-v2",
+  userId: "user-1",
+};
+
+const generationUserRow = {
+  id: "user-1",
+  tenantId: "tenant-default",
+  idpProvider: "mock",
+  idpUserId: "mock-user-1",
+  name: "Mock User",
+  email: "mock.presales@example.com",
+  role: "presales",
+  isExternal: false,
+  deptId: "dept-presales",
+};
+
+const dynamicSectionIds = new Set([
+  "product-overview",
+  "module-catalog",
+  "feature-module-design",
+  "deployment-architecture",
+  "acceptance-criteria",
+]);
+
+interface GeneratedSection {
+  id: string;
+  title: string;
+  body: string;
+  refs: unknown[];
+}
+
+function longGeneratedBody(prefix: string): string {
+  return `${prefix} ${"IP-Guard transparent encryption and audit controls. ".repeat(8)}[1]`;
+}
