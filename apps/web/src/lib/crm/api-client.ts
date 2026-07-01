@@ -1,6 +1,8 @@
 import type {
   CustomerDetail,
   CustomerListResponse,
+  CustomerPortrait,
+  CreateOpportunityInput,
   OpportunityListResponse,
   OpportunitySummary,
 } from "./types";
@@ -36,6 +38,32 @@ async function jsonRequest<T>(url: string): Promise<T> {
   return (await response.json()) as T;
 }
 
+async function jsonPost<T>(url: string, body: unknown): Promise<T> {
+  const response = await fetch(url, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      accept: "application/json",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    const fallback = `CRM API error ${response.status}`;
+    let message = fallback;
+    try {
+      const payload = (await response.json()) as unknown;
+      if (payload && typeof payload === "object" && "message" in payload && typeof (payload as { message: unknown }).message === "string") {
+        message = (payload as { message: string }).message;
+      }
+    } catch {
+      // use fallback
+    }
+    throw new CrmApiError(response.status, message);
+  }
+  return (await response.json()) as T;
+}
+
 export async function listCustomers(params: {
   q?: string;
   ownerId?: string;
@@ -53,6 +81,10 @@ export async function getCustomer(ref: string): Promise<CustomerDetail> {
   return jsonRequest<CustomerDetail>(`/api/internal/customers/${encodeURIComponent(ref)}`);
 }
 
+export async function getCustomerPortrait(ref: string): Promise<CustomerPortrait> {
+  return jsonRequest<CustomerPortrait>(`/api/internal/customers/${encodeURIComponent(ref)}/portrait`);
+}
+
 export async function listOpportunities(params: {
   customerRef?: string;
   stage?: string;
@@ -68,4 +100,10 @@ export async function listOpportunities(params: {
 
 export async function getOpportunity(ref: string): Promise<OpportunitySummary> {
   return jsonRequest<OpportunitySummary>(`/api/internal/opportunities/${encodeURIComponent(ref)}`);
+}
+
+export async function createOpportunity(
+  input: CreateOpportunityInput,
+): Promise<OpportunitySummary> {
+  return jsonPost<OpportunitySummary>("/api/internal/opportunities", input);
 }

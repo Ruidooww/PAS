@@ -9,16 +9,16 @@ import { CrmApiError, listOpportunities } from "../../lib/crm/api-client";
 import type { OpportunitySummary } from "../../lib/crm/types";
 import styles from "./crm.module.css";
 
-const STAGES = ["", "prospecting", "qualification", "proposal", "negotiation", "closed_won", "closed_lost"];
+const STAGES = ["", "discovery", "qualified", "evaluation", "negotiation", "closed_won", "closed_lost"];
 
 const STAGE_LABEL: Record<string, string> = {
   "": "全部",
-  prospecting: "Prospecting",
-  qualification: "Qualification",
-  proposal: "Proposal",
-  negotiation: "Negotiation",
-  closed_won: "Closed Won",
-  closed_lost: "Closed Lost",
+  discovery: "需求发现",
+  qualified: "已确认",
+  evaluation: "评估中",
+  negotiation: "商务谈判",
+  closed_won: "已赢单",
+  closed_lost: "已丢单",
 };
 
 export function OpportunityListView() {

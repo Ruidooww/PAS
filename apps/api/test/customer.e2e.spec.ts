@@ -98,6 +98,7 @@ describe("customer CRM API", () => {
     listCustomers: ReturnType<typeof vi.fn>;
     getOpportunity: ReturnType<typeof vi.fn>;
     listOpportunities: ReturnType<typeof vi.fn>;
+    upsertOpportunity: ReturnType<typeof vi.fn>;
   };
   let cache: {
     get: ReturnType<typeof vi.fn>;
@@ -124,6 +125,7 @@ describe("customer CRM API", () => {
       listCustomers: vi.fn().mockResolvedValue([customer()]),
       getOpportunity: vi.fn().mockResolvedValue(opportunity()),
       listOpportunities: vi.fn().mockResolvedValue([opportunity()]),
+      upsertOpportunity: vi.fn(async (created: Opportunity) => created),
     };
     cache = {
       get: vi.fn().mockResolvedValue(null),
@@ -309,6 +311,127 @@ describe("customer CRM API", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
       items: [{ ref: "opp-acme-dlp", amountEstimate: 800_000 }],
+    });
+  });
+
+  it("creates an opportunity for presales users in mock CRM mode", async () => {
+    const response = await request("/api/internal/opportunities", {
+      method: "POST",
+      body: JSON.stringify({
+        customerRef: "cust-acme",
+        title: "Acme 新增终端安全扩容",
+        stage: "qualified",
+        amountEstimate: 300_000,
+      }),
+    });
+
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as Opportunity;
+    expect(body).toMatchObject({
+      ref: expect.stringMatching(/^opp-/),
+      customerRef: "cust-acme",
+      title: "Acme 新增终端安全扩容",
+      stage: "qualified",
+      amountEstimate: 300_000,
+      ownerId: "user-1",
+    });
+    expect(crm.upsertOpportunity).toHaveBeenCalledWith(expect.objectContaining(body));
+  });
+
+  it("rejects invalid opportunity stages", async () => {
+    const response = await request("/api/internal/opportunities", {
+      method: "POST",
+      body: JSON.stringify({
+        customerRef: "cust-acme",
+        title: "Bad stage",
+        stage: "proposal",
+        amountEstimate: 300_000,
+      }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(crm.upsertOpportunity).not.toHaveBeenCalled();
+  });
+
+  it("rejects external users when creating opportunities", async () => {
+    const response = await request(
+      "/api/internal/opportunities",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          customerRef: "cust-acme",
+          title: "External create",
+          stage: "qualified",
+          amountEstimate: 300_000,
+        }),
+      },
+      session({ uid: "external-user", role: "external", isExternal: true, deptId: null }),
+    );
+
+    expect(response.status).toBe(403);
+    expect(crm.upsertOpportunity).not.toHaveBeenCalled();
+  });
+
+  it("returns a customer portrait with opportunity and proposal aggregates", async () => {
+    crm.listOpportunities.mockResolvedValueOnce([
+      { ...opportunity(), stage: "discovery", amountEstimate: 800_000 },
+      {
+        ...opportunity({
+          ref: "opp-acme-expansion",
+          stage: "qualified",
+          amountEstimate: 300_000,
+        }),
+        updatedAt: "2026-06-27T08:00:00.000Z",
+      } as Opportunity & { updatedAt: string },
+    ]);
+    proposalFindMany.mockResolvedValueOnce([
+      proposal({
+        id: "proposal-new",
+        status: "final",
+        createdAt: new Date("2026-06-28T08:00:00.000Z"),
+      }),
+      proposal({
+        id: "proposal-old",
+        status: "draft",
+        createdAt: new Date("2026-06-20T08:00:00.000Z"),
+      }),
+    ]);
+
+    const response = await request("/api/internal/customers/cust-acme/portrait");
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      ref: "cust-acme",
+      name: "Acme Manufacturing",
+      industry: "manufacturing",
+      scale: 1200,
+      ownerId: "user-1",
+      opportunities: {
+        total: 2,
+        byStage: { discovery: 1, qualified: 1 },
+        latestUpdatedAt: "2026-06-27T08:00:00.000Z",
+        totalAmountEstimate: 1_100_000,
+      },
+      proposals: {
+        total: 2,
+        latestStatus: "final",
+        latestUpdatedAt: "2026-06-28T08:00:00.000Z",
+      },
+    });
+    expect(proposalFindMany).toHaveBeenCalledWith({
+      where: {
+        id: { in: ["proposal-1"] },
+        customerRef: "cust-acme",
+        deletedAt: null,
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        version: true,
+        createdAt: true,
+      },
     });
   });
 

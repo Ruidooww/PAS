@@ -67,3 +67,22 @@ export interface OpportunityListResponse {
   page: number;
   fromCache?: boolean;
 }
+
+export interface CustomerPortraitDto {
+  ref: string;
+  name: string;
+  industry: string | null;
+  scale: number | null;
+  ownerId: string | null;
+  opportunities: {
+    total: number;
+    byStage: Record<string, number>;
+    latestUpdatedAt: string | null;
+    totalAmountEstimate: number;
+  };
+  proposals: {
+    total: number;
+    latestStatus: ProposalStatus | null;
+    latestUpdatedAt: string | null;
+  };
+}

@@ -13,6 +13,17 @@ const safePage = z
   .refine(Number.isSafeInteger, { message: "page must be a safe integer" })
   .default("1");
 
+const nonEmptyString = z.string().trim().min(1);
+
+export const opportunityStageSchema = z.enum([
+  "discovery",
+  "qualified",
+  "evaluation",
+  "negotiation",
+  "closed_won",
+  "closed_lost",
+]);
+
 export const customerListQuerySchema = z
   .object({
     q: optionalTrim,
@@ -29,5 +40,15 @@ export const opportunityListQuerySchema = z
   })
   .strict();
 
+export const createOpportunitySchema = z
+  .object({
+    customerRef: nonEmptyString,
+    title: nonEmptyString,
+    stage: opportunityStageSchema,
+    amountEstimate: z.number().positive().nullable(),
+  })
+  .strict();
+
 export type CustomerListQuery = z.infer<typeof customerListQuerySchema>;
 export type OpportunityListQuery = z.infer<typeof opportunityListQuerySchema>;
+export type CreateOpportunityDto = z.infer<typeof createOpportunitySchema>;

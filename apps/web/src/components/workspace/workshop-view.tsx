@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 
 import { CrmApiError, listCustomers, listOpportunities } from "../../lib/crm/api-client";
 import type { CustomerSummary, OpportunitySummary } from "../../lib/crm/types";
+import { KbDocumentsApiError, listKbDocuments } from "../../lib/kb-documents/api-client";
+import type { KbDocumentSummary } from "../../lib/kb-documents/types";
 import { ProposalApiError, listProposals } from "../../lib/proposal/api-client";
 import type { Proposal } from "../../lib/proposal/types";
 import { ChatWorkspace } from "../chat/chat-workspace";
@@ -114,13 +116,13 @@ const VIEW_CONFIGS: Record<WorkshopViewId, WorkshopViewConfig> = {
     id: "knowledge",
     title: "知识库",
     description: "沉淀产品白皮书、解决方案、案例和客户问答，用于 RAG 引用。",
-    metric: { value: "18,732", label: "知识片段" },
+    metric: { value: "—", label: "知识片段" },
     cards: [
-      { label: "产品文档", value: "386" },
-      { label: "解决方案", value: "128" },
-      { label: "客户案例", value: "74" },
+      { label: "文档总数", value: "0" },
+      { label: "知识片段", value: "—" },
+      { label: "产品类型", value: "0" },
     ],
-    columns: ["资料", "类型", "版本", "同步"],
+    columns: ["资料", "产品 / 敏感度", "大小", "同步"],
     emptyText: "暂无知识库资料",
     sideTitle: "资料同步",
     sideItems: [
@@ -202,11 +204,6 @@ const VIEW_CONFIGS: Record<WorkshopViewId, WorkshopViewConfig> = {
 };
 
 const STATIC_ROWS: Partial<Record<WorkshopViewId, WorkshopRow[]>> = {
-  knowledge: [
-    { id: "kb-1", cells: ["智能制造平台建设白皮书", "产品文档", "v2.1", "正常"] },
-    { id: "kb-2", cells: ["制造运营平台解决方案", "解决方案", "v3.0", "正常"] },
-    { id: "kb-3", cells: ["某装备集团智能制造案例", "客户案例", "v1.3", "正常"] },
-  ],
   qa: [
     { id: "qa-1", cells: ["总体架构和技术路线", "知识库", "已回答", "正向"] },
     { id: "qa-2", cells: ["实施计划风险", "方案上下文", "已回答", "待反馈"] },
@@ -228,6 +225,12 @@ const STATIC_ROWS: Partial<Record<WorkshopViewId, WorkshopRow[]>> = {
     { id: "s-3", cells: ["通知", "方案生成完成提醒", "已启用"] },
   ],
 };
+
+const KNOWLEDGE_FALLBACK_ROWS: WorkshopRow[] = [
+  { id: "kb-fallback-1", cells: ["智能制造平台建设白皮书", "产品文档 / internal", "—", "备用数据"] },
+  { id: "kb-fallback-2", cells: ["制造运营平台解决方案", "解决方案 / internal", "—", "备用数据"] },
+  { id: "kb-fallback-3", cells: ["某装备集团智能制造案例", "客户案例 / internal", "—", "备用数据"] },
+];
 
 export function WorkshopView({ viewId }: { viewId: WorkshopViewId }) {
   const router = useRouter();
@@ -259,8 +262,9 @@ export function WorkshopView({ viewId }: { viewId: WorkshopViewId }) {
       .catch((err: unknown) => {
         if (!active) return;
         if (
-          (err instanceof CrmApiError || err instanceof ProposalApiError) &&
-          err.status === 401
+          ((err instanceof CrmApiError || err instanceof ProposalApiError) &&
+            err.status === 401) ||
+          (err instanceof KbDocumentsApiError && err.status === 401)
         ) {
           router.replace("/login");
           return;
@@ -280,7 +284,7 @@ export function WorkshopView({ viewId }: { viewId: WorkshopViewId }) {
       pageTitle={config.title}
       pageDescription={config.description}
       breadcrumb={[{ label: config.title }]}
-      actions={viewId === "documents" ? <Link href="/proposals/new">新建方案</Link> : undefined}
+      actions={<WorkshopActions viewId={viewId} />}
     >
       {loading && <div className={styles.statePanel}>正在加载{config.title}...</div>}
       {error && <div className={styles.errorPanel} role="alert">{error}</div>}
@@ -384,8 +388,14 @@ function EmbeddedQa() {
   );
 }
 
-function isDynamicView(viewId: WorkshopViewId): boolean {
-  return viewId === "customers" || viewId === "opportunities" || viewId === "documents";
+export function isDynamicView(viewId: WorkshopViewId): boolean {
+  return viewId === "customers" || viewId === "opportunities" || viewId === "documents" || viewId === "knowledge";
+}
+
+function WorkshopActions({ viewId }: { viewId: WorkshopViewId }) {
+  if (viewId === "documents") return <Link href="/proposals/new">新建方案</Link>;
+  if (viewId === "opportunities") return <Link href="/opportunities/new">新建商机</Link>;
+  return null;
 }
 
 async function loadDynamicRows(viewId: WorkshopViewId): Promise<{
@@ -414,12 +424,37 @@ async function loadDynamicRows(viewId: WorkshopViewId): Promise<{
       configPatch: {
         metric: { value: String(res.items.length), label: "商机总数" },
         cards: [
-          { label: "方案设计", value: String(countStage(res.items, "方案设计")) },
-          { label: "商务谈判", value: String(countStage(res.items, "商务")) },
-          { label: "预计赢单", value: "28%" },
+          { label: "评估中", value: String(countStage(res.items, "evaluation")) },
+          { label: "商务谈判", value: String(countStage(res.items, "negotiation")) },
+          { label: "已赢单", value: String(countStage(res.items, "closed_won")) },
         ],
       },
     };
+  }
+
+  if (viewId === "knowledge") {
+    try {
+      const res = await listKbDocuments();
+      return {
+        rows: buildKnowledgeRows(res.items),
+        configPatch: {
+          metric: {
+            value: formatNullableNumber(res.stats.totalChunks),
+            label: "知识片段",
+          },
+          cards: [
+            { label: "文档总数", value: String(res.stats.totalDocs) },
+            { label: "知识片段", value: formatNullableNumber(res.stats.totalChunks) },
+            { label: "产品类型", value: String(Object.keys(res.stats.byType).length) },
+          ],
+        },
+      };
+    } catch (error) {
+      if (error instanceof KbDocumentsApiError && error.status >= 500) {
+        return { rows: KNOWLEDGE_FALLBACK_ROWS, configPatch: {} };
+      }
+      throw error;
+    }
   }
 
   const res = await listProposals({ page: 1 });
@@ -434,6 +469,18 @@ async function loadDynamicRows(viewId: WorkshopViewId): Promise<{
       ],
     },
   };
+}
+
+function buildKnowledgeRows(items: KbDocumentSummary[]): WorkshopRow[] {
+  return items.map((document) => ({
+    id: document.ragflowDocId,
+    cells: [
+      document.name,
+      `${document.product ?? "-"} / ${document.sensitivity}`,
+      formatBytes(document.size),
+      formatDateTime(document.syncedAt),
+    ],
+  }));
 }
 
 function buildCustomerRows(items: CustomerSummary[]): WorkshopRow[] {
@@ -489,4 +536,19 @@ function formatMoney(value: number | null): string {
   if (value == null) return "-";
   if (value >= 10_000) return `¥ ${(value / 10_000).toLocaleString("zh-CN")} 万`;
   return `¥ ${value.toLocaleString("zh-CN")}`;
+}
+
+function formatNullableNumber(value: number | null): string {
+  return value == null ? "—" : value.toLocaleString("zh-CN");
+}
+
+function formatBytes(value: number | null): string {
+  if (value == null) return "—";
+  if (value >= 1024 * 1024) return `${(value / 1024 / 1024).toFixed(1)} MB`;
+  if (value >= 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${value} B`;
+}
+
+function formatDateTime(value: string): string {
+  return new Date(value).toLocaleString("zh-CN");
 }

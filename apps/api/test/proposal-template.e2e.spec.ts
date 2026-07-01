@@ -87,22 +87,32 @@ describe("proposal template API", () => {
     await app?.close();
   });
 
-  it("lists the validated IP-Guard standard v1 template in chapter order", async () => {
+  it("lists the validated IP-Guard templates in filename order", async () => {
     const response = await fetch(`${baseUrl}/api/internal/proposal-templates`, {
       headers: { cookie: authCookie },
     });
 
     expect(response.status).toBe(200);
     const templates = (await response.json()) as Array<Record<string, unknown>>;
-    expect(templates).toHaveLength(1);
-    expect(templates[0]).toMatchObject({
+    expect(templates.map((template) => template.id)).toEqual([
+      "ip-guard-standard-v1",
+      "ip-guard-standard-v2",
+    ]);
+    const v1 = templates.find((template) => template.id === "ip-guard-standard-v1");
+    const v2 = templates.find((template) => template.id === "ip-guard-standard-v2");
+    expect(v1).toMatchObject({
       id: "ip-guard-standard-v1",
       name: "IP-Guard 标准方案",
       version: 1,
       product: "IP-Guard",
     });
+    expect(v2).toMatchObject({
+      id: "ip-guard-standard-v2",
+      version: 2,
+      product: "IP-Guard",
+    });
 
-    const sections = templates[0]?.sections as Array<Record<string, unknown>>;
+    const sections = v1?.sections as Array<Record<string, unknown>>;
     expect(sections).toHaveLength(7);
     expect(sections.map((section) => section.title)).toEqual([
       "项目背景",
@@ -138,6 +148,11 @@ describe("proposal template API", () => {
       retrievalIntent: expect.stringContaining("{{scale}}"),
       variables: ["scale"],
     });
+    const v2Sections = v2?.sections as Array<Record<string, unknown>>;
+    expect(v2Sections).toHaveLength(9);
+    expect(v2Sections.map((section) => section.id)).toEqual(
+      expect.arrayContaining(["module-catalog", "acceptance-criteria"]),
+    );
   });
 
   it("requires authentication", async () => {
