@@ -97,6 +97,17 @@ describe("internal KB documents API", () => {
         ragflowUpdatedAt: new Date("2026-06-23T08:00:00.000Z"),
         syncedAt: new Date("2026-06-24T08:00:00.000Z"),
       },
+      {
+        ragflowDocId: "rag-doc-blob",
+        name: "6e3944cca0f156b44452876628cb843f.jpg",
+        product: null,
+        aclScope: "internal",
+        sensitivity: "internal",
+        chunkCount: 5,
+        size: 4096,
+        ragflowUpdatedAt: new Date("2026-06-25T08:00:00.000Z"),
+        syncedAt: new Date("2026-06-25T08:00:00.000Z"),
+      },
     ]);
 
     const { AppModule } = await import("../src/app.module");
