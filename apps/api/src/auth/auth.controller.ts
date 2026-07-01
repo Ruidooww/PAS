@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import {
   BadRequestException,
   Controller,
@@ -41,6 +43,33 @@ function redirect(response: HeaderResponse, location: string): { statusCode: num
   return { statusCode: 302, url: location };
 }
 
+function normalizeReturnUrl(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  if (!value.startsWith("/") || value.startsWith("//")) return null;
+  if (value.includes("\r") || value.includes("\n")) return null;
+  return value;
+}
+
+function createOAuthState(returnUrl: string | undefined): string | undefined {
+  const normalizedReturnUrl = normalizeReturnUrl(returnUrl);
+  if (!normalizedReturnUrl) return undefined;
+  return Buffer.from(
+    JSON.stringify({ nonce: randomUUID(), returnUrl: normalizedReturnUrl }),
+  ).toString("base64url");
+}
+
+function returnUrlFromState(state: string | undefined): string | null {
+  if (!state) return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(state, "base64url").toString("utf8")) as {
+      returnUrl?: unknown;
+    };
+    return normalizeReturnUrl(parsed.returnUrl);
+  } catch {
+    return null;
+  }
+}
+
 @Controller()
 export class AuthController {
   constructor(
@@ -52,10 +81,11 @@ export class AuthController {
   @HttpCode(302)
   login(
     @Query("provider") providerParam: string | undefined,
+    @Query("returnUrl") returnUrlParam: string | undefined,
     @Res({ passthrough: true }) response: HeaderResponse,
   ): { statusCode: number; url: string } {
     const provider = parseIdpProvider(providerParam);
-    const login = this.auth.buildLoginUrl(provider);
+    const login = this.auth.buildLoginUrl(provider, createOAuthState(returnUrlParam));
     response.setHeader("Set-Cookie", serializeOAuthStateCookie(login.state));
     return redirect(response, login.url);
   }
@@ -82,7 +112,7 @@ export class AuthController {
       serializeExpiredOAuthStateCookie(),
       serializeSessionCookie(token, maxAge, this.useSecureSessionCookie()),
     ]);
-    return redirect(response, "/api/me");
+    return redirect(response, returnUrlFromState(state) ?? "/");
   }
 
   @Post("auth/logout")
