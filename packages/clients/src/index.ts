@@ -374,7 +374,12 @@ function isCustomer(value: unknown): value is Customer {
   );
 }
 
-function isOpportunity(value: unknown): value is Opportunity {
+type ExternalOpportunityPayload = Opportunity & {
+  createdAt?: string | null;
+  updatedAt?: string | null;
+};
+
+function isOpportunity(value: unknown): value is ExternalOpportunityPayload {
   if (!value || typeof value !== "object") return false;
   const record = value as Record<string, unknown>;
   return (
@@ -384,9 +389,22 @@ function isOpportunity(value: unknown): value is Opportunity {
     typeof record.stage === "string" &&
     (record.amountEstimate === null || typeof record.amountEstimate === "number") &&
     (record.ownerId === null || typeof record.ownerId === "string") &&
-    (record.createdAt === undefined || typeof record.createdAt === "string") &&
-    (record.updatedAt === undefined || typeof record.updatedAt === "string")
+    (record.createdAt === undefined ||
+      record.createdAt === null ||
+      typeof record.createdAt === "string") &&
+    (record.updatedAt === undefined ||
+      record.updatedAt === null ||
+      typeof record.updatedAt === "string")
   );
+}
+
+function normalizeOpportunity(opportunity: ExternalOpportunityPayload): Opportunity {
+  const { createdAt, updatedAt, ...rest } = opportunity;
+  return {
+    ...rest,
+    ...(createdAt === undefined || createdAt === null ? {} : { createdAt }),
+    ...(updatedAt === undefined || updatedAt === null ? {} : { updatedAt }),
+  };
 }
 
 export interface ExternalCrmClientOptions {
@@ -425,7 +443,7 @@ export class ExternalCrmClient implements CrmClient {
     if (!isOpportunity(value)) {
       throw new CrmClientError(`Invalid opportunity payload for ${ref}`, "external");
     }
-    return value;
+    return normalizeOpportunity(value);
   }
 
   async listOpportunities(params: CrmListOpportunitiesParams): Promise<Opportunity[]> {
@@ -433,7 +451,7 @@ export class ExternalCrmClient implements CrmClient {
     if (!Array.isArray(value) || !value.every(isOpportunity)) {
       throw new CrmClientError("Invalid listOpportunities payload", "external");
     }
-    return value;
+    return value.map(normalizeOpportunity);
   }
 
   upsertOpportunity(_opportunity: Opportunity): Promise<Opportunity> {

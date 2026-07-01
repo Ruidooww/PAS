@@ -147,11 +147,11 @@ describe("kb sync admin routes", () => {
       headers: { cookie: `${SESSION_COOKIE_NAME}=${token}` },
     });
 
-    expect(response.status).toBe(201);
+    expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       runs: [{ kbId: "proposal-kb", added: 1, deleted: 0, updated: 1, status: "success" }],
     });
-    expect(kbSyncService.runOnce).toHaveBeenCalledWith();
+    expect(kbSyncService.runOnce).toHaveBeenCalledWith({ throwOnFailure: true });
   });
 
   it("returns paginated sync logs for admins", async () => {

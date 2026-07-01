@@ -197,6 +197,36 @@ describe("ExternalCrmClient", () => {
       "https://crm.example.com/opportunities/opp-1",
     );
   });
+
+  it("normalizes nullable opportunity timestamps from the upstream payload", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(
+      jsonResponse({
+        ref: "opp-null-timestamps",
+        customerRef: "cust-1",
+        title: "Nullable timestamp deal",
+        stage: "discovery",
+        amountEstimate: null,
+        ownerId: null,
+        createdAt: null,
+        updatedAt: null,
+      }),
+    );
+    const client = new ExternalCrmClient({
+      baseUrl: "https://crm.example.com",
+      apiKey: "k",
+      fetchImpl,
+    });
+
+    const opp = await client.getOpportunity("opp-null-timestamps");
+
+    expect(opp).toMatchObject({
+      ref: "opp-null-timestamps",
+      amountEstimate: null,
+      ownerId: null,
+    });
+    expect(opp).not.toHaveProperty("createdAt");
+    expect(opp).not.toHaveProperty("updatedAt");
+  });
 });
 
 describe("PasCrmClient", () => {

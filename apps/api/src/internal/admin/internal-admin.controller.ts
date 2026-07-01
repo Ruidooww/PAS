@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Controller,
   Get,
+  HttpCode,
   Inject,
   Post,
   Query,
@@ -154,8 +155,9 @@ export class InternalAdminController {
   }
 
   @Post("kb-sync/run")
+  @HttpCode(200)
   runKbSync(): Promise<KbSyncRunSummary> {
-    return this.kbSyncService.runOnce();
+    return this.kbSyncService.runOnce({ throwOnFailure: true });
   }
 
   @Get("kb-sync/logs")
