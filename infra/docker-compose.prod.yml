@@ -90,10 +90,7 @@ services:
       - pas-net
 
   pas-api:
-    build:
-      context: ..
-      dockerfile: apps/api/Dockerfile
-    image: pas-api:prod
+    image: ${PAS_API_IMAGE:-registry.cn-hangzhou.aliyuncs.com/ruidoww/pas:api-latest}
     container_name: pas-api
     restart: unless-stopped
     logging:
@@ -123,11 +120,7 @@ services:
       - shared
 
   pas-api-migrator:
-    build:
-      context: ..
-      dockerfile: apps/api/Dockerfile
-      target: migrator
-    image: pas-api-migrator:prod
+    image: ${PAS_API_MIGRATOR_IMAGE:-registry.cn-hangzhou.aliyuncs.com/ruidoww/pas:api-migrator-latest}
     env_file:
       - .env.prod
     profiles:
@@ -136,12 +129,7 @@ services:
       - pas-net
 
   pas-web:
-    build:
-      context: ..
-      dockerfile: apps/web/Dockerfile
-      args:
-        API_BASE_URL: ${API_BASE_URL:-http://pas-api:3001}
-    image: pas-web:prod
+    image: ${PAS_WEB_IMAGE:-registry.cn-hangzhou.aliyuncs.com/ruidoww/pas:web-latest}
     container_name: pas-web
     restart: unless-stopped
     logging:

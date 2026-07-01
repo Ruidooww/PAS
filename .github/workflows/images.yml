@@ -26,6 +26,9 @@ jobs:
           - component: api
             dockerfile: apps/api/Dockerfile
             target: runner
+          - component: api-migrator
+            dockerfile: apps/api/Dockerfile
+            target: migrator
           - component: web
             dockerfile: apps/web/Dockerfile
             target: runner

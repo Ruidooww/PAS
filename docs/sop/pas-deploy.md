@@ -85,16 +85,18 @@ chmod 600 infra/.env.prod
 | `PAS_KB_ID` / `QA_KB_ID` | 填 RAGFlow dataset id |
 | `IDP_MODE=mock cannot be used when NODE_ENV=production` | 生产改为 `IDP_MODE=real`，或仅本地演练时临时使用非 production |
 
-## 5. 构建镜像
+## 5. 拉取镜像
 
 ```bash
-docker compose --env-file infra/.env.prod -f infra/docker-compose.prod.yml build
+docker login --username=<ACR_USERNAME> registry.cn-hangzhou.aliyuncs.com
+docker compose --env-file infra/.env.prod -f infra/docker-compose.prod.yml --profile migrate pull
 ```
 
-本期只构建两个应用镜像：
+本期默认从 ACR 拉取三个应用镜像：
 
-- `pas-api`：HTTP API + BullMQ worker 同进程。
-- `pas-web`：Next.js standalone server。
+- `registry.cn-hangzhou.aliyuncs.com/ruidoww/pas:api-latest`：HTTP API + BullMQ worker 同进程。
+- `registry.cn-hangzhou.aliyuncs.com/ruidoww/pas:api-migrator-latest`：Prisma migration runner。
+- `registry.cn-hangzhou.aliyuncs.com/ruidoww/pas:web-latest`：Next.js standalone server。
 
 不要创建或启动独立 `pas-worker` 容器。
 
