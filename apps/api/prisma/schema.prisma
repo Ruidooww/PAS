@@ -17,6 +17,7 @@ enum UserRole {
 
 enum CustomerSource {
   external
+  mock
   pas
 }
 
