@@ -75,10 +75,32 @@ export const envSchema = z
         message: "IDP_MODE=mock cannot be used when NODE_ENV=production",
       });
     }
+    if (env.LLM_CLIENT_MODE === "real" && looksLikePlaceholderApiKey(env.LLM_API_KEY)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["LLM_API_KEY"],
+        message: "LLM_API_KEY looks like a placeholder in real mode",
+      });
+    }
+    if (
+      env.RAGFLOW_CLIENT_MODE === "real" &&
+      looksLikePlaceholderApiKey(env.RAGFLOW_API_KEY)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["RAGFLOW_API_KEY"],
+        message: "RAGFLOW_API_KEY looks like a placeholder in real mode",
+      });
+    }
   });
 
 export type AppEnv = z.infer<typeof envSchema>;
 
 export function validateEnv(config: Record<string, unknown>): AppEnv {
   return envSchema.parse(config);
+}
+
+function looksLikePlaceholderApiKey(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  return normalized.startsWith("local-") || normalized.endsWith("placeholder");
 }

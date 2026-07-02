@@ -1,3 +1,4 @@
+import { Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Test } from "@nestjs/testing";
 import type { Chunk } from "@pas/shared";
@@ -187,6 +188,7 @@ describe("ProposalGenerationService", () => {
         role: "presales",
         deptId: "dept-presales",
       }),
+      "proposal-kb",
     );
     expect(ragflowRetrieve).toHaveBeenCalledWith(
       {
@@ -287,6 +289,8 @@ describe("ProposalGenerationService", () => {
   });
 
   it("retries a failed chapter three times, reports the failure, and continues", async () => {
+    const errorLog = vi.spyOn(Logger.prototype, "error").mockImplementation(() => undefined);
+    const infoLog = vi.spyOn(Logger.prototype, "log").mockImplementation(() => undefined);
     getTemplate.mockReturnValue(
       template([
         {
@@ -317,53 +321,70 @@ describe("ProposalGenerationService", () => {
       .mockRejectedValueOnce(new Error("LLM unavailable"))
       .mockResolvedValueOnce("Following chapter [1]");
 
-    await service.generate(job);
+    try {
+      await service.generate(job);
 
-    expect(llmComplete).toHaveBeenCalledTimes(5);
-    expect(proposalUpdateMany).toHaveBeenCalledWith({
-      where: {
-        id: "proposal-1",
-        deletedAt: null,
-        status: "draft",
-      },
-      data: {
-        contentJson: {
-          sections: [
-            {
-              id: "failing",
-              title: "Failing chapter",
-              body: "",
-              refs: [],
-            },
-            {
-              id: "following",
-              title: "Following chapter",
-              body: "Following chapter [1]",
-              refs: [
-                {
-                  n: 1,
-                  chunkId: "allowed-chunk",
-                  docName: "allowed.pdf",
-                },
-              ],
-            },
-          ],
+      expect(llmComplete).toHaveBeenCalledTimes(5);
+      expect(errorLog).toHaveBeenCalledTimes(5);
+      expect(errorLog).toHaveBeenCalledWith(
+        expect.stringContaining("Section failing attempt 1/4 failed for proposal proposal-1"),
+        expect.stringContaining("LLM unavailable"),
+      );
+      expect(errorLog).toHaveBeenLastCalledWith(
+        expect.stringContaining("Section failing generation failed for proposal proposal-1"),
+        expect.stringContaining("LLM unavailable"),
+      );
+      expect(infoLog).toHaveBeenCalledWith(
+        expect.stringContaining("Section following generated for proposal proposal-1"),
+      );
+      expect(proposalUpdateMany).toHaveBeenCalledWith({
+        where: {
+          id: "proposal-1",
+          deletedAt: null,
+          status: "draft",
         },
-        status: "draft_ready",
-      },
-    });
-    expect(publish).toHaveBeenNthCalledWith(1, "proposal-1", {
-      chapter: "failing",
-      n: 1,
-      total: 2,
-      errorMessage: "LLM unavailable",
-    });
-    expect(publish).toHaveBeenNthCalledWith(2, "proposal-1", {
-      chapter: "following",
-      n: 2,
-      total: 2,
-    });
-    expect(publish).toHaveBeenNthCalledWith(3, "proposal-1", { done: true });
+        data: {
+          contentJson: {
+            sections: [
+              {
+                id: "failing",
+                title: "Failing chapter",
+                body: "",
+                refs: [],
+              },
+              {
+                id: "following",
+                title: "Following chapter",
+                body: "Following chapter [1]",
+                refs: [
+                  {
+                    n: 1,
+                    chunkId: "allowed-chunk",
+                    docName: "allowed.pdf",
+                  },
+                ],
+              },
+            ],
+          },
+          status: "draft_ready",
+        },
+      });
+      expect(publish).toHaveBeenNthCalledWith(1, "proposal-1", {
+        chapter: "failing",
+        n: 1,
+        total: 2,
+        errorMessage: "LLM unavailable",
+      });
+      expect(publish).toHaveBeenNthCalledWith(2, "proposal-1", {
+        chapter: "following",
+        n: 2,
+        total: 2,
+      });
+      expect(publish).toHaveBeenNthCalledWith(3, "proposal-1", { done: true });
+    } finally {
+      errorLog.mockRestore();
+      infoLog.mockRestore();
+    }
   });
 
   it("skips duplicate jobs for proposals that are no longer draft", async () => {
